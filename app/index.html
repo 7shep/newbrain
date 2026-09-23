@@ -141,6 +141,26 @@ kbd { font: 500 11px var(--mono); border: 1px solid var(--line); border-radius: 
 .sw::after { content: ""; position: absolute; top: 3px; left: 19px; width: 16px; height: 16px; border-radius: 50%; background: var(--mint-ink); transition: transform .3s var(--ease), background .25s; }
 .sw.off { background: var(--tile-3); } .sw.off::after { transform: translateX(-16px); background: var(--muted); }
 
+/* ---------- map (graphify knowledge graph) ---------- */
+.map { grid-column: span 12; padding-bottom: 14px; }
+.map .stage { position: relative; height: clamp(360px, 52vh, 560px); margin: 0 -6px; border-radius: 14px; background:
+  radial-gradient(ellipse at 50% 40%, rgba(255,181,71,.05), transparent 60%), var(--bg); overflow: hidden; }
+.map canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+.map canvas.drag { cursor: grabbing; } .map canvas.hot { cursor: pointer; }
+.map .zoom { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 6px; }
+.map .zoom button { width: 30px; height: 30px; border-radius: 9px; border: 1px solid var(--line); background: var(--tile); color: var(--muted); font: 600 15px var(--sans); }
+.map .zoom button:hover { color: var(--amber); border-color: var(--amber); }
+.map .card { position: absolute; left: 12px; top: 12px; max-width: min(340px, 70%); background: var(--tile-2); border: 1px solid var(--line); border-radius: 12px;
+  padding: 10px 12px; pointer-events: none; opacity: 0; transform: translateY(-4px); transition: opacity .18s, transform .25s var(--ease); }
+.map .card.on { opacity: 1; transform: none; }
+.map .card b { display: block; font-size: 14px; } .map .card small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+.map .card code { font: 500 11px var(--mono); color: var(--dim); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.legend button { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); background: none; border-radius: 999px; padding: 4px 10px; font-size: 12px; color: var(--muted); transition: border-color .2s, color .2s, opacity .2s; }
+.legend button i { width: 8px; height: 8px; border-radius: 50%; }
+.legend button:hover, .legend button.on { color: var(--ink); border-color: var(--muted); }
+.legend.focused button:not(.on) { opacity: .45; }
+
 .timeline { grid-column: span 12; }
 .timeline .sess b { white-space: normal; }
 .day { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
@@ -255,6 +275,10 @@ kbd { font: 500 11px var(--mono); border: 1px solid var(--line); border-radius: 
   <section class="tile projects"><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h6l2 2h10v10H3z"/></svg><h2>Projects</h2><span class="n" id="projCount"></span></header><div id="projects"></div></section>
   <section class="tile ideas"><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z"/></svg><h2>Ideas</h2><span class="n" id="ideaCount"></span><button class="add" data-capture="idea">+ Idea</button></header><div id="ideas"></div></section>
   <section class="tile habits"><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 5.8H20l-4.9 3.6 1.9 5.8L12 14.6l-5 3.6 1.9-5.8L4 8.8h6.1z"/></svg><h2>How Claude adapts to you</h2><span class="n" id="habitCount"></span></header><div id="habits"></div></section>
+  <section class="tile map" id="mapTile" hidden><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="7" r="2"/><circle cx="12" cy="18" r="2"/><circle cx="12" cy="10" r="2.5"/><path d="M7 6.5l2.8 2.2M17.1 7.6l-2.8 1.6M12 12.5V16"/></svg><h2>Map of everything</h2><span class="n" id="mapCount"></span></header>
+    <div class="stage"><canvas id="mapCanvas" aria-label="Knowledge graph of your notes. Click a dot to open its note."></canvas><div class="card" id="mapCard"></div>
+      <div class="zoom"><button id="mapOut" title="Zoom out" aria-label="Zoom out">−</button><button id="mapFit" title="Fit" aria-label="Fit to view">⤢</button><button id="mapIn" title="Zoom in" aria-label="Zoom in">+</button></div></div>
+    <div class="legend" id="mapLegend"></div></section>
   <section class="tile timeline"><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><h2>Everything we've done</h2><span class="n" id="sessCount"></span></header><div id="timeline"></div></section>
 </main>
 
@@ -335,6 +359,129 @@ const SNOOZE = ["Snoozed. It'll be back.", "Later, then.", "Parked."];
 const CAPTURE = ["Caught it.", "Saved to the inbox.", "Got it — Claude will file it.", "Noted."];
 const fmtDay = iso => new Date(iso + "T12:00:00").toLocaleDateString("en", { weekday: "short" });
 const daysFrom = iso => Math.round((new Date(iso + "T12:00:00") - new Date(S.today + "T12:00:00")) / 864e5);
+
+/* ---------- map: the graphify knowledge graph, drawn in the app's own colours ---------- */
+async function initMap() {
+  let g;
+  try { g = await api("/api/graph"); } catch { return; } // no graph: the tile stays hidden
+  const tile = $("mapTile"), cv = $("mapCanvas"), card = $("mapCard"), ctx = cv.getContext("2d");
+  tile.hidden = false;
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const ACCENTS = ["--amber", "--mint", "--sky", "--lilac", "--rose"].map(css);
+  const byId = new Map(g.nodes.map((n, i) => [n.id, Object.assign(n, { i, deg: 0, nb: new Set() })]));
+  const links = g.links.map(([a, b]) => [byId.get(a), byId.get(b)]).filter(([a, b]) => a && b && a !== b);
+  for (const [a, b] of links) { a.deg++; b.deg++; a.nb.add(b); b.nb.add(a); }
+  // Biggest clusters get the accent colours; the long tail stays quiet grey.
+  const groups = [...g.nodes.reduce((m, n) => m.set(n.group, (m.get(n.group) || { id: n.group, name: n.groupName, n: 0 })), new Map()).values()];
+  g.nodes.forEach(n => groups.find(x => x.id === n.group).n++);
+  groups.sort((a, b) => b.n - a.n);
+  groups.forEach((x, i) => { x.color = ACCENTS[i] || css("--muted"); x.short = (x.name || "Cluster " + x.id).split(" / ")[0]; });
+  const colorOf = n => groups.find(x => x.id === n.group).color;
+  const hubs = new Set(groups.slice(0, 10).map(x => g.nodes.filter(n => n.group === x.id).sort((a, b) => b.deg - a.deg)[0]));
+  $("mapCount").textContent = `${g.nodes.length} ideas · ${links.length} links · built ${g.built}`;
+
+  // Seed each cluster around its own spot on a ring, then let a small force layout settle it.
+  // Each cluster gets an anchor on a wide ellipse (the stage is wide), biggest clusters spread furthest apart.
+  groups.forEach((x, i) => { const a = i * 2.39996; const r = Math.sqrt((i + .6) / groups.length); x.ax = Math.cos(a) * 900 * r; x.ay = Math.sin(a) * 230 * r; });
+  const anchor = n => groups.find(x => x.id === n.group);
+  g.nodes.forEach(n => { const A = anchor(n); n.A = A; n.x = A.ax + (Math.random() - .5) * 60; n.y = A.ay + (Math.random() - .5) * 60; n.vx = n.vy = 0; });
+  let alpha = 1;
+  function tick() {
+    const N = g.nodes;
+    for (let i = 0; i < N.length; i++) for (let j = i + 1; j < N.length; j++) { // ponytail: O(n²) repulsion; fine to ~1.5k nodes, use a quadtree past that
+      const a = N[i], b = N[j]; let dx = a.x - b.x, dy = a.y - b.y, d2 = dx * dx + dy * dy || .01;
+      if (d2 > 90000) continue;
+      const f = (a.group === b.group ? 420 : 900) * alpha / d2; a.vx += dx * f; a.vy += dy * f; b.vx -= dx * f; b.vy -= dy * f;
+    }
+    for (const [a, b] of links) {
+      const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1, f = (d - 30) * (a.group === b.group ? .03 : .004) * alpha;
+      a.vx += dx / d * f; a.vy += dy / d * f; b.vx -= dx / d * f; b.vy -= dy / d * f;
+    }
+    for (const n of N) { n.vx += (n.A.ax - n.x) * .012 * alpha; n.vy += (n.A.ay - n.y) * .012 * alpha; n.x += n.vx *= .55; n.y += n.vy *= .55; }
+    alpha = Math.max(alpha * .99, .08);
+  }
+
+  let W = 0, H = 0, view = { k: 1, x: 0, y: 0 }, hover = null, focus = null;
+  function size() {
+    const r = cv.getBoundingClientRect(), dpr = devicePixelRatio || 1;
+    W = r.width; H = r.height; cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); draw();
+  }
+  function fit() {
+    const xs = g.nodes.map(n => n.x), ys = g.nodes.map(n => n.y);
+    const w = Math.max(...xs) - Math.min(...xs) || 1, h = Math.max(...ys) - Math.min(...ys) || 1;
+    view.k = Math.min(W / (w + 60), H / (h + 60), 2.2);
+    view.x = W / 2 - (Math.min(...xs) + w / 2) * view.k; view.y = H / 2 - (Math.min(...ys) + h / 2) * view.k;
+  }
+  const rad = n => (2.4 + Math.sqrt(n.deg) * 1.5) / view.k;
+  const lit = n => (!hover || n === hover || hover.nb.has(n)) && (focus == null || n.group === focus);
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.save(); ctx.translate(view.x, view.y); ctx.scale(view.k, view.k);
+    ctx.lineWidth = 1 / view.k;
+    for (const [a, b] of links) {
+      const on = hover ? (a === hover || b === hover) : lit(a) && lit(b);
+      ctx.strokeStyle = on ? (hover ? colorOf(hover) : "rgba(154,158,164,.18)") : "rgba(154,158,164,.05)";
+      ctx.globalAlpha = hover && on ? .7 : 1;
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    for (const n of g.nodes) {
+      ctx.globalAlpha = lit(n) ? 1 : .14; ctx.fillStyle = colorOf(n);
+      ctx.beginPath(); ctx.arc(n.x, n.y, rad(n), 0, Math.PI * 2); ctx.fill();
+      if (n === hover) { ctx.strokeStyle = css("--ink"); ctx.lineWidth = 1.6 / view.k; ctx.stroke(); ctx.lineWidth = 1 / view.k; }
+    }
+    ctx.globalAlpha = 1;
+    ctx.font = `600 ${11.5 / view.k}px ${css("--sans")}`; ctx.textAlign = "center";
+    for (const n of g.nodes) {
+      const show = n === hover || (hover && hover.nb.has(n)) || (!hover && lit(n) && (hubs.has(n) || view.k > 1.8));
+      if (!show) continue;
+      ctx.fillStyle = n === hover ? css("--ink") : "rgba(236,234,228,.78)";
+      const t = n.label.length > 34 ? n.label.slice(0, 32) + "…" : n.label, ty = n.y - rad(n) - 5 / view.k;
+      ctx.lineWidth = 3 / view.k; ctx.strokeStyle = css("--bg"); ctx.strokeText(t, n.x, ty); ctx.fillText(t, n.x, ty);
+    }
+    ctx.restore();
+  }
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  new ResizeObserver(size).observe(cv);
+  size();
+  if (reduce) { for (let i = 0; i < 450; i++) tick(); fit(); draw(); }
+  else { let frames = 0; (function run() { for (let i = 0; i < 3; i++) tick(); fit(); draw(); if (++frames < 150) requestAnimationFrame(run); })(); }
+
+  // Hover, click to open, drag to pan, ⌘/ctrl + scroll or the buttons to zoom.
+  const at = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left - view.x) / view.k, (e.clientY - r.top - view.y) / view.k]; };
+  const hit = e => { const [x, y] = at(e); let best = null, bd = 1e9;
+    for (const n of g.nodes) { const d = Math.hypot(n.x - x, n.y - y); if (d < rad(n) + 6 / view.k && d < bd) { bd = d; best = n; } } return best; };
+  let drag = null, moved = false;
+  cv.addEventListener("pointerdown", e => { drag = { x: e.clientX - view.x, y: e.clientY - view.y }; moved = false; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener("pointermove", e => {
+    if (drag) { view.x = e.clientX - drag.x; view.y = e.clientY - drag.y; moved = true; cv.classList.add("drag"); return draw(); }
+    const n = hit(e);
+    if (n !== hover) {
+      hover = n; cv.classList.toggle("hot", !!n);
+      card.classList.toggle("on", !!n);
+      if (n) card.innerHTML = `<b>${esc(n.label)}</b><small>${esc(n.groupName)} · ${n.deg} link${n.deg === 1 ? "" : "s"}</small>${n.file ? `<code>${esc(n.file)}</code>` : ""}`;
+      draw();
+    }
+  });
+  cv.addEventListener("pointerup", e => {
+    cv.classList.remove("drag"); drag = null;
+    if (!moved) { const n = hit(e); if (n && /\.md$/.test(n.file)) openDoc(n.file); }
+  });
+  cv.addEventListener("pointerleave", () => { if (!drag && hover) { hover = null; card.classList.remove("on"); draw(); } });
+  const zoom = (f, cx = W / 2, cy = H / 2) => { const k = Math.min(Math.max(view.k * f, .2), 6); view.x = cx - (cx - view.x) * k / view.k; view.y = cy - (cy - view.y) * k / view.k; view.k = k; draw(); };
+  cv.addEventListener("wheel", e => { if (!(e.ctrlKey || e.metaKey)) return; e.preventDefault(); const r = cv.getBoundingClientRect(); zoom(Math.exp(-e.deltaY * .01), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+  $("mapIn").onclick = () => zoom(1.35); $("mapOut").onclick = () => zoom(1 / 1.35); $("mapFit").onclick = () => { fit(); draw(); };
+
+  $("mapLegend").innerHTML = groups.slice(0, 8).map(x => `<button data-g="${esc(x.id)}"><i style="background:${x.color}"></i>${esc(x.short)} <span style="color:var(--dim)">${x.n}</span></button>`).join("");
+  $("mapLegend").onclick = e => {
+    const b = e.target.closest("button"); if (!b) return;
+    const id = groups.find(x => String(x.id) === b.dataset.g).id;
+    focus = focus === id ? null : id;
+    $("mapLegend").classList.toggle("focused", focus != null);
+    $("mapLegend").querySelectorAll("button").forEach(x => x.classList.toggle("on", focus != null && x.dataset.g === String(focus)));
+    draw();
+  };
+}
 
 /* ---------- render ---------- */
 function render() {
@@ -777,7 +924,7 @@ function celebrate(el, n = 22) {
 }
 
 /* ---------- boot ---------- */
-load().then(() => { const h = decodeURIComponent(location.hash.slice(1)); if (h === "people") openPeople(); else if (h.endsWith(".md")) openDoc(h); });
+load().then(() => { const h = decodeURIComponent(location.hash.slice(1)); if (h === "people") openPeople(); else if (h.endsWith(".md")) openDoc(h); initMap(); });
 const idle = () => !doc && !/INPUT|TEXTAREA/.test(document.activeElement?.tagName || "");
 setInterval(() => { if (!document.hidden && idle()) load(); }, 30000);
 addEventListener("focus", () => { if (idle()) load(); });

@@ -14,6 +14,7 @@ act on them.
 - **Ideas board:** mark ideas done or dismiss them.
 - **Edit in place:** every note, person and project page opens in a side panel with a live markdown preview. ⌘S saves the file.
 - **Reopen anything:** copy the command to resume a past Claude Code chat, open a project in VS Code, or open its live site.
+- **Map of everything:** if you've run graphify (the Claude Code skill) on your notes (`graphify-out/graph.json`), a Map tile draws the knowledge graph in the app's colours. Hover a dot to see its links, click to open its note, and use the legend to focus one cluster.
 - **Everything we've done:** one self-contained note per session, in a full-width timeline.
 - **People & me:** your profile and contacts, one click away but out of the main view.
 

@@ -415,6 +415,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return self.send(200, state())
             if url.path == "/api/file":
                 return self.send(200, file_get(urllib.parse.parse_qs(url.query)))
+            if url.path == "/api/graph":
+                g = graph_get()
+                return self.send(200, g) if g else self.send(404, {"error": "No graph yet. Run graphify on your notes."})
         except PermissionError:
             return self.send(403, {"error": "That path isn't a note."})
         except Exception as e:
@@ -442,6 +445,22 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self.send(403, {"error": "That path isn't a note."})
         except (ValueError, TypeError) as e:
             return self.send(400, {"error": str(e)})
+
+
+def graph_get():
+    """The graphify knowledge graph of the notes (graphify-out/graph.json), trimmed for drawing.
+    Returns None when there isn't one, so the app just hides the Map tile."""
+    path = os.path.join(NOTES, "graphify-out", "graph.json")
+    if not os.path.exists(path):
+        return None
+    with open(path, encoding="utf-8") as f:
+        g = json.load(f)
+    nodes = [{"id": n["id"], "label": n.get("label") or n["id"], "group": n.get("community"),
+              "groupName": n.get("community_name") or "", "file": n.get("source_file") or ""}
+             for n in g.get("nodes", [])]
+    ids = {n["id"] for n in nodes}
+    links = [[l["source"], l["target"]] for l in g.get("links", []) if l["source"] in ids and l["target"] in ids]
+    return {"nodes": nodes, "links": links, "built": datetime.datetime.fromtimestamp(os.path.getmtime(path)).date().isoformat()}
 
 
 class Server(socketserver.ThreadingMixIn, http.server.HTTPServer):
