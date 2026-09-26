@@ -23,6 +23,21 @@ library, and has no build step.
 
 ![A person page open in the side panel](docs/page.png)
 
+## How I actually use it
+
+I've run every Claude Code session through this since May 2026: 47 sessions across 12 projects, with 15 habits Claude
+follows on every session. A few things it has shipped:
+
+- **[qweb.dev](https://qweb.dev)**, the 2026 site for Queen's Web Development Club, which I co-chair: rebuilt in
+  React + Supabase and shipped through PRs.
+- **[zacfinkelstein.ca](https://zacfinkelstein.ca)**, my portfolio.
+- The weekly admin of a full course load: syllabi into my calendar, lab prep, reminders.
+
+The habits are the part I'd copy. Each one exists because something went wrong once. For example, I brought Claude a
+popular "LLM council" skill (11 subagents per question). It argued me out of it: same model, fake independence, and
+10–20× the tokens for an answer I can get by asking. That argument became a habit: **when I pitch a project, Claude
+argues against it first.**
+
 ## Try it (30 seconds)
 
 ```bash
