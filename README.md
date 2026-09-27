@@ -1,5 +1,7 @@
 # brain
 
+[![tests](https://github.com/zacfink/brain/actions/workflows/tests.yml/badge.svg)](https://github.com/zacfink/brain/actions/workflows/tests.yml)
+
 A personal "digital brain" for working with [Claude Code](https://claude.com/claude-code): a folder of plain
 markdown notes that Claude reads instead of re-deriving context every session, plus a small local app to browse and
 act on them.
