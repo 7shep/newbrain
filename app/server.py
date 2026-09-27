@@ -30,10 +30,12 @@ NOTES = os.path.abspath(os.path.expanduser(os.environ.get("BRAIN_NOTES") or os.p
 os.environ["BRAIN_NOTES"] = NOTES
 sys.path.insert(0, BRAIN)
 import build  # noqa: E402  (INDEX.md generator + frontmatter parser)
+from agents import Agents  # noqa: E402  (headless agent per capture, when agents/ exists)
 
 TOKEN = secrets.token_urlsafe(24)
 CLAUDE_PROJECTS = os.path.expanduser("~/.claude/projects")
 LOCK = threading.Lock()
+AGENTS = Agents(NOTES)
 
 
 # ---------------------------------------------------------------- helpers
@@ -235,6 +237,7 @@ def state():
         "sessions": session_out[:60], "inbox": inbox, "ideas": ideas["open"][::-1], "ideas_closed": {"done": len(ideas["done"]), "dismissed": len(ideas["dismissed"])},
         "notes": [slim(d) for d in docs if d["kind"] == "note" and not d["path"].startswith("people/")
                   and d["path"] not in ("me.md", "now.md", "nudges.md", "ideas.md", "inbox.md", "claude/habits.md")],
+        "agents": AGENTS.recent(),
         "has": {k: k in by_path for k in ("me.md", "now.md")},
     }
 
@@ -312,6 +315,7 @@ def act_habit_new(body):
              "- source: brainstorm — typed in the app; Claude: talk it through with the user next session and refine it\n"
              % ((max(ids) if ids else 0) + 1, title, why or "(to discuss)", today()))
     write("claude/habits.md", text.rstrip("\n") + "\n" + block)
+    AGENTS.submit("habit", title + (": " + why if why else ""))
 
 
 
@@ -344,6 +348,7 @@ def act_capture(body):
     current = read("inbox.md") or "# Inbox\n"
     stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     write("inbox.md", current.rstrip("\n") + "\n- %s · %s · %s\n" % (stamp, kind, text))
+    AGENTS.submit(kind, text)
 
 
 def file_get(query):
@@ -479,6 +484,7 @@ def main():
     url = "http://127.0.0.1:%d/" % port
     print("Brain running at %s  (Ctrl+C to stop)" % url)
     rebuild_index()
+    AGENTS.recover()
     if "--no-open" not in sys.argv:
         threading.Timer(0.4, lambda: subprocess.run(["open", url]) if sys.platform == "darwin" else webbrowser.open(url)).start()
     try:

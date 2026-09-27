@@ -15,13 +15,13 @@ Status changes (done, dismiss, snooze, habit on/off, archive) never queue anythi
 **Opt-in:** agents run only when the `agents/` folder exists in the notes root. `brain` is a public tool, and nobody else should start spending on agents by surprise.
 
 ## Runner
-- One job at a time: a single worker thread plus a FIFO queue inside `server.py`.
-- Command: `claude -p <prompt> --allowedTools <list>`, run from the home directory, with a 20-minute timeout. On timeout the process is killed and the run is marked failed.
+- One job at a time: a single worker thread plus a FIFO queue, in `app/agents.py`.
+- Command: `claude -p <prompt> --allowedTools <list>`, run from the notes folder, with a 20-minute timeout. On timeout the process is killed and the run is marked failed.
 - Prompt: "Zac just added this in Brain ([type]): [text]. Read ~/Notes/INDEX.md and the relevant project page first. If it's only a thought to keep, file it where it belongs in ~/Notes and stop. If it's a task, do it. Anything that would leave this machine (email, texts, git push, a live site) becomes a draft (a Gmail draft, or text in your report), never an action. Don't git commit. End with a report of at most 3 lines: what you did, and any files changed or drafts made."
 - A job is **queued** when accepted, **running** while `claude` runs, then **done** (exit 0) or **failed** (nonzero exit, timeout, or `claude` missing).
 
 ## Permissions (allowlist)
-Headless mode refuses any tool that isn't allowed, so the list is the whole boundary:
+Runs with `--setting-sources project --permission-mode dontAsk` from the notes folder (plus `--add-dir ~/Projects`), so allow rules in the user's own settings don't apply and anything outside this list is refused. Verified 2026-09-27: `curl` and `python3` were both refused.
 - `Read`, `Glob`, `Grep`, `Edit`, `Write`, `WebSearch`, `WebFetch`
 - `Bash(ls:*)`, `Bash(cat:*)`, `Bash(grep:*)`, `Bash(git status:*)`, `Bash(git log:*)`, `Bash(git diff:*)`
 - Gmail: search, get thread and message, **create draft**
