@@ -549,8 +549,8 @@ function reopenButtons(item, { big } = {}) {
     : `<button class="ib" title="Copy command to resume the last Claude chat" data-copy="${esc(item.resume.command)}">${I.term}</button>`);
   const folder = list(item.folders)[0];
   if (folder) out.push(big
-    ? `<a class="pill ghost" href="vscode://file${encodeURI(folder)}">${I.code}Open code</a>`
-    : `<a class="ib opt" title="Open ${esc(folder)} in VS Code" href="vscode://file${encodeURI(folder)}">${I.code}</a>`);
+    ? `<a class="pill ghost" href="${vsc(folder)}">${I.code}Open code</a>`
+    : `<a class="ib opt" title="Open ${esc(folder)} in VS Code" href="${vsc(folder)}">${I.code}</a>`);
   const link = list(item.meta?.links).find(l => /^https?:/.test(l));
   if (link) out.push(big
     ? `<a class="pill ghost" href="${esc(link)}" target="_blank" rel="noopener">${I.ext}${esc(link.replace(/^https?:\/\/(www\.)?/, "").split("/")[0])}</a>`
@@ -789,17 +789,19 @@ async function openDoc(path, { edit = false, template = null } = {}) {
     const f = await api("/api/file?path=" + encodeURIComponent(path));
     doc = { ...f, text: f.exists ? f.text : (template || f.text), dirty: false };
   } catch (e) { return toast(e.message); }
-  $("dPath").textContent = S_root().replace(/^\/(Users|home)\/[^/]+/, "~") + "/" + doc.path;
+  $("dPath").textContent = S_root().replace(/\\/g, "/").replace(/^(\/(Users|home)|[A-Za-z]:\/Users)\/[^/]+/, "~") + "/" + doc.path;
   $("dStatus").textContent = doc.exists ? "" : "new file";
   $("dStatus").className = "status-line";
   const item = [...S.projects, ...S.sessions].find(x => x.path === doc.path);
-  $("dActions").innerHTML = (item ? reopenButtons(item) : "") + `<a class="ib" title="Open in VS Code" href="vscode://file${encodeURI(S_root() + "/" + doc.path)}">${I.code}</a>`;
+  $("dActions").innerHTML = (item ? reopenButtons(item) : "") + `<a class="ib" title="Open in VS Code" href="${vsc(S_root() + "/" + doc.path)}">${I.code}</a>`;
   setMode(edit || !doc.exists);
   $("scrim").classList.add("on"); $("drawer").classList.add("on");
   history.replaceState(null, "", "#" + encodeURIComponent(doc.path));
   $("dEdit").hidden = !$("dEditWrap").hidden;
 }
 const S_root = () => "__NOTES_ROOT__";
+// vscode://file/ wants forward slashes and exactly one slash before the path (C:/… on Windows, Users/… on a Mac).
+const vsc = p => "vscode://file/" + encodeURI(p.replace(/\\/g, "/").replace(/^\/+/, ""));
 function openPanel(title, html) {
   doc = { panel: true };
   $("dPath").textContent = title; $("dStatus").textContent = ""; $("dActions").innerHTML = "";

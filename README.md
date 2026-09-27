@@ -19,15 +19,17 @@ act on them.
 - **Map of everything:** if you've run graphify (the Claude Code skill) on your notes (`graphify-out/graph.json`), a Map tile draws the knowledge graph in the app's colours. Hover a dot to see its links, click to open its note, and use the legend to focus one cluster.
 - **Everything we've done:** one self-contained note per session, in a full-width timeline.
 - **People & me:** your profile and contacts, one click away but out of the main view.
+- **On your phone:** a home-screen app with the cover, Up next, Notes to self, projects, ideas, habits and capture. It works with your laptop off, using a private GitHub repo as the backend. [Set it up →](#on-your-phone)
+- **Background agents:** anything you capture can start a headless Claude Code agent that files it or does it. [More →](#background-agents-optional)
 
-Everything is plain markdown on your machine. The app is ~1 Python file plus ~1 HTML file, uses only the standard
-library, and has no build step.
+Everything is plain markdown on your machine. The app is a few small Python files plus one HTML file, uses only the
+standard library, has no build step, and runs on macOS, Windows and Linux.
 
 ![A person page open in the side panel](docs/page.png)
 
 ## How I actually use it
 
-I've run every Claude Code session through this since May 2026: 47 sessions across 12 projects, with 15 habits Claude
+I've run every Claude Code session through this since May 2026: 49 sessions across 13 projects, with 15 habits Claude
 follows on every session. A few things it has shipped:
 
 - **[qweb.dev](https://qweb.dev)**, the 2026 site for Queen's Web Development Club, which I co-chair: rebuilt in
@@ -45,10 +47,10 @@ argues against it first.**
 ```bash
 git clone https://github.com/zacfink/brain.git
 cd brain
-python3 app/server.py --notes example      # opens http://127.0.0.1:4747
+python3 app/server.py --notes example      # opens http://127.0.0.1:4747  (Windows: py app\server.py --notes example)
 ```
 
-`example/` is a fictional student's notes. Requires Python 3.9+.
+`example/` is a fictional student's notes. Requires Python 3.9+ and nothing else.
 
 ## Use it for real
 
@@ -59,6 +61,9 @@ mkdir -p ~/Notes && git clone https://github.com/zacfink/brain.git ~/Notes/.brai
 ln -s ~/Notes/.brain/bin/brain ~/.local/bin/brain    # any folder on your PATH
 brain                                                # start + open;  brain stop / restart / log
 ```
+
+**Windows:** clone into `%USERPROFILE%\Notes\.brain` and run `%USERPROFILE%\Notes\.brain\bin\brain.cmd` (or add
+`bin` to your PATH and run `brain`). It opens your browser; close the window to stop it.
 
 Start your notes from the shapes in [`FORMATS.md`](FORMATS.md). You can also copy `example/` and edit it, or just ask
 Claude Code to draft them from your projects, calendar and email. `BRAIN_NOTES=/some/folder brain` points the app
@@ -73,6 +78,7 @@ somewhere else.
      "SessionStart": [{ "hooks": [{ "type": "command", "command": "python3 ~/Notes/.brain/session_start.py 2>/dev/null || true", "timeout": 5 }] }]
    }
    ```
+   On Windows, use `python` instead of `python3` (Claude Code runs hooks through Git Bash, so the rest works as is).
 2. **Instructions** in your `CLAUDE.md` or Claude's memory, for example:
    > `~/Notes` is my brain. Before project work, read `~/Notes/INDEX.md` and the project page. File any inbox
    > captures into the right note. Follow `on` habits in `claude/habits.md`, and propose (never enable) new ones.
@@ -91,13 +97,17 @@ somewhere else.
 ├── people/<slug>.md
 ├── sessions/YYYY-MM-DD-*.md  one note per Claude Code session (history)
 ├── agents/                   optional: turns on background agents; one log file per run
+├── phone/                    optional: turns on the phone app (queue/ + state.json)
 └── .brain/                   this repo
     ├── app/server.py         stdlib HTTP server: reads/writes the notes, serves the app
     ├── app/index.html        the whole UI (vanilla JS, no build)
     ├── app/agents.py         background agent runner (queue, one at a time, status files)
+    ├── app/sync.py           git pull/commit/push for the phone app
+    ├── app/phone.py          applies phone actions on GitHub, writes phone/state.json
+    ├── mobile/               the phone app (served from GitHub Pages)
     ├── build.py              regenerates INDEX.md
     ├── session_start.py      Claude Code SessionStart hook
-    ├── bin/brain             launcher
+    ├── bin/brain, brain.cmd  launchers (macOS/Linux, Windows)
     ├── FORMATS.md            file shapes the app parses
     ├── example/              fictional notes to try it with
     └── tests/                unit tests, run on every push by GitHub Actions
@@ -121,6 +131,44 @@ push or run arbitrary shell commands. Outward actions come back as drafts for yo
 Each run writes `agents/<time>-<slug>.md` (queued, running, then done or failed), so the state survives a restart. The
 runner's tests use a fake `claude`, so they're free: `python3 -m unittest discover -s tests`.
 
+## On your phone
+
+<img src="docs/phone.png" width="300" align="right" alt="Brain's phone app on the example notes: cover story, Up next and Notes to self">
+
+A home-screen app for the parts you use on the go: the cover story, Up next, Notes to self (Done / Tomorrow / Next
+week / Drop), projects (tap to read), ideas, Claude's habits and **Capture**. It works with your laptop closed.
+
+**How:** your notes live in a private GitHub repo, and that repo is the backend. The phone never edits a note
+itself. Each tap drops a tiny file into `phone/queue/`, and a GitHub Action applies it with the same Python code the
+desktop app uses (so the two can't disagree), then rebuilds `phone/state.json`, the summary the phone reads. That
+takes about 30 seconds, and the phone shows your change straight away in the meantime. A capture from your phone
+gets its background agent the next time your laptop pulls.
+
+On your laptop, Brain pulls from GitHub when it starts, when you reload the page and when a Claude session starts.
+It commits and pushes only the notes it changed itself. If the phone and laptop ever change the same note in a way
+git can't combine, it stops and says "Sync paused" instead of guessing.
+
+**Set it up (about 10 minutes):**
+
+1. **Put your notes in a private GitHub repo** (`~/Notes` with `.brain/` in its `.gitignore`) and push it.
+2. **Add the Action:** copy [`docs/notes-workflow.yml`](docs/notes-workflow.yml) to `.github/workflows/brain.yml`
+   in the notes repo, create `phone/queue/.gitkeep`, then commit and push. Its first run creates `phone/state.json`.
+3. **Make a key for your phone:** github.com → your avatar → **Settings → Developer settings → Personal access
+   tokens → Fine-grained tokens → Generate new token**.
+   - **Repository access:** *Only select repositories* → your notes repo.
+   - **Permissions:** the page lists every permission a key could have, which is normal. Under **Repository
+     permissions**, set **Contents** to **Read and write**. Leave everything else at *No access*. GitHub sets
+     *Metadata* to read-only on its own. (Newer GitHub shows an **Add permissions** button instead: add *Contents*,
+     then choose *Read and write*.)
+   - The summary should read "Read access to metadata" and "Read and Write access to code". Generate it and copy
+     the `github_pat_…` key.
+4. **Install the app:** on your phone, open **https://zacfink.github.io/brain/mobile/** in Safari (or Chrome on
+   Android) → Share → **Add to Home Screen**. Open it, tap **Connect**, enter `your-name/notes` and paste the key.
+
+The key stays on your phone only. The app's code is public and holds no notes. You can revoke the key on GitHub
+anytime.
+<br clear="right">
+
 ## Security
 
 The server binds to `127.0.0.1` only. Every API call needs a random per-run token embedded in the page, and requests
@@ -128,11 +176,12 @@ whose `Host` isn't local are rejected, which blocks DNS rebinding. Reads and wri
 the notes folder, never dot-folders. Saves detect edits made on disk since you opened a file, so you won't
 overwrite Claude's changes.
 
-Your notes folder will likely hold contacts and personal details. Keep it out of public repos.
+Your notes folder will likely hold contacts and personal details. Keep it out of public repos, and keep the notes
+repo private if you use the phone app. The phone's key can reach only that one repo.
 
 ## Notes
 
-Tested on macOS with Chrome and Safari. Fonts load from Google Fonts, with system fallbacks when offline. Resume
+The tests run on macOS, Windows and Linux on every push. The app is used daily on macOS with Chrome and Safari. Fonts load from Google Fonts, with system fallbacks when offline. Resume
 buttons read session ids from `~/.claude/projects`.
 
 ## License

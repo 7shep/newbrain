@@ -2,10 +2,20 @@ name: tests
 on: [push, pull_request]
 jobs:
   test:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: python -m unittest discover -s tests -v
+      - name: The app starts and serves the example notes
+        shell: bash
+        run: |
+          python app/server.py --notes example --port 4799 --no-open &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:4799/ -o page.html && break; sleep 0.5; done
+          grep -q "Capture a thought" page.html

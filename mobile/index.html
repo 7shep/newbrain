@@ -54,6 +54,7 @@ button { cursor: pointer; }
 .cover { background: var(--amber); color: var(--amber-ink); border-color: var(--amber); }
 .cover small { font: 500 11px var(--mono); letter-spacing: .04em; opacity: .75; }
 .cover h3 { font: 800 30px/1.02 var(--display); margin: 8px 0 10px; letter-spacing: -.01em; text-wrap: balance; }
+.cover h3 em { font-weight: 600; }
 .cover p { margin: 0; font-size: 14px; opacity: .85; }
 .next { display: grid; grid-template-columns: 52px 1fr; gap: 2px 12px; padding: 9px 0; border-top: 1px solid var(--line); }
 .next:first-of-type { border-top: 0; padding-top: 0; }
@@ -67,7 +68,7 @@ button { cursor: pointer; }
 .nudge p { margin: 0 0 10px; color: var(--muted); font-size: 13.5px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .nudge p.full { display: block; }
 .acts { display: flex; flex-wrap: wrap; gap: 6px; }
-.pill { border: 1px solid var(--tile-3); background: var(--tile-3); border-radius: 999px; padding: 7px 12px; font-size: 13px; font-weight: 600; }
+.pill { border: 1px solid var(--tile-3); background: var(--tile-3); border-radius: 999px; padding: 7px 10px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
 .pill.yes { background: var(--mint); color: var(--mint-ink); border-color: var(--mint); }
 .row { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-top: 1px solid var(--line); width: 100%; background: none; border-left: 0; border-right: 0; border-bottom: 0; text-align: left; }
 .row:first-of-type { border-top: 0; }
@@ -269,7 +270,7 @@ function render() {
   const projects = view.projects.filter(p => !p.archived && ["active", "paused"].includes(p.meta.status));
   const habits = view.habits;
   $("main").innerHTML = `
-    ${n.headline ? `<section class="tile cover"><small>ISSUE ${esc(view.issue)} · ${esc((n.updated || "").slice(5))}</small><h3>${esc(n.headline)}</h3>${n.dek ? `<p>${esc(n.dek)}</p>` : ""}</section>` : ""}
+    ${n.headline ? `<section class="tile cover"><small>ISSUE ${esc(view.issue)} · ${esc((n.updated || "").slice(5))}</small><h3>${esc(n.headline).replace(/\*([^*]+)\*/g, "<em>$1</em>")}</h3>${n.dek ? `<p>${esc(n.dek)}</p>` : ""}</section>` : ""}
     <section class="tile"><header><h2>Up next</h2></header>
       ${up.length ? up.map(u => { const dd = daysFrom(u.date); return `<div class="next"><div><b>${esc(u.date.slice(8))}</b><small>${dd === 0 ? "today" : dd === 1 ? "tmrw" : esc(new Date(u.date + "T00:00").toLocaleDateString("en", { weekday: "short" }))}${u.time ? " " + esc(u.time) : ""}</small></div>
         <div><div class="t">${esc(u.title)}</div>${u.detail ? `<div class="d">${esc(u.detail)}</div>` : ""}</div></div>`; }).join("") : `<div class="empty">Nothing coming up.</div>`}</section>

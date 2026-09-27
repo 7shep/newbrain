@@ -8,6 +8,7 @@ import json
 import os
 import queue
 import re
+import shutil
 import subprocess
 import threading
 
@@ -33,7 +34,8 @@ PROMPT = (
 
 
 def claude_command(notes):
-    return ["claude", "--setting-sources", "project", "--permission-mode", "dontAsk",
+    # which(): on Windows an npm install is claude.cmd, which a bare "claude" wouldn't find.
+    return [shutil.which("claude") or "claude", "--setting-sources", "project", "--permission-mode", "dontAsk",
             "--add-dir", os.path.expanduser("~/Projects"), "--allowedTools", *ALLOWED, "-p"]
 
 

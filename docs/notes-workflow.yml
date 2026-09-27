@@ -1,0 +1,38 @@
+# Applies the Brain phone app's queued actions and refreshes phone/state.json.
+# Copy to .github/workflows/brain.yml in your PRIVATE notes repo. Code: github.com/zacfink/brain (app/phone.py).
+name: brain
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 9 * * *" # ~5am Toronto: refresh date-based bits (snoozes, Up next)
+  workflow_dispatch:
+concurrency:
+  group: brain
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    env:
+      TZ: America/Toronto
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: zacfink/brain
+          path: .brain
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python .brain/app/phone.py .
+      - name: Commit and push
+        run: |
+          git config user.name "brain-bot"
+          git config user.email "brain-bot@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -qm "phone: apply queue, refresh state"
+          for i in 1 2 3; do git push -q && exit 0; git pull -q --rebase; done
+          exit 1

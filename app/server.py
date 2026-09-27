@@ -157,7 +157,7 @@ def resume_for(short_ids, fallback_cwd, idx):
         if hit:
             cwd = transcript_cwd(hit["file"]) or os.path.expanduser(fallback_cwd or "~")
             return {"uuid": hit["uuid"], "cwd": cwd,
-                    "command": 'cd "%s" && claude --resume %s' % (cwd, hit["uuid"])}
+                    "command": ('cd /d "%s" && claude --resume %s' if os.name == "nt" else 'cd "%s" && claude --resume %s') % (cwd, hit["uuid"])}
     return None
 
 
@@ -420,7 +420,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         url = urllib.parse.urlparse(self.path)
         if url.path in ("/", "/index.html"):
             with open(os.path.join(HERE, "index.html"), encoding="utf-8") as f:
-                html = f.read().replace("__BRAIN_TOKEN__", TOKEN).replace("__NOTES_ROOT__", NOTES)
+                html = f.read().replace("__BRAIN_TOKEN__", TOKEN).replace('"__NOTES_ROOT__"', json.dumps(NOTES))  # json: Windows backslashes stay intact
             return self.send(200, html.encode(), "text/html; charset=utf-8")
         if not self.authed():
             return self.send(403, {"error": "forbidden"})
