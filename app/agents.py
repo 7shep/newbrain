@@ -4,6 +4,7 @@ Off unless the notes folder has an agents/ folder. One job at a time. Each job i
 agents/ that is rewritten as it moves queued -> running -> done/failed, so its state survives restarts.
 """
 import datetime
+import json
 import os
 import queue
 import re
@@ -90,6 +91,8 @@ class Agents:
     def submit(self, kind, text):
         if not self.enabled() or not text.strip():
             return None
+        if os.environ.get("BRAIN_AGENTS") == "pending":
+            return self._park(kind, text)
         slug = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:40] or "item"
         stamp = datetime.datetime.now().strftime("%Y-%m-%d-%H%M%S")
         path = os.path.join(self.dir, "%s-%s.md" % (stamp, slug))
@@ -100,6 +103,38 @@ class Agents:
                 self.worker = threading.Thread(target=self._work, daemon=True)
                 self.worker.start()
         return path
+
+    # ------------------------------------------------------------ phone captures
+    # Captures applied on GitHub (no claude there) are parked in agents/pending/; the Mac runs them
+    # after its next pull.
+    def _park(self, kind, text):
+        pending = os.path.join(self.dir, "pending")
+        os.makedirs(pending, exist_ok=True)
+        stamp = datetime.datetime.now().strftime("%Y-%m-%d-%H%M%S-%f")
+        path = os.path.join(pending, stamp + ".json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump({"kind": kind, "text": text}, f)
+        return path
+
+    def drain_pending(self):
+        """Start an agent for each parked capture. Returns how many it started."""
+        pending = os.path.join(self.dir, "pending")
+        if not self.enabled() or not os.path.isdir(pending):
+            return 0
+        n = 0
+        for name in sorted(os.listdir(pending)):
+            path = os.path.join(pending, name)
+            if not name.endswith(".json"):
+                continue
+            try:
+                with open(path, encoding="utf-8") as f:
+                    job = json.load(f)
+                os.remove(path)
+            except (OSError, ValueError):
+                continue
+            if self.submit(job.get("kind", "note"), str(job.get("text", ""))):
+                n += 1
+        return n
 
     def recent(self, n=10):
         if not self.enabled():

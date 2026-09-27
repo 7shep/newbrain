@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Brain</title>
+<meta name="theme-color" content="#0c0d0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Brain">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&family=Bodoni+Moda:opsz,wght@6..96,700;6..96,800&display=swap" rel="stylesheet">
+<!--
+  Brain on your phone (spec: docs/specs/2026-09-27-phone-app.md). This page holds no notes: it reads
+  phone/state.json and notes from your private notes repo with your own GitHub key, and every change is a
+  small file in phone/queue/ that the notes repo's GitHub Action applies with Brain's own code.
+-->
+<style>
+:root {
+  --bg: #0c0d0f; --tile: #15171a; --tile-2: #1c1f23; --tile-3: #24282d; --line: #262a2f; --ink: #eceae4; --muted: #9a9ea4; --dim: #6a6f75;
+  --amber: #ffb547; --amber-ink: #1a1204; --mint: #7ee0b0; --mint-ink: #06140d; --rose: #ff8a7a;
+  --sans: "Schibsted Grotesk", -apple-system, "SF Pro Text", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --display: "Bodoni Moda", "Bodoni 72", Didot, Georgia, serif;
+  --ease: cubic-bezier(.16, 1, .3, 1);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html { background: var(--bg); }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--sans);
+  padding: calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 96px); }
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.bar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.bar h1 { font-size: 22px; font-weight: 700; letter-spacing: -.02em; margin: 0; }
+.bar h1 span { color: var(--dim); font-weight: 500; }
+.bar .sp { flex: 1; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--dim); flex: none; }
+.dot.pending { background: var(--amber); animation: pulse 1.2s ease-in-out infinite; }
+.dot.ok { background: var(--mint); }
+.dot.bad { background: var(--rose); }
+@keyframes pulse { 50% { opacity: .35; } }
+.ib { width: 38px; height: 38px; border-radius: 11px; border: 1px solid var(--line); background: var(--tile); display: grid; place-items: center; color: var(--muted); }
+.i { width: 18px; height: 18px; }
+.tile { background: var(--tile); border: 1px solid var(--line); border-radius: 18px; padding: 16px; margin-bottom: 12px; }
+.tile > header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.tile > header h2 { margin: 0; font-size: 13px; font-weight: 600; color: var(--muted); }
+.tile > header .n { margin-left: auto; font: 500 11.5px var(--mono); color: var(--dim); }
+.cover { background: var(--amber); color: var(--amber-ink); border-color: var(--amber); }
+.cover small { font: 500 11px var(--mono); letter-spacing: .04em; opacity: .75; }
+.cover h3 { font: 800 30px/1.02 var(--display); margin: 8px 0 10px; letter-spacing: -.01em; text-wrap: balance; }
+.cover p { margin: 0; font-size: 14px; opacity: .85; }
+.next { display: grid; grid-template-columns: 52px 1fr; gap: 2px 12px; padding: 9px 0; border-top: 1px solid var(--line); }
+.next:first-of-type { border-top: 0; padding-top: 0; }
+.next b { font: 700 20px/1 var(--sans); color: var(--amber); }
+.next small { font: 500 11px var(--mono); color: var(--dim); display: block; }
+.next .t { font-weight: 600; }
+.next .d { color: var(--muted); font-size: 13.5px; }
+.nudge { background: var(--tile-2); border-radius: 14px; padding: 12px; margin-bottom: 8px; }
+.nudge h4 { margin: 0 0 4px; font-size: 15px; }
+.due { font: 500 11px var(--mono); color: var(--rose); margin-left: 6px; }
+.nudge p { margin: 0 0 10px; color: var(--muted); font-size: 13.5px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.nudge p.full { display: block; }
+.acts { display: flex; flex-wrap: wrap; gap: 6px; }
+.pill { border: 1px solid var(--tile-3); background: var(--tile-3); border-radius: 999px; padding: 7px 12px; font-size: 13px; font-weight: 600; }
+.pill.yes { background: var(--mint); color: var(--mint-ink); border-color: var(--mint); }
+.row { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-top: 1px solid var(--line); width: 100%; background: none; border-left: 0; border-right: 0; border-bottom: 0; text-align: left; }
+.row:first-of-type { border-top: 0; }
+.row .st { width: 8px; height: 8px; border-radius: 50%; background: var(--mint); flex: none; }
+.row .st.paused { background: var(--amber); } .row .st.abandoned, .row .st.done { background: var(--dim); }
+.row .t { font-weight: 600; } .row .s { color: var(--muted); font-size: 13px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.row > div { min-width: 0; flex: 1; }
+.idea { padding: 10px 0; border-top: 1px solid var(--line); }
+.idea:first-of-type { border-top: 0; padding-top: 0; }
+.idea small { font: 500 11px var(--mono); color: var(--dim); }
+.idea .t { margin: 2px 0 8px; }
+.habit { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--line); }
+.habit:first-of-type { border-top: 0; padding-top: 0; }
+.habit > div { flex: 1; min-width: 0; }
+.habit .t { font-weight: 600; font-size: 14px; }
+.habit small { color: var(--dim); font: 500 11px var(--mono); }
+.sw { width: 44px; height: 26px; border-radius: 26px; background: var(--tile-3); border: 0; position: relative; flex: none; margin-top: 2px; }
+.sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--muted); transition: transform .25s var(--ease); }
+.sw.on { background: var(--mint); } .sw.on::after { transform: translateX(18px); background: var(--mint-ink); }
+.empty { color: var(--dim); font-size: 14px; }
+.more { background: none; border: 0; color: var(--muted); font-size: 13px; padding: 8px 0 0; }
+.fab { position: fixed; right: 18px; bottom: calc(env(safe-area-inset-bottom) + 18px); height: 56px; padding: 0 22px; border-radius: 28px; border: 0;
+  background: var(--amber); color: var(--amber-ink); font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; box-shadow: 0 12px 30px -8px rgba(0,0,0,.7); z-index: 5; }
+.sheet { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; background: var(--bg); transform: translateY(100%); transition: transform .35s var(--ease); }
+.sheet.on { transform: none; }
+.sheet > header { display: flex; align-items: center; gap: 10px; padding: calc(env(safe-area-inset-top) + 10px) 16px 10px; border-bottom: 1px solid var(--line); }
+.sheet > header .p { flex: 1; min-width: 0; font: 500 12px var(--mono); color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sheet .body { flex: 1; overflow-y: auto; padding: 16px 16px calc(env(safe-area-inset-bottom) + 30px); -webkit-overflow-scrolling: touch; }
+.types { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.types button { border: 1px solid var(--line); background: var(--tile); border-radius: 999px; padding: 7px 13px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.types button[aria-pressed="true"] { background: var(--amber); border-color: var(--amber); color: var(--amber-ink); }
+textarea { width: 100%; min-height: 160px; background: var(--tile); border: 1px solid var(--line); border-radius: 14px; padding: 14px; font-size: 16px; resize: vertical; outline: none; }
+textarea:focus, input:focus { border-color: var(--amber); }
+.go { width: 100%; margin-top: 12px; height: 50px; border: 0; border-radius: 14px; background: var(--amber); color: var(--amber-ink); font-weight: 700; font-size: 16px; }
+.go:disabled { opacity: .4; }
+label { display: block; margin: 14px 0 6px; font-size: 13px; color: var(--muted); font-weight: 600; }
+input { width: 100%; background: var(--tile); border: 1px solid var(--line); border-radius: 12px; padding: 12px; font-size: 16px; outline: none; }
+.help { color: var(--muted); font-size: 13.5px; }
+.help code { font: 12px var(--mono); background: var(--tile-2); padding: 1px 5px; border-radius: 5px; }
+.toast { position: fixed; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom) + 86px); background: var(--ink); color: var(--bg); padding: 12px 14px; border-radius: 12px;
+  font-weight: 600; font-size: 14px; opacity: 0; transform: translateY(10px); transition: .3s var(--ease); pointer-events: none; z-index: 30; }
+.toast.on { opacity: 1; transform: none; }
+.banner { background: rgba(255,138,122,.12); border: 1px solid rgba(255,138,122,.35); color: var(--rose); border-radius: 12px; padding: 10px 12px; font-size: 13.5px; margin-bottom: 12px; }
+/* note reader */
+.md h1 { font: 800 30px/1.05 var(--display); margin: 0 0 12px; }
+.md h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .09em; color: var(--amber); margin: 26px 0 8px; }
+.md h3 { font-size: 16px; margin: 18px 0 6px; }
+.md p { margin: 8px 0; } .md ul { padding-left: 20px; margin: 6px 0; } .md li { margin: 4px 0; }
+.md li.task { list-style: none; margin-left: -20px; } .md li.task input { width: auto; margin-right: 8px; }
+.md a { color: var(--amber); }
+.md code { font: 12.5px var(--mono); background: var(--tile-2); padding: 1px 5px; border-radius: 5px; word-break: break-word; }
+.md pre { background: var(--tile); border: 1px solid var(--line); border-radius: 10px; padding: 12px; overflow-x: auto; }
+.md pre code { background: none; padding: 0; }
+.md table { border-collapse: collapse; font-size: 13px; display: block; overflow-x: auto; margin: 10px 0; }
+.md td, .md th { border: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
+.md blockquote { border-left: 3px solid var(--amber); margin: 10px 0; padding: 2px 12px; color: var(--muted); }
+.md hr { border: 0; border-top: 1px solid var(--line); margin: 18px 0; }
+.fm { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+.fm span { font: 500 11px var(--mono); color: var(--muted); background: var(--tile-2); border-radius: 6px; padding: 3px 8px; }
+.fm span b { color: var(--dim); font-weight: 500; }
+@media (prefers-reduced-motion: reduce) { .dot.pending { animation: none; } .sheet, .toast, .sw::after { transition: none; } }
+</style>
+</head>
+<body>
+<div class="bar">
+  <h1 id="greet">Brain</h1><span class="sp"></span>
+  <span class="dot" id="syncDot" title="Sync status"></span>
+  <button class="ib" id="refresh" aria-label="Refresh"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></button>
+  <button class="ib" id="openSettings" aria-label="Settings"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 15.1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+</div>
+<div id="banner"></div>
+<main id="main"><div class="tile empty">Loading…</div></main>
+<button class="fab" id="openCapture" hidden><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>Capture</button>
+
+<section class="sheet" id="capture" aria-label="Capture">
+  <header><button class="ib" data-close aria-label="Close"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button><span class="p">Capture a thought</span></header>
+  <div class="body">
+    <div class="types" id="types"></div>
+    <textarea id="capText" placeholder="What's on your mind?"></textarea>
+    <button class="go" id="capGo">Save</button>
+    <p class="help">It lands in your notes within about a minute, and an agent picks it up the next time your Mac is on.</p>
+  </div>
+</section>
+
+<section class="sheet" id="reader" aria-label="Note">
+  <header><button class="ib" data-close aria-label="Close"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg></button><span class="p" id="rPath"></span></header>
+  <div class="body md" id="rBody"></div>
+</section>
+
+<section class="sheet" id="settings" aria-label="Settings">
+  <header><button class="ib" data-close aria-label="Close"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button><span class="p">Connect your notes</span></header>
+  <form class="body" id="setForm">
+    <p class="help">Brain on your phone reads your private notes repo on GitHub. Nothing is stored anywhere except this phone.</p>
+    <label for="repo">Notes repo</label>
+    <input id="repo" placeholder="your-name/notes" autocapitalize="off" autocorrect="off" spellcheck="false" required>
+    <label for="token">GitHub key</label>
+    <input id="token" type="password" placeholder="github_pat_…" autocapitalize="off" autocorrect="off" spellcheck="false" required>
+    <p class="help">Make one at <b>github.com → Settings → Developer settings → Fine-grained tokens</b>: only your notes repo, with <code>Contents: Read and write</code>. You can revoke it there anytime.</p>
+    <button class="go" type="submit">Connect</button>
+    <button class="more" type="button" id="signOut">Forget this key on this phone</button>
+  </form>
+</section>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("brain." + k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("brain." + k, JSON.stringify(v)); } catch {} },
+};
+let cfg = store.get("cfg", null), S = store.get("state", null), outbox = store.get("outbox", []), error = null;
+const today = () => new Date().toLocaleDateString("en-CA");
+const daysFrom = d => Math.round((new Date(d + "T00:00") - new Date(today() + "T00:00")) / 864e5);
+
+/* ---------- GitHub ---------- */
+async function gh(path, opts = {}) {
+  const r = await fetch(`https://api.github.com/repos/${cfg.repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}`, {
+    cache: "no-store", ...opts,
+    headers: { Authorization: `Bearer ${cfg.token}`, "X-GitHub-Api-Version": "2022-11-28",
+      Accept: opts.method ? "application/vnd.github+json" : "application/vnd.github.raw+json", ...(opts.headers || {}) },
+  });
+  if (r.status === 401) throw Object.assign(new Error("GitHub rejected the key. Check it in Settings."), { auth: true });
+  return r;
+}
+const b64 = s => btoa(String.fromCharCode(...new TextEncoder().encode(s)));
+
+async function loadState() {
+  const r = await gh("phone/state.json");
+  if (r.status === 404) throw new Error("No phone/state.json yet. The notes repo's Brain action hasn't run.");
+  if (!r.ok) throw new Error(`GitHub said ${r.status}.`);
+  S = await r.json(); store.set("state", S);
+  for (const f of S.failed || []) if (outbox.some(o => o.id === f.id)) toast("Couldn't apply one change: " + f.error);
+}
+
+/* ---------- actions: optimistic here, real once the Action applies them ---------- */
+function optimistic(a, S) {
+  const b = a.body;
+  if (a.action === "nudge") { const n = S.nudges.find(x => x.id === b.id); if (n) n.status = b.action === "snooze" ? "snoozed" : b.action; }
+  if (a.action === "idea") S.ideas = S.ideas.filter(l => l !== b.text);
+  if (a.action === "habit") { const h = S.habits.find(x => x.id === b.id); if (h) h.status = b.status; }
+}
+function act(action, body, msg) {
+  const a = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, action, body, sent: false };
+  outbox.push(a); store.set("outbox", outbox);
+  if (S) optimistic(a, S);
+  render(); if (msg) toast(msg); flush();
+}
+let flushing = false;
+async function flush() {
+  if (flushing || !cfg) return; flushing = true;
+  try {
+    for (const a of outbox.filter(o => !o.sent)) {
+      const r = await gh(`phone/queue/${a.id}.json`, { method: "PUT",
+        body: JSON.stringify({ message: `phone: ${a.action}`, content: b64(JSON.stringify({ action: a.action, body: a.body })) }) });
+      if (!r.ok && r.status !== 422) throw new Error(`Couldn't send (GitHub ${r.status}). It'll retry.`);
+      a.sent = true; store.set("outbox", outbox);
+    }
+    error = null;
+  } catch (e) { error = navigator.onLine ? e.message : "Offline. Changes are saved on this phone and will send when you're back online."; }
+  flushing = false; paint(); watch();
+}
+// A sent action is done once the Action has consumed its queue file.
+let watching = null, watchStart = 0;
+function watch() {
+  if (watching || !outbox.some(o => o.sent)) return;
+  watchStart = Date.now();
+  watching = setInterval(async () => {
+    try {
+      for (const a of outbox.filter(o => o.sent)) {
+        const r = await gh(`phone/queue/${a.id}.json`);
+        if (r.status === 404) outbox = outbox.filter(o => o !== a);
+      }
+      store.set("outbox", outbox);
+      if (!outbox.some(o => o.sent)) { clearInterval(watching); watching = null; await refresh(); }
+      else if (Date.now() - watchStart > 180000) { clearInterval(watching); watching = null; error = "GitHub is taking a while to apply your changes. Check the notes repo's Actions tab."; paint(); }
+    } catch {}
+  }, 5000);
+}
+
+/* ---------- render ---------- */
+function paint() {
+  const d = $("syncDot"), busy = outbox.length;
+  d.className = "dot " + (error ? "bad" : busy ? "pending" : S ? "ok" : "");
+  d.title = error || (busy ? `${busy} change${busy > 1 ? "s" : ""} syncing` : S ? `Synced · summary built ${S.built?.replace("T", " ")}` : "");
+  $("banner").innerHTML = error ? `<div class="banner">${esc(error)}</div>` : "";
+}
+function render() {
+  paint();
+  if (!S) return;
+  const view = JSON.parse(JSON.stringify(S));
+  outbox.forEach(a => optimistic(a, view)); // unconfirmed changes stay applied on screen
+  const h = new Date().getHours(), name = ((view.me?.meta?.name) || "").split(/\s+/)[0];
+  $("greet").innerHTML = `${h < 12 ? "Morning" : h < 18 ? "Afternoon" : "Evening"}${name ? ", " + esc(name) : ""} <span>· ${new Date().toLocaleDateString("en", { weekday: "short" })}</span>`;
+  const t = today(), n = view.now || {};
+  const up = (n.upcoming || []).filter(u => u.date >= t).slice(0, 6);
+  const open = view.nudges.filter(x => x.status === "open" || (x.status === "snoozed" && x.snooze_until && x.snooze_until <= t));
+  const projects = view.projects.filter(p => !p.archived && ["active", "paused"].includes(p.meta.status));
+  const habits = view.habits;
+  $("main").innerHTML = `
+    ${n.headline ? `<section class="tile cover"><small>ISSUE ${esc(view.issue)} · ${esc((n.updated || "").slice(5))}</small><h3>${esc(n.headline)}</h3>${n.dek ? `<p>${esc(n.dek)}</p>` : ""}</section>` : ""}
+    <section class="tile"><header><h2>Up next</h2></header>
+      ${up.length ? up.map(u => { const dd = daysFrom(u.date); return `<div class="next"><div><b>${esc(u.date.slice(8))}</b><small>${dd === 0 ? "today" : dd === 1 ? "tmrw" : esc(new Date(u.date + "T00:00").toLocaleDateString("en", { weekday: "short" }))}${u.time ? " " + esc(u.time) : ""}</small></div>
+        <div><div class="t">${esc(u.title)}</div>${u.detail ? `<div class="d">${esc(u.detail)}</div>` : ""}</div></div>`; }).join("") : `<div class="empty">Nothing coming up.</div>`}</section>
+    <section class="tile"><header><h2>Notes to self</h2><span class="n">${open.length ? open.length + " open" : ""}</span></header>
+      ${open.length ? open.map(x => { const dd = x.due ? daysFrom(x.due) : null; const due = dd === null ? "" : dd < 0 ? `${-dd}d overdue` : dd === 0 ? "today" : `in ${dd}d`;
+        return `<div class="nudge"><h4>${esc(x.title)}${due ? `<span class="due">${due}</span>` : ""}</h4>${x.why ? `<p data-expand>${esc(x.why)}</p>` : ""}
+        <div class="acts"><button class="pill yes" data-nudge="${esc(x.id)}" data-a="done">Done</button><button class="pill" data-nudge="${esc(x.id)}" data-a="snooze" data-days="1">Tomorrow</button>
+        <button class="pill" data-nudge="${esc(x.id)}" data-a="snooze" data-days="7">Next week</button><button class="pill" data-nudge="${esc(x.id)}" data-a="no">Drop</button></div></div>`; }).join("")
+        : `<div class="empty">Nothing nagging. Enjoy it.</div>`}</section>
+    <section class="tile"><header><h2>Projects</h2><span class="n">${projects.length}</span></header>
+      ${projects.map(p => `<button class="row" data-open="${esc(p.path)}"><span class="st ${esc(p.meta.status)}"></span><div><div class="t">${esc(p.title)}</div><div class="s">${esc(p.meta.summary || p.tldr || "")}</div></div></button>`).join("")}</section>
+    <section class="tile"><header><h2>Ideas</h2><span class="n">${view.ideas.length ? view.ideas.length + " open" : ""}</span></header>
+      ${view.ideas.length ? view.ideas.slice(0, showAllIdeas ? 999 : 5).map(l => { const m = l.match(/^(\d{4}-\d{2}-\d{2}) · (.*?)(?: \(project: [\w-]+\))?$/);
+        return `<div class="idea"><small>${esc(m ? m[1] : "")}</small><div class="t">${esc(m ? m[2] : l)}</div>
+        <div class="acts"><button class="pill yes" data-idea="${esc(l)}" data-a="done">Done</button><button class="pill" data-idea="${esc(l)}" data-a="dismissed">Dismiss</button></div></div>`; }).join("")
+        + (view.ideas.length > 5 ? `<button class="more" id="allIdeas">${showAllIdeas ? "Show fewer" : `Show all ${view.ideas.length}`}</button>` : "")
+        : `<div class="empty">No open ideas.</div>`}</section>
+    <section class="tile"><header><h2>How Claude adapts to you</h2><span class="n">${habits.filter(x => x.status === "on").length} on</span></header>
+      ${habits.map(x => `<div class="habit"><div><div class="t">${esc(x.title)}</div><small>${x.status === "proposed" ? "proposed · waiting on you" : esc(x.status)}</small></div>
+        <button class="sw ${x.status === "on" ? "on" : ""}" role="switch" aria-checked="${x.status === "on"}" aria-label="${esc(x.title)}" data-habit="${esc(x.id)}"></button></div>`).join("")}</section>`;
+}
+let showAllIdeas = false;
+
+/* ---------- note reader ---------- */
+function inline(s) {
+  s = esc(s);
+  s = s.replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>").replace(/(^|[\s(])_([^_]+)_(?=[\s).,]|$)/g, "$1<i>$2</i>");
+  s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, t, h) => /^https?:/.test(h.replace(/&amp;/g, "&"))
+    ? `<a href="${h}" target="_blank" rel="noopener">${t}</a>` : `<a href="#" data-link="${h}">${t}</a>`);
+  return s.replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g, '$1<a href="$2" target="_blank" rel="noopener">$2</a>');
+}
+// ponytail: copy of Brain's app/index.html md(); both pages are single files with no build step. Share a module if they drift.
+function md(src) {
+  const lines = src.replace(/\r/g, "").split("\n"); const out = []; let i = 0;
+  while (i < lines.length) {
+    const l = lines[i]; let m;
+    if (/^```/.test(l)) { const b = []; i++; while (i < lines.length && !/^```/.test(lines[i])) b.push(lines[i++]); out.push(`<pre><code>${esc(b.join("\n"))}</code></pre>`); i++; continue; }
+    if ((m = l.match(/^(#{1,4}) (.+)/))) { out.push(`<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`); i++; continue; }
+    if (/^---+\s*$/.test(l)) { out.push("<hr>"); i++; continue; }
+    if (/^\|/.test(l)) {
+      const rows = []; while (i < lines.length && /^\|/.test(lines[i])) rows.push(lines[i++]);
+      const cells = r => r.replace(/^\||\|\s*$/g, "").split("|").map(c => c.trim());
+      out.push("<table>" + rows.filter(r => !/^\|[\s:|-]+\|?\s*$/.test(r)).map((r, k) => "<tr>" + cells(r).map(c => k ? `<td>${inline(c)}</td>` : `<th>${inline(c)}</th>`).join("") + "</tr>").join("") + "</table>");
+      continue;
+    }
+    if (/^\s*([-*]|\d+\.) /.test(l)) {
+      const items = [];
+      while (i < lines.length && (/^\s*([-*]|\d+\.) /.test(lines[i]) || (/^\s{2,}\S/.test(lines[i]) && items.length))) {
+        const x = lines[i++];
+        if (/^\s*([-*]|\d+\.) /.test(x)) items.push({ depth: x.match(/^\s*/)[0].length, text: x.replace(/^\s*([-*]|\d+\.) /, "") });
+        else items[items.length - 1].text += " " + x.trim();
+      }
+      let h = "", st = [];
+      for (const it of items) {
+        while (st.length && it.depth < st[st.length - 1]) { h += "</li></ul>"; st.pop(); }
+        if (!st.length || it.depth > st[st.length - 1]) { h += "<ul>"; st.push(it.depth); } else h += "</li>";
+        const t = it.text.match(/^\[( |x|X)\] (.*)/);
+        h += t ? `<li class="task"><input type="checkbox" disabled ${t[1] !== " " ? "checked" : ""}>${inline(t[2])}` : `<li>${inline(it.text)}`;
+      }
+      out.push(h + "</li></ul>".repeat(st.length)); continue;
+    }
+    if (/^> /.test(l)) { out.push(`<blockquote>${inline(l.slice(2))}</blockquote>`); i++; continue; }
+    if (!l.trim()) { i++; continue; }
+    const p = []; while (i < lines.length && lines[i].trim() && !/^(#|```|\||\s*[-*] |\s*\d+\. |> )/.test(lines[i])) p.push(lines[i++]);
+    out.push(`<p>${inline(p.join(" "))}</p>`);
+  }
+  return out.join("\n");
+}
+function renderDoc(text) {
+  let meta = {}, body = text;
+  if (text.startsWith("---\n")) { const end = text.indexOf("\n---", 4); if (end > 0) {
+    text.slice(4, end).split("\n").forEach(line => { const k = line.indexOf(":"); if (k > 0) meta[line.slice(0, k).trim()] = line.slice(k + 1).trim(); });
+    body = text.slice(end + 4); } }
+  const chips = Object.entries(meta).filter(([k, v]) => v && v !== "[]" && !["name", "title", "summary"].includes(k))
+    .map(([k, v]) => `<span><b>${esc(k)}</b> ${esc(v.replace(/^\[|\]$/g, ""))}</span>`).join("");
+  return (chips ? `<div class="fm">${chips}</div>` : "") + md(body);
+}
+let readerPath = "";
+async function openDoc(path) {
+  readerPath = path; $("rPath").textContent = path; $("rBody").innerHTML = `<p class="empty">Loading…</p>`; open("reader");
+  try { const r = await gh(path); $("rBody").innerHTML = r.ok ? renderDoc(await r.text()) : `<p class="empty">Couldn't load it (GitHub ${r.status}).</p>`; }
+  catch (e) { $("rBody").innerHTML = `<p class="empty">${esc(e.message)}</p>`; }
+}
+
+/* ---------- sheets, capture, settings ---------- */
+function open(id) { $(id).classList.add("on"); }
+function close(id) { $(id).classList.remove("on"); }
+document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => close(b.closest(".sheet").id));
+const TYPES = [["note", "Note"], ["idea", "Idea"], ["todo", "Todo"], ["person", "Person"], ["habit", "Habit for Claude"]];
+let capType = "note";
+function drawTypes() { $("types").innerHTML = TYPES.map(([k, l]) => `<button type="button" data-type="${k}" aria-pressed="${k === capType}">${l}</button>`).join(""); }
+$("types").onclick = e => { const b = e.target.closest("[data-type]"); if (b) { capType = b.dataset.type; drawTypes(); } };
+$("openCapture").onclick = () => { drawTypes(); open("capture"); setTimeout(() => $("capText").focus(), 350); };
+$("capGo").onclick = () => {
+  const text = $("capText").value.trim(); if (!text) return;
+  if (capType === "habit") act("habit-new", { title: text, why: "" }, "Habit proposed");
+  else act("capture", { kind: capType, text }, "Captured");
+  $("capText").value = ""; close("capture");
+};
+$("openSettings").onclick = () => { $("repo").value = cfg?.repo || ""; $("token").value = cfg?.token || ""; open("settings"); };
+$("setForm").onsubmit = async e => {
+  e.preventDefault();
+  cfg = { repo: $("repo").value.trim().replace(/^https:\/\/github\.com\//, "").replace(/\/$/, ""), token: $("token").value.trim() };
+  store.set("cfg", cfg); close("settings"); boot();
+};
+$("signOut").onclick = () => { try { localStorage.clear(); } catch {} cfg = null; S = null; outbox = []; location.reload(); };
+$("refresh").onclick = () => refresh(true);
+
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-nudge],[data-idea],[data-habit],[data-open],[data-link],[data-expand],#allIdeas");
+  if (!t) return;
+  if (t.dataset.expand !== undefined) return t.classList.toggle("full");
+  if (t.id === "allIdeas") { showAllIdeas = !showAllIdeas; return render(); }
+  if (t.dataset.nudge) {
+    const body = { action: t.dataset.a, id: t.dataset.nudge }; if (t.dataset.days) body.days = +t.dataset.days;
+    return act("nudge", body, { done: "Done", snooze: t.dataset.days === "1" ? "See you tomorrow" : "Next week", no: "Dropped" }[t.dataset.a]);
+  }
+  if (t.dataset.idea) return act("idea", { action: t.dataset.a, text: t.dataset.idea }, t.dataset.a === "done" ? "Idea done" : "Dismissed");
+  if (t.dataset.habit) { const h = S.habits.find(x => x.id === t.dataset.habit); return act("habit", { id: h.id, status: t.getAttribute("aria-checked") === "true" ? "off" : "on" }); }
+  if (t.dataset.open) return openDoc(t.dataset.open);
+  if (t.dataset.link) { e.preventDefault(); const base = readerPath.split("/").slice(0, -1); const parts = [...base, ...t.dataset.link.split("#")[0].split("/")];
+    const out = []; parts.forEach(p => p === ".." ? out.pop() : p && p !== "." && out.push(p)); if (/\.md$/.test(out.join("/"))) openDoc(out.join("/")); }
+});
+
+let tt;
+function toast(msg) { $("toast").textContent = msg; $("toast").classList.add("on"); clearTimeout(tt); tt = setTimeout(() => $("toast").classList.remove("on"), 2200); }
+
+async function refresh(manual) {
+  if (!cfg) return;
+  try { await loadState(); error = null; if (manual) toast("Up to date"); }
+  catch (e) { error = e.auth ? e.message : navigator.onLine ? e.message : "Offline. Showing what you last saw."; }
+  render();
+}
+function boot() {
+  $("openCapture").hidden = !cfg;
+  if (!cfg) { $("main").innerHTML = `<section class="tile"><p>Connect your notes repo to get started.</p><button class="go" onclick="document.getElementById('openSettings').click()">Connect</button></section>`; return; }
+  render(); refresh(); flush();
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden) { refresh(); flush(); } });
+addEventListener("online", flush);
+boot();
+</script>
+</body>
+</html>

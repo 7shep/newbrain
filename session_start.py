@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""SessionStart hook: a few lines of brain context for Claude. No network, no model calls.
+"""SessionStart hook: a few lines of brain context for Claude. No model calls; one quick git pull when the phone app is set up.
 
 Prints Claude's active habits, habits the user hasn't decided on, and anything waiting in the inbox.
 Notes folder = parent of this folder, or $BRAIN_NOTES. Silent if it isn't there, so it never blocks a session.
 """
 import os
 import re
+import subprocess
 
 NOTES = os.path.expanduser(os.environ.get("BRAIN_NOTES") or os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -30,6 +31,12 @@ def blocks(text):
 def main():
     if not os.path.isdir(NOTES):
         return
+    if os.path.isdir(os.path.join(NOTES, "phone")) and os.path.isdir(os.path.join(NOTES, ".git")):
+        try:  # pick up what the phone app did while this Mac was off; never block the session over it
+            subprocess.run(["git", "-C", NOTES, "pull", "--rebase", "--autostash", "--quiet"],
+                           capture_output=True, timeout=8)
+        except (OSError, subprocess.TimeoutExpired):
+            pass
     habits = blocks(read("claude/habits.md"))
     on = [t for _, t, s, _src in habits if s == "on"]
     proposed = [t for _, t, s, src in habits if s == "proposed" and not src.startswith("brainstorm")]

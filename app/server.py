@@ -31,11 +31,14 @@ os.environ["BRAIN_NOTES"] = NOTES
 sys.path.insert(0, BRAIN)
 import build  # noqa: E402  (INDEX.md generator + frontmatter parser)
 from agents import Agents  # noqa: E402  (headless agent per capture, when agents/ exists)
+from sync import Sync  # noqa: E402  (git pull/commit/push for the phone app, when phone/ exists)
 
 TOKEN = secrets.token_urlsafe(24)
 CLAUDE_PROJECTS = os.path.expanduser("~/.claude/projects")
 LOCK = threading.Lock()
 AGENTS = Agents(NOTES)
+SYNC = Sync(NOTES, on_pulled=AGENTS.drain_pending)
+TOUCHED = set()  # notes files written since the last sync commit
 
 
 # ---------------------------------------------------------------- helpers
@@ -58,6 +61,7 @@ def write(rel, text):
     with open(tmp, "w", encoding="utf-8") as f:
         f.write(text)
     os.replace(tmp, path)
+    TOUCHED.add(rel)
 
 
 def safe_rel(rel):
@@ -79,6 +83,7 @@ def rebuild_index():
         known = [p for d in docs if d["kind"] == "project" for p in build.as_list(d["meta"].get("paths"))]
         with open(os.path.join(NOTES, "INDEX.md"), "w", encoding="utf-8") as f:
             f.write(build.build_index(docs, build.other_folders(known)))
+        TOUCHED.add("INDEX.md")
     except Exception as e:  # the index is a convenience; never fail a save over it
         print("index rebuild failed:", e, file=sys.stderr)
 
@@ -395,6 +400,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def commit_touched(self, message):
+        files = sorted(TOUCHED)
+        TOUCHED.clear()
+        SYNC.commit(files, message)
+
     def authed(self):
         return self.local_host() and secrets.compare_digest(self.headers.get("X-Brain-Token", ""), TOKEN)
 
@@ -416,7 +426,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self.send(403, {"error": "forbidden"})
         try:
             if url.path == "/api/state":
-                return self.send(200, state())
+                SYNC.pull()  # pick up phone changes; at most once a minute
+                return self.send(200, {**state(), "sync": {"on": SYNC.enabled(), "error": SYNC.error}})
             if url.path == "/api/file":
                 return self.send(200, file_get(urllib.parse.parse_qs(url.query)))
             if url.path == "/api/graph":
@@ -438,10 +449,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
             with LOCK:
                 if path == "/api/file":
                     code, out = file_put(self.body())
+                    self.commit_touched("brain: edit note")
                     return self.send(code, out)
                 if path not in routes:
                     return self.send(404, {"error": "not found"})
                 routes[path](self.body())
+                self.commit_touched("brain: " + path.rsplit("/", 1)[-1])
             return self.send(200, {"ok": True})
         except KeyError:
             return self.send(404, {"error": "No such item — the file may have changed. Reload."})
@@ -483,7 +496,9 @@ def main():
         sys.exit(1)
     url = "http://127.0.0.1:%d/" % port
     print("Brain running at %s  (Ctrl+C to stop)" % url)
+    SYNC.pull(gap=0)  # start from GitHub's latest: whatever the phone did while the Mac was off
     rebuild_index()
+    TOUCHED.clear()  # the startup index rebuild isn't worth a commit on its own
     AGENTS.recover()
     if "--no-open" not in sys.argv:
         threading.Timer(0.4, lambda: subprocess.run(["open", url]) if sys.platform == "darwin" else webbrowser.open(url)).start()

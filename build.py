@@ -11,7 +11,7 @@ import re
 HERE = os.path.dirname(os.path.abspath(__file__))
 NOTES = os.path.abspath(os.path.expanduser(os.environ.get("BRAIN_NOTES") or os.path.dirname(HERE)))
 PROJECTS_DIR = os.path.expanduser(os.environ.get("BRAIN_PROJECTS_DIR", "~/Projects"))
-SKIP_DIRS = {".brain", ".claude", ".git", ".obsidian", "agents"}  # agents/: run logs, not notes
+SKIP_DIRS = {".brain", ".claude", ".git", ".obsidian", "agents", "phone"}  # agents/: run logs; phone/: the phone app's queue and state
 OPEN_TASK = re.compile(r"^\s*[-*] \[ \] (.+)$", re.M)
 
 
