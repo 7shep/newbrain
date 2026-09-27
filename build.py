@@ -92,9 +92,17 @@ def other_folders(known_paths):
     return out
 
 
+STATUS_ORDER = {"active": 0, "paused": 1, "done": 2, "abandoned": 3}
+
+
+def sort_projects(projects):
+    """Active first, then paused, done, abandoned; newest update first within each."""
+    newest = sorted(projects, key=lambda d: d["meta"].get("updated", ""), reverse=True)
+    return sorted(newest, key=lambda d: STATUS_ORDER.get(d["meta"].get("status"), 9))
+
+
 def build_index(docs, folders):
-    projects = sorted((d for d in docs if d["kind"] == "project"),
-                      key=lambda d: d["meta"].get("updated", ""), reverse=True)
+    projects = sort_projects(d for d in docs if d["kind"] == "project")
     sessions = sorted((d for d in docs if d["kind"] == "session"),
                       key=lambda d: d["path"], reverse=True)
     others = [d for d in docs if d["kind"] == "note"]

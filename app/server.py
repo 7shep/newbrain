@@ -198,8 +198,7 @@ def state():
         item["folders"] = [os.path.expanduser(p) for p in build.as_list(d["meta"].get("paths"))]
         item["archived"] = bool(d["meta"].get("archived"))
         projects.append(item)
-    order = {"active": 0, "paused": 1, "done": 2, "abandoned": 3}
-    projects.sort(key=lambda p: (order.get(p["meta"].get("status"), 9), p["title"].lower()))
+    projects = build.sort_projects(projects)
 
     people = [slim(d) for d in docs if d["path"].startswith("people/")]
     people.sort(key=lambda p: (not p["meta"].get("follow_up"), p["title"].lower()))
