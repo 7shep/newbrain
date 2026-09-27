@@ -156,6 +156,10 @@ kbd { font: 500 11px var(--mono); border: 1px solid var(--line); border-radius: 
 .map .zoom { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 6px; }
 .map .zoom button { width: 30px; height: 30px; border-radius: 9px; border: 1px solid var(--line); background: var(--tile); color: var(--muted); font: 600 15px var(--sans); }
 .map .zoom button:hover { color: var(--amber); border-color: var(--amber); }
+.map.full { position: fixed; inset: 0; z-index: 19; /* under the note drawer (21), so clicking a dot opens the note on top */ border-radius: 0; display: flex; flex-direction: column; }
+.map.full .stage { flex: 1; height: auto; margin: 0; }
+.map .hint { position: absolute; left: 12px; bottom: 12px; font: 500 11px var(--mono); color: var(--dim); pointer-events: none; }
+body.map-full { overflow: hidden; }
 .map .card { position: absolute; left: 12px; top: 12px; max-width: min(340px, 70%); background: var(--tile-2); border: 1px solid var(--line); border-radius: 12px;
   padding: 10px 12px; pointer-events: none; opacity: 0; transform: translateY(-4px); transition: opacity .18s, transform .25s var(--ease); }
 .map .card.on { opacity: 1; transform: none; }
@@ -299,7 +303,7 @@ kbd { font: 500 11px var(--mono); border: 1px solid var(--line); border-radius: 
   <section class="tile habits"><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 5.8H20l-4.9 3.6 1.9 5.8L12 14.6l-5 3.6 1.9-5.8L4 8.8h6.1z"/></svg><h2>How Claude adapts to you</h2><span class="n" id="habitCount"></span></header><div id="habits"></div></section>
   <section class="tile map" id="mapTile" hidden><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="7" r="2"/><circle cx="12" cy="18" r="2"/><circle cx="12" cy="10" r="2.5"/><path d="M7 6.5l2.8 2.2M17.1 7.6l-2.8 1.6M12 12.5V16"/></svg><h2>Map of everything</h2><span class="n" id="mapCount"></span></header>
     <div class="stage"><canvas id="mapCanvas" aria-label="Knowledge graph of your notes. Click a dot to open its note."></canvas><div class="card" id="mapCard"></div>
-      <div class="zoom"><button id="mapOut" title="Zoom out" aria-label="Zoom out">−</button><button id="mapFit" title="Fit" aria-label="Fit to view">⤢</button><button id="mapIn" title="Zoom in" aria-label="Zoom in">+</button></div></div>
+      <div class="zoom"><button id="mapOut" title="Zoom out" aria-label="Zoom out">−</button><button id="mapFit" title="Fit" aria-label="Fit to view">⤢</button><button id="mapIn" title="Zoom in" aria-label="Zoom in">+</button><button id="mapFull" title="Full screen (F)" aria-label="Full screen">⛶</button></div><span class="hint" id="mapHint">pinch or ⌘-scroll to zoom · drag to pan · double-click to zoom in</span></div>
     <div class="legend" id="mapLegend"></div></section>
   <section class="tile timeline"><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><h2>Everything we've done</h2><span class="n" id="sessCount"></span></header><div id="timeline"></div></section>
 </main>
@@ -423,7 +427,7 @@ async function initMap() {
     alpha = Math.max(alpha * .99, .08);
   }
 
-  let W = 0, H = 0, view = { k: 1, x: 0, y: 0 }, hover = null, focus = null;
+  let W = 0, H = 0, view = { k: 1, x: 0, y: 0 }, hover = null, focus = null, touched = false; // touched: the user moved the view, so stop auto-fitting
   function size() {
     const r = cv.getBoundingClientRect(), dpr = devicePixelRatio || 1;
     W = r.width; H = r.height; cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); draw();
@@ -467,14 +471,14 @@ async function initMap() {
   new ResizeObserver(size).observe(cv);
   size();
   if (reduce) { for (let i = 0; i < 450; i++) tick(); fit(); draw(); }
-  else { let frames = 0; (function run() { for (let i = 0; i < 3; i++) tick(); fit(); draw(); if (++frames < 150) requestAnimationFrame(run); })(); }
+  else { let frames = 0; (function run() { for (let i = 0; i < 3; i++) tick(); if (!touched) fit(); draw(); if (++frames < 150) requestAnimationFrame(run); })(); }
 
   // Hover, click to open, drag to pan, ⌘/ctrl + scroll or the buttons to zoom.
   const at = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left - view.x) / view.k, (e.clientY - r.top - view.y) / view.k]; };
   const hit = e => { const [x, y] = at(e); let best = null, bd = 1e9;
     for (const n of g.nodes) { const d = Math.hypot(n.x - x, n.y - y); if (d < rad(n) + 6 / view.k && d < bd) { bd = d; best = n; } } return best; };
   let drag = null, moved = false;
-  cv.addEventListener("pointerdown", e => { drag = { x: e.clientX - view.x, y: e.clientY - view.y }; moved = false; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener("pointerdown", e => { touched = true; drag = { x: e.clientX - view.x, y: e.clientY - view.y }; moved = false; cv.setPointerCapture(e.pointerId); });
   cv.addEventListener("pointermove", e => {
     if (drag) { view.x = e.clientX - drag.x; view.y = e.clientY - drag.y; moved = true; cv.classList.add("drag"); return draw(); }
     const n = hit(e);
@@ -490,9 +494,31 @@ async function initMap() {
     if (!moved) { const n = hit(e); if (n && /\.md$/.test(n.file)) openDoc(n.file); }
   });
   cv.addEventListener("pointerleave", () => { if (!drag && hover) { hover = null; card.classList.remove("on"); draw(); } });
-  const zoom = (f, cx = W / 2, cy = H / 2) => { const k = Math.min(Math.max(view.k * f, .2), 6); view.x = cx - (cx - view.x) * k / view.k; view.y = cy - (cy - view.y) * k / view.k; view.k = k; draw(); };
-  cv.addEventListener("wheel", e => { if (!(e.ctrlKey || e.metaKey)) return; e.preventDefault(); const r = cv.getBoundingClientRect(); zoom(Math.exp(-e.deltaY * .01), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
-  $("mapIn").onclick = () => zoom(1.35); $("mapOut").onclick = () => zoom(1 / 1.35); $("mapFit").onclick = () => { fit(); draw(); };
+  const zoom = (f, cx = W / 2, cy = H / 2) => { touched = true; const k = Math.min(Math.max(view.k * f, .2), 6); view.x = cx - (cx - view.x) * k / view.k; view.y = cy - (cy - view.y) * k / view.k; view.k = k; draw(); };
+  // Pinch (Chrome/Firefox send it as ctrl+wheel) or ⌘-scroll zooms. Full screen: plain scroll pans, like a map app.
+  cv.addEventListener("wheel", e => {
+    const full = tile.classList.contains("full");
+    if (!(e.ctrlKey || e.metaKey || full)) return; // in the tile, plain scroll still scrolls the page
+    e.preventDefault(); const r = cv.getBoundingClientRect();
+    if (e.ctrlKey || e.metaKey) zoom(Math.exp(-e.deltaY * .01), e.clientX - r.left, e.clientY - r.top);
+    else { touched = true; view.x -= e.deltaX; view.y -= e.deltaY; draw(); }
+  }, { passive: false });
+  // Safari sends trackpad pinch as gesture events, not wheel.
+  let gScale = 1;
+  cv.addEventListener("gesturestart", e => { e.preventDefault(); gScale = 1; });
+  cv.addEventListener("gesturechange", e => { e.preventDefault(); const r = cv.getBoundingClientRect(); zoom(e.scale / gScale, e.clientX - r.left, e.clientY - r.top); gScale = e.scale; });
+  cv.addEventListener("dblclick", e => { const r = cv.getBoundingClientRect(); zoom(e.shiftKey ? 1 / 1.8 : 1.8, e.clientX - r.left, e.clientY - r.top); });
+  const setFull = on => { tile.classList.toggle("full", on); document.body.classList.toggle("map-full", on); $("mapFull").textContent = on ? "✕" : "⛶"; $("mapFull").title = on ? "Exit full screen (Esc)" : "Full screen (F)"; requestAnimationFrame(() => { size(); if (!touched) { fit(); draw(); } }); };
+  $("mapFull").onclick = () => setFull(!tile.classList.contains("full"));
+  addEventListener("keydown", e => {  // capture phase: runs before the global Escape handler
+    if (/INPUT|TEXTAREA/.test(document.activeElement?.tagName || "") || doc || $("palette").classList.contains("on")) return; // Escape closes the note/palette first
+    const full = tile.classList.contains("full");
+    if (e.key === "Escape" && full) return setFull(false);
+    if ((e.key === "f" || e.key === "F") && !e.metaKey && !e.ctrlKey && !doc) return setFull(!full);
+    if (!full) return;
+    if (e.key === "+" || e.key === "=") zoom(1.35); else if (e.key === "-") zoom(1 / 1.35); else if (e.key === "0") { touched = false; fit(); draw(); }
+  }, true);
+  $("mapIn").onclick = () => zoom(1.35); $("mapOut").onclick = () => zoom(1 / 1.35); $("mapFit").onclick = () => { touched = false; fit(); draw(); };
 
   $("mapLegend").innerHTML = groups.slice(0, 8).map(x => `<button data-g="${esc(x.id)}"><i style="background:${x.color}"></i>${esc(x.short)} <span style="color:var(--dim)">${x.n}</span></button>`).join("");
   $("mapLegend").onclick = e => {
