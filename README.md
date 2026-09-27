@@ -90,18 +90,36 @@ somewhere else.
 ├── projects/<slug>.md        current truth per project
 ├── people/<slug>.md
 ├── sessions/YYYY-MM-DD-*.md  one note per Claude Code session (history)
+├── agents/                   optional: turns on background agents; one log file per run
 └── .brain/                   this repo
     ├── app/server.py         stdlib HTTP server: reads/writes the notes, serves the app
     ├── app/index.html        the whole UI (vanilla JS, no build)
+    ├── app/agents.py         background agent runner (queue, one at a time, status files)
     ├── build.py              regenerates INDEX.md
     ├── session_start.py      Claude Code SessionStart hook
     ├── bin/brain             launcher
     ├── FORMATS.md            file shapes the app parses
-    └── example/              fictional notes to try it with
+    ├── example/              fictional notes to try it with
+    └── tests/                unit tests, run on every push by GitHub Actions
 ```
 
 **Why markdown files instead of a database?** Claude reads and edits them with the tools it already has. Opening
 a file costs nothing until it's needed, and you stay in control of your own data.
+
+## Background agents (optional)
+
+Create an `agents/` folder in your notes and anything you capture in the app (a note, idea, todo, person or habit
+proposal) also starts a headless Claude Code agent (`claude -p`). It files the thought where it belongs, or does the
+task, writes a short report and exits. Runs go one at a time with a 20-minute limit, and a small "agents" chip in the
+top bar turns amber while one is working. Click it for the reports.
+
+The agent's permissions are an allowlist, not a denylist. It runs with `--setting-sources project --permission-mode
+dontAsk`, so your own Claude settings can't widen it and anything off the list is refused. It can read, edit notes and
+project files, search the web, create Gmail drafts and add calendar events. It can't send email or texts, commit,
+push or run arbitrary shell commands. Outward actions come back as drafts for you to send.
+
+Each run writes `agents/<time>-<slug>.md` (queued, running, then done or failed), so the state survives a restart. The
+runner's tests use a fake `claude`, so they're free: `python3 -m unittest discover -s tests`.
 
 ## Security
 
