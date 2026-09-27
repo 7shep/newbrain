@@ -33,7 +33,7 @@ Not allowed: sending email or texts, git commit or push, publishing, deleting, a
 - Each job writes `agents/YYYY-MM-DD-HHMM-<slug>.md` with frontmatter (`status`, `type`, `started`, `finished`), then the input, then the report (the agent's final output, truncated to 2,000 characters).
 - The file is created at queue time as `queued` and rewritten on each status change, so it shows the right state even if Brain restarts. On startup, anything left `running` or `queued` is marked `failed (Brain restarted)`.
 - `/api/state` gains `agents`: the 10 newest runs (status, time, type, input, report).
-- **Agents tile** in `index.html`, placed with the other tiles: one row per run with a status dot (queued, running, done, failed), the input text and the time. Clicking a row expands the report. While any run is queued or running, the page refreshes state every 5 seconds.
+- **Agents** stay out of the way: a small dim "agents" chip in the top bar (amber and pulsing while working, "N agents working"). Clicking it opens the Agents tile: one row per run with a status dot (queued, running, done, failed), the input text and the time. Clicking a row expands the report. While any run is queued or running, the page refreshes state every 5 seconds.
 
 ## Git
 Agents never commit. The next interactive session commits notes, as now. `agents/` is committed like any other note.
