@@ -47,10 +47,10 @@ class CalibrationLineTest(unittest.TestCase):
         import subprocess, tempfile
         notes = tempfile.mkdtemp()
         os.makedirs(os.path.join(notes, "claude"))
-        with open(os.path.join(notes, "claude", "predictions.md"), "w") as f:
+        with open(os.path.join(notes, "claude", "predictions.md"), "w", encoding="utf-8") as f:
             f.write("# Predictions\n" + "\n".join(lines) + "\n")
         hook = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "session_start.py")
-        return subprocess.run([sys.executable, hook], capture_output=True, text=True, env={**os.environ, "BRAIN_NOTES": notes}).stdout
+        return subprocess.run([sys.executable, hook], capture_output=True, encoding="utf-8", env={**os.environ, "BRAIN_NOTES": notes}).stdout
 
     def test_too_few_bets_says_nothing(self):
         self.assertNotIn("Calibration", self.run_hook(["- 2026-09-27 · 70% · draft · bet: a · got: b · miss"] * 4))

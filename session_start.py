@@ -14,7 +14,7 @@ NOTES = os.path.expanduser(os.environ.get("BRAIN_NOTES") or os.path.dirname(os.p
 
 def read(rel):
     try:
-        with open(os.path.join(NOTES, rel), encoding="utf-8") as f:
+        with open(os.path.join(NOTES, rel), encoding="utf-8", errors="replace") as f:  # one bad byte mustn't silence the hook
             return f.read()
     except OSError:
         return ""
@@ -38,6 +38,7 @@ def main():
                            capture_output=True, timeout=8)
         except (OSError, subprocess.TimeoutExpired):
             pass
+    sys.stdout.reconfigure(encoding="utf-8")  # Windows pipes default to cp1252, which can't print every note
     print(context())
 
 
