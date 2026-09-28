@@ -59,6 +59,7 @@ def main():
     for p in state.get("projects", []):  # Mac-only details: resume commands and local folder paths
         p.pop("resume", None)
         p.pop("folders", None)
+    state["theme"] = server.read("phone/theme").strip() or None  # the desktop chip's choice
     state["built"] = datetime.datetime.now().isoformat(timespec="seconds")
     state["applied"], state["failed"] = applied, failed
     with open(os.path.join(NOTES, "phone", "state.json"), "w", encoding="utf-8") as f:
