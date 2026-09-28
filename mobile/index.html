@@ -269,6 +269,7 @@ async function loadState() {
   if (r.status === 404) throw new Error("No phone/state.json yet. The notes repo's Brain action hasn't run.");
   if (!r.ok) throw new Error(`GitHub said ${r.status}.`);
   S = await r.json(); store.set("state", S);
+  if (S.theme) setTheme(S.theme);  // follow the desktop's light/dark chip
   for (const f of S.failed || []) if (outbox.some(o => o.id === f.id)) toast("Couldn't apply one change: " + f.error);
 }
 
