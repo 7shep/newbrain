@@ -59,7 +59,23 @@ argues against it first.**
   forced angles (absurd scale, wrong medium, flip the user, collide my projects, cog sci, startup-in-10-days,
   anti-idea, pure bit), pushes the 5 strangest further, then lands on exactly two: one doable this month and one pure
   fun. Tested against a no-skill baseline: 12 sensible ideas became 45 across every angle, 7 of them physical.
-  Copy it to `~/.claude/skills/wild/` and swap in your own projects.
+  **Make your own:** paste this into Claude Code and it builds a `/wild` around your projects, your field and your
+  constraints, then test-runs it on one of your projects:
+
+  ```text
+  Make me a personal /wild skill for Claude Code: a mode I trigger by saying "go wild" that floods me with over-the-top ideas, then lands on the two worth doing.
+
+  Use https://github.com/zacfink/brain/blob/main/skills/wild/SKILL.md as the template. Keep its shape exactly: the flood (40+ one-line ideas under forced lenses, at least 4 per lens), mutate (push the 5 strangest one level further), land it (exactly two picks: "wild but doable this month" with a first step, and "pure fun"), then stop. Keep its common-mistakes table.
+
+  Personalize it to me:
+  1. First look for context about me: a CLAUDE.md, a notes folder (like ~/Notes/INDEX.md), my repos. Then ask me at most 3 short questions to fill gaps: my projects, what I study or work on, and my real constraints (time, money, gear, where I usually am).
+  2. Rewrite the "Collide projects" lens with my actual projects, and the "Cog sci mode" lens as the deep field I care about (swap it for mine, e.g. economics, biology, music).
+  3. Replace one lens with one invented for me. For a designer that might be "make it ugly on purpose"; for a founder, "sell it to your harshest customer".
+  4. Rewrite the Grounding section to point at wherever my context actually lives.
+  5. Update the description's trigger phrases to include how I'd naturally ask.
+
+  Save it to ~/.claude/skills/wild/SKILL.md. Then test it: run it once on one of my real projects and show me the result, so I can see it works before I rely on it.
+  ```
 
 **What I build on:** [Superpowers](https://github.com/obra/superpowers) (brainstorm, then spec, then plan, then
 test-first for anything real), [graphify](https://github.com/safishamsi/graphify) (the Map), and the impeccable
