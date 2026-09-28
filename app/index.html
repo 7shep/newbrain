@@ -166,6 +166,9 @@ body.map-full { overflow: hidden; }
 .map .card b { display: block; font-size: 14px; } .map .card small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
 .map .card code { font: 500 11px var(--mono); color: var(--dim); }
 .legend { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.map-search { margin-left: auto; width: min(260px, 38vw); background: var(--tile-2); border: 1px solid var(--line); border-radius: 9px; padding: 5px 10px; font-size: 13px; color: var(--ink); outline: none; }
+.map-search:focus { border-color: var(--amber); }
+.map-search + datalist + .n { margin-left: 10px; }
 .legend button { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); background: none; border-radius: 999px; padding: 4px 10px; font-size: 12px; color: var(--muted); transition: border-color .2s, color .2s, opacity .2s; }
 .legend button i { width: 8px; height: 8px; border-radius: 50%; }
 .legend button:hover, .legend button.on { color: var(--ink); border-color: var(--muted); }
@@ -303,9 +306,9 @@ body.map-full { overflow: hidden; }
   <section class="tile agents" id="agentsTile" hidden><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 3v4M9 12h.01M15 12h.01M9 16h6"/></svg><h2>Agents</h2><span class="n" id="agentCount"></span></header><div id="agents"></div></section>
   <section class="tile ideas"><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z"/></svg><h2>Ideas</h2><span class="n" id="ideaCount"></span><button class="add" data-capture="idea">+ Idea</button></header><div id="ideas"></div></section>
   <section class="tile habits"><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 5.8H20l-4.9 3.6 1.9 5.8L12 14.6l-5 3.6 1.9-5.8L4 8.8h6.1z"/></svg><h2>How Claude adapts to you</h2><span class="n" id="habitCount"></span></header><div id="habits"></div></section>
-  <section class="tile map" id="mapTile" hidden><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="7" r="2"/><circle cx="12" cy="18" r="2"/><circle cx="12" cy="10" r="2.5"/><path d="M7 6.5l2.8 2.2M17.1 7.6l-2.8 1.6M12 12.5V16"/></svg><h2>Map of everything</h2><span class="n" id="mapCount"></span></header>
+  <section class="tile map" id="mapTile" hidden><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="7" r="2"/><circle cx="12" cy="18" r="2"/><circle cx="12" cy="10" r="2.5"/><path d="M7 6.5l2.8 2.2M17.1 7.6l-2.8 1.6M12 12.5V16"/></svg><h2>Map of everything</h2><input class="map-search" id="mapSearch" list="mapPhrases" placeholder="Search the map…" autocomplete="off" aria-label="Search the map"><datalist id="mapPhrases"></datalist><span class="n" id="mapCount"></span></header>
     <div class="stage"><canvas id="mapCanvas" aria-label="Knowledge graph of your notes. Click a dot to open its note."></canvas><div class="card" id="mapCard"></div>
-      <div class="zoom"><button id="mapOut" title="Zoom out" aria-label="Zoom out">−</button><button id="mapFit" title="Fit" aria-label="Fit to view">⤢</button><button id="mapIn" title="Zoom in" aria-label="Zoom in">+</button><button id="mapFull" title="Full screen (F)" aria-label="Full screen">⛶</button></div><span class="hint" id="mapHint">pinch or ⌘-scroll to zoom · drag to pan · double-click to zoom in</span></div>
+      <div class="zoom"><button id="mapOut" title="Zoom out" aria-label="Zoom out">−</button><button id="mapFit" title="Fit" aria-label="Fit to view">⤢</button><button id="mapIn" title="Zoom in" aria-label="Zoom in">+</button><button id="mapFull" title="Full screen (F)" aria-label="Full screen">⛶</button></div><span class="hint" id="mapHint">search above · pinch or ⌘-scroll to zoom · drag to pan · double-click to zoom in</span></div>
     <div class="legend" id="mapLegend"></div></section>
   <section class="tile timeline"><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><h2>Everything we've done</h2><span class="n" id="sessCount"></span></header><div id="timeline"></div></section>
 </main>
@@ -429,7 +432,7 @@ async function initMap() {
     alpha = Math.max(alpha * .99, .08);
   }
 
-  let W = 0, H = 0, view = { k: 1, x: 0, y: 0 }, hover = null, focus = null, touched = false; // touched: the user moved the view, so stop auto-fitting
+  let W = 0, H = 0, view = { k: 1, x: 0, y: 0 }, hover = null, pin = null, focus = null, touched = false; // touched: the user moved the view, so stop auto-fitting
   function size() {
     const r = cv.getBoundingClientRect(), dpr = devicePixelRatio || 1;
     W = r.width; H = r.height; cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); draw();
@@ -483,19 +486,18 @@ async function initMap() {
   cv.addEventListener("pointerdown", e => { touched = true; drag = { x: e.clientX - view.x, y: e.clientY - view.y }; moved = false; cv.setPointerCapture(e.pointerId); });
   cv.addEventListener("pointermove", e => {
     if (drag) { view.x = e.clientX - drag.x; view.y = e.clientY - drag.y; moved = true; cv.classList.add("drag"); return draw(); }
-    const n = hit(e);
-    if (n !== hover) {
-      hover = n; cv.classList.toggle("hot", !!n);
-      card.classList.toggle("on", !!n);
-      if (n) card.innerHTML = `<b>${esc(n.label)}</b><small>${esc(n.groupName)} · ${n.deg} link${n.deg === 1 ? "" : "s"}</small>${n.file ? `<code>${esc(n.file)}</code>` : ""}`;
-      draw();
-    }
+    const n = hit(e) || pin;
+    if (n !== hover) { hover = n; cv.classList.toggle("hot", !!n && n !== pin); showCard(n); draw(); }
   });
   cv.addEventListener("pointerup", e => {
     cv.classList.remove("drag"); drag = null;
-    if (!moved) { const n = hit(e); if (n && /\.md$/.test(n.file)) openDoc(n.file); }
+    if (!moved) { const n = hit(e); if (n && /\.md$/.test(n.file)) openDoc(n.file); else if (!n && pin) { pin = hover = null; showCard(null); draw(); } }
   });
-  cv.addEventListener("pointerleave", () => { if (!drag && hover) { hover = null; card.classList.remove("on"); draw(); } });
+  cv.addEventListener("pointerleave", () => { if (!drag && hover !== pin) { hover = pin; showCard(pin); draw(); } });
+  function showCard(n) {
+    card.classList.toggle("on", !!n);
+    if (n) card.innerHTML = `<b>${esc(n.label)}</b><small>${esc(n.groupName)} · ${n.deg} link${n.deg === 1 ? "" : "s"}</small>${n.file ? `<code>${esc(n.file)}</code>` : ""}`;
+  }
   const zoom = (f, cx = W / 2, cy = H / 2) => { touched = true; const k = Math.min(Math.max(view.k * f, .2), 6); view.x = cx - (cx - view.x) * k / view.k; view.y = cy - (cy - view.y) * k / view.k; view.k = k; draw(); };
   // Pinch (Chrome/Firefox send it as ctrl+wheel) or ⌘-scroll zooms. Full screen: plain scroll pans, like a map app.
   cv.addEventListener("wheel", e => {
@@ -523,14 +525,40 @@ async function initMap() {
   $("mapIn").onclick = () => zoom(1.35); $("mapOut").onclick = () => zoom(1 / 1.35); $("mapFit").onclick = () => { touched = false; fit(); draw(); };
 
   $("mapLegend").innerHTML = groups.slice(0, 8).map(x => `<button data-g="${esc(x.id)}"><i style="background:${x.color}"></i>${esc(x.short)} <span style="color:var(--dim)">${x.n}</span></button>`).join("");
-  $("mapLegend").onclick = e => {
-    const b = e.target.closest("button"); if (!b) return;
-    const id = groups.find(x => String(x.id) === b.dataset.g).id;
-    focus = focus === id ? null : id;
+  const setFocus = id => {
+    focus = id;
     $("mapLegend").classList.toggle("focused", focus != null);
     $("mapLegend").querySelectorAll("button").forEach(x => x.classList.toggle("on", focus != null && x.dataset.g === String(focus)));
     draw();
   };
+  $("mapLegend").onclick = e => {
+    const b = e.target.closest("button"); if (!b) return;
+    const id = groups.find(x => String(x.id) === b.dataset.g).id;
+    setFocus(focus === id ? null : id);
+  };
+
+  // Search: the browser suggests key phrases (cluster names, then ideas by how connected they are).
+  const CL = " (cluster)";
+  const phrases = [...groups.map(x => x.short + CL), ...[...new Set([...g.nodes].sort((a, b) => b.deg - a.deg).map(n => n.label))]];
+  $("mapPhrases").innerHTML = phrases.map(p => `<option value="${esc(p)}"></option>`).join("");
+  const flyTo = n => {
+    touched = true;
+    const k = Math.max(view.k, 2.4);
+    view.k = k; view.x = W / 2 - n.x * k; view.y = H / 2 - n.y * k;
+    if (focus != null && n.group !== focus) setFocus(null);
+    hover = pin = n; showCard(n); draw();
+  };
+  const search = () => {
+    const q = $("mapSearch").value.trim(), ql = q.toLowerCase();
+    if (!q) return;
+    if (q.endsWith(CL)) { const c = groups.find(x => x.short + CL === q); if (c) { pin = hover = null; showCard(null); touched = false; fit(); setFocus(c.id); } return; }
+    const byDeg = arr => arr.sort((a, b) => b.deg - a.deg)[0];
+    const n = g.nodes.find(x => x.label.toLowerCase() === ql) || byDeg(g.nodes.filter(x => x.label.toLowerCase().startsWith(ql)))
+      || byDeg(g.nodes.filter(x => x.label.toLowerCase().includes(ql))) || byDeg(g.nodes.filter(x => (x.file || "").toLowerCase().includes(ql)));
+    n ? flyTo(n) : toast(`Nothing on the map matches "${q}"`);
+  };
+  $("mapSearch").addEventListener("change", search);
+  $("mapSearch").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); search(); } else if (e.key === "Escape") { $("mapSearch").value = ""; pin = hover = null; showCard(null); setFocus(null); } });
 }
 
 /* ---------- render ---------- */
