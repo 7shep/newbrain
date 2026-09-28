@@ -89,6 +89,7 @@ button { cursor: pointer; }
 .habit small { color: var(--dim); font: 500 11px var(--mono); }
 .sw { width: 44px; height: 26px; border-radius: 26px; background: var(--tile-3); border: 0; position: relative; flex: none; margin-top: 2px; }
 .sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--muted); transition: transform .25s var(--ease); }
+.theme-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
 .sw.on { background: var(--mint); } .sw.on::after { transform: translateX(18px); background: var(--mint-ink); }
 .empty { color: var(--dim); font-size: 14px; }
 .more { background: none; border: 0; color: var(--muted); font-size: 13px; padding: 8px 0 0; }
@@ -211,6 +212,7 @@ button, .row, header[data-sec] { -webkit-touch-callout: none; }
 <section class="sheet" id="settings" aria-label="Settings">
   <header><button class="ib" data-close aria-label="Close"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button><span class="p">Connect your notes</span></header>
   <form class="body" id="setForm">
+    <div class="theme-row"><span>Dark mode</span><button class="sw" type="button" role="switch" id="darkSw" aria-label="Dark mode"></button></div>
     <p class="help">Brain on your phone reads your private notes repo on GitHub. Nothing is stored anywhere except this phone.</p>
     <label for="repo">Notes repo</label>
     <input id="repo" placeholder="your-name/notes" autocapitalize="off" autocorrect="off" spellcheck="false" required>
@@ -226,7 +228,7 @@ button, .row, header[data-sec] { -webkit-touch-callout: none; }
 <label id="hap" aria-hidden="true"><input type="checkbox" switch tabindex="-1"></label>
 
 <script>
-// Theme: follow the system unless a choice was saved (desktop chip).
+// Theme: follow the system unless a choice was saved (Settings → Dark mode).
 matchMedia("(prefers-color-scheme: light)").addEventListener("change", e => {
   let saved = null; try { saved = localStorage.getItem("brain.theme"); } catch {}
   if (!saved) setTheme(e.matches ? "light" : "dark", false);
@@ -234,12 +236,13 @@ matchMedia("(prefers-color-scheme: light)").addEventListener("change", e => {
 function setTheme(t, save = true) {
   document.documentElement.dataset.theme = t;
   if (save) try { localStorage.setItem("brain.theme", t); } catch {}
-  const chip = document.getElementById("themeChip");
-  if (chip) chip.textContent = t === "light" ? "☀ light" : "☾ dark";
+  const sw = document.getElementById("darkSw");
+  if (sw) { sw.classList.toggle("on", t === "dark"); sw.setAttribute("aria-checked", t === "dark"); }
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.content = t === "light" ? "#e6e8eb" : "#0c0d0f";
 }
 setTheme(document.documentElement.dataset.theme, false);
+document.getElementById("darkSw").onclick = () => setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
 
 "use strict";
 const $ = id => document.getElementById(id);
@@ -269,7 +272,6 @@ async function loadState() {
   if (r.status === 404) throw new Error("No phone/state.json yet. The notes repo's Brain action hasn't run.");
   if (!r.ok) throw new Error(`GitHub said ${r.status}.`);
   S = await r.json(); store.set("state", S);
-  if (S.theme) setTheme(S.theme);  // follow the desktop's light/dark chip
   for (const f of S.failed || []) if (outbox.some(o => o.id === f.id)) toast("Couldn't apply one change: " + f.error);
 }
 

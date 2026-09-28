@@ -359,11 +359,7 @@ function setTheme(t, save = true) {
   if (meta) meta.content = t === "light" ? "#e6e8eb" : "#0c0d0f";
 }
 setTheme(document.documentElement.dataset.theme, false);
-document.getElementById("themeChip").onclick = () => {
-  const t = document.documentElement.dataset.theme === "light" ? "dark" : "light";
-  setTheme(t);
-  api("/api/theme", { theme: t }).catch(() => {});  // the phone follows this choice
-};
+document.getElementById("themeChip").onclick = () => setTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light");
 
 const TOKEN = "__BRAIN_TOKEN__";
 const $ = id => document.getElementById(id);
