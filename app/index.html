@@ -129,10 +129,6 @@ kbd { font: 500 11px var(--mono); border: 1px solid var(--line); border-radius: 
 .bar-tools { flex-basis: 100%; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .bar-tools .capture-btn { margin-left: 0; flex: 1 1 320px; width: auto; }
 .bar-tools .chip.agents-chip { border-color: var(--line); }
-/* knows-you: a round dot exactly as tall as the chips beside it (same padding and line height) */
-.bar-tools #knowsChip { padding: 5px; border-color: transparent; border-radius: 50%; }
-#knowsChip span { display: block; width: 1lh; height: 1lh; }
-
 .habits { grid-column: span 12; }
 .brainstorm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
 .brainstorm input { flex: 1 1 280px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 10px 13px; outline: none; transition: border-color .2s; }
@@ -722,10 +718,9 @@ function renderKnows() {
   const p = S.predictions, chip = $("knowsChip");
   chip.hidden = !p || !p.n;
   if (chip.hidden) return;
-  // just a traffic-light dot: green 70+, yellow 40-69, red below 40
-  chip.style.background = p.score >= 70 ? "#34c759" : p.score >= 40 ? "#ffcc00" : "#ff3b30";
-  chip.title = chip.ariaLabel = `How well Claude knows you: ${p.score} / 100`;
-  chip.innerHTML = "<span></span>";
+  // traffic light on the score: green 70+, yellow 40-69, red below 40 (fixed yellow: --amber is blue in light mode)
+  const light = p.score >= 70 ? "var(--mint)" : p.score >= 40 ? "#f0b429" : "var(--rose)";
+  chip.innerHTML = `<span class="st" style="background:${light}"></span>knows you ${p.score}`;
 }
 
 /* ---------- usage stats (Claude Code transcripts + the notes' own size) ---------- */
