@@ -42,6 +42,29 @@ popular "LLM council" skill (11 subagents per question). It argued me out of it:
 10–20× the tokens for an answer I can get by asking. That argument became a habit: **when I pitch a project, Claude
 argues against it first.**
 
+### My setup
+
+**The 16 habits Claude follows every session** (from `claude/habits.md`; each started as something that went wrong once):
+
+| How we talk | How Claude works | What Claude never does |
+|---|---|---|
+| Lead with the answer, keep it short | Read the brain first, write it back after | Invent facts about my club; real content only |
+| Pitch one practical thing, then move far | Check my notes before trawling email and calendar | Relitigate a decision I've already made |
+| Argue against a new project idea before building it | Open a task list when work has 3+ steps | Reach me through the terminal (it's the calendar; my laptop stays home) |
+| Let me pick more than one answer | Check both calendars before proposing times | Trust a branch other than `main` on the club site |
+| Interested, not eager, in outreach | Open finished files for me, and commit + push notes after updating them | Treat an iCloud-synced Desktop like a normal folder |
+
+**Skills I wrote:**
+- [`/wild`](skills/wild/SKILL.md): the one exception to "argue first". When I say "go wild", Claude generates 40+ ideas across 8
+  forced angles (absurd scale, wrong medium, flip the user, collide my projects, cog sci, startup-in-10-days,
+  anti-idea, pure bit), pushes the 5 strangest further, then lands on exactly two: one doable this month and one pure
+  fun. Tested against a no-skill baseline: 12 sensible ideas became 45 across every angle, 7 of them physical.
+  Copy it to `~/.claude/skills/wild/` and swap in your own projects.
+
+**What I build on:** [Superpowers](https://github.com/obra/superpowers) (brainstorm, then spec, then plan, then
+test-first for anything real), [graphify](https://github.com/safishamsi/graphify) (the Map), and the impeccable
+design plugin for UI work. Brain is the glue: it's where the habits, the specs and every session's outcome live.
+
 ## Try it (30 seconds)
 
 ```bash
