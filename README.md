@@ -132,7 +132,7 @@ somewhere else.
 Codex has no session-start hook, but it reads `~/.codex/AGENTS.md` at the start of every session. Run this once:
 
 ```bash
-python3 ~/Notes/.brain/codex.py
+python3 ~/Notes/.brain/brain_codex.py
 ```
 
 It adds a marked **Brain** block to that file with the standing instructions (read `INDEX.md` first, follow the `on`
@@ -162,7 +162,7 @@ They use `codex exec` in a `workspace-write` sandbox: your notes and `~/Projects
     ├── mobile/               the phone app (served from GitHub Pages)
     ├── build.py              regenerates INDEX.md
     ├── session_start.py      Claude Code SessionStart hook
-    ├── codex.py              Codex adapter: keeps a brain block in ~/.codex/AGENTS.md
+    ├── brain_codex.py        Codex adapter: keeps a brain block in ~/.codex/AGENTS.md
     ├── bin/brain, brain.cmd  launchers (macOS/Linux, Windows)
     ├── FORMATS.md            file shapes the app parses
     ├── example/              fictional notes to try it with

@@ -8,7 +8,7 @@ BRAIN = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.environ["BRAIN_NOTES"] = os.path.join(BRAIN, "example")
 sys.path.insert(0, BRAIN)
 sys.path.insert(0, os.path.join(BRAIN, "app"))
-import codex  # noqa: E402
+import brain_codex as codex  # noqa: E402
 from agents import Agents  # noqa: E402
 
 
