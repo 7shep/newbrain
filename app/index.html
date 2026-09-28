@@ -720,7 +720,8 @@ function renderKnows() {
   if (chip.hidden) return;
   // traffic light on the score: green 70+, yellow 40-69, red below 40 (fixed yellow: --amber is blue in light mode)
   const light = p.score >= 70 ? "var(--mint)" : p.score >= 40 ? "#f0b429" : "var(--rose)";
-  chip.innerHTML = `<span class="st" style="background:${light}"></span>knows you ${p.score}`;
+  chip.innerHTML = `<span class="st" style="background:${light};margin:0"></span>`;  // just the dot; the score is in the tooltip
+  chip.title = chip.ariaLabel = `How well Claude knows you: ${p.score} / 100`;
 }
 
 /* ---------- usage stats (Claude Code transcripts + the notes' own size) ---------- */
