@@ -61,13 +61,6 @@ class ApplyQueueTest(unittest.TestCase):
         self.assertIn("Ask before long builds", read(notes, "claude/habits.md"))
         self.assertNotIn("sessions", state)  # the phone only gets what it shows
 
-    def test_phone_follows_the_desktop_theme(self):
-        notes = notes_copy()
-        self.assertIsNone(self.run_phone(notes)["theme"])
-        with open(os.path.join(notes, "phone", "theme"), "w") as f:
-            f.write("dark")
-        self.assertEqual(self.run_phone(notes)["theme"], "dark")
-
     def test_captures_are_parked_for_the_mac_not_run(self):
         notes = notes_copy()
         queue(notes, "1", "capture", {"kind": "idea", "text": "Parked idea"})

@@ -276,13 +276,6 @@ def render_ideas(sections):
 
 
 # ---------------------------------------------------------------- actions
-def act_theme(body):
-    """The desktop's light/dark choice, so the phone can follow it (phone.py puts it in state.json)."""
-    if body.get("theme") not in ("light", "dark"):
-        raise ValueError("theme must be light or dark")
-    write("phone/theme", body["theme"])
-
-
 def act_idea(body):
     action, line = body.get("action"), str(body.get("text") or "")
     sections = idea_sections(read("ideas.md"))
@@ -460,8 +453,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if not self.authed():
             return self.send(403, {"error": "forbidden"})
         routes = {"/api/nudge": act_nudge, "/api/habit": act_habit, "/api/capture": act_capture,
-                  "/api/idea": act_idea, "/api/project": act_project, "/api/habit-new": act_habit_new,
-                  "/api/theme": act_theme}
+                  "/api/idea": act_idea, "/api/project": act_project, "/api/habit-new": act_habit_new}
         path = urllib.parse.urlparse(self.path).path
         try:
             with LOCK:
