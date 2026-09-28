@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Brain</title>
+<script>
+/* Look: solid | glass | liquid, remembered per browser. Set before first paint. Reduce Transparency forces solid; lensing is Chromium-only. */
+(function () { var h = document.documentElement, l = "glass";
+  try { l = localStorage.getItem("brain.look") || "glass"; } catch (e) {}
+  if (matchMedia("(prefers-reduced-transparency: reduce)").matches) l = "solid";
+  h.dataset.look = l;
+  if (/Chrome\//.test(navigator.userAgent) && !/CriOS/.test(navigator.userAgent) && CSS.supports("backdrop-filter", "url(#a)")) h.classList.add("lens"); })();
+</script>
 <meta name="theme-color" content="#0c0d0f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -173,9 +181,49 @@ button, .row, header[data-sec] { -webkit-touch-callout: none; }
 .confetti { position: fixed; width: 7px; height: 10px; border-radius: 2px; pointer-events: none; z-index: 40; }
 @media (prefers-reduced-motion: reduce) { .dot.pending, .dot.ok, #main.intro > .tile, #main.intro .cover h3, .fab, .ib.spin .i, .types button[aria-pressed="true"] { animation: none; }
   .sheet, .toast, .sw::after, .pill, .ib, .go, .fab, .types button, .row { transition: none; } }
+/* glass: soft colour glows behind everything, frosted see-through surfaces on top */
+:root { --glass: rgba(28,31,36,.5); --glass-2: rgba(255,255,255,.06); --glass-line: rgba(255,255,255,.1);
+  --glass-hi: inset 0 1px 0 rgba(255,255,255,.08); --blur: blur(20px) saturate(160%); }
+:root:is([data-look="glass"],[data-look="liquid"]) body { background: transparent; } /* html keeps the dark base; the glows sit between the two */
+:root:is([data-look="glass"],[data-look="liquid"]) body::before { content: ""; position: fixed; inset: -20vmax; z-index: -1; pointer-events: none; background:
+  radial-gradient(60vmax 44vmax at 10% 6%, rgba(255,181,71,.22), transparent 70%),
+  radial-gradient(50vmax 40vmax at 95% 38%, rgba(195,166,255,.16), transparent 70%),
+  radial-gradient(56vmax 44vmax at 20% 96%, rgba(126,224,176,.13), transparent 70%); }
+:root:is([data-look="glass"],[data-look="liquid"]) .tile, :root:is([data-look="glass"],[data-look="liquid"]) .ib, :root:is([data-look="glass"],[data-look="liquid"]) #ptr, :root:is([data-look="glass"],[data-look="liquid"]) .types button, :root:is([data-look="glass"],[data-look="liquid"]) textarea, :root:is([data-look="glass"],[data-look="liquid"]) input { background-color: var(--glass); border-color: var(--glass-line); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); }
+:root:is([data-look="glass"],[data-look="liquid"]) .tile { box-shadow: var(--glass-hi), 0 18px 36px -22px rgba(0,0,0,.6); }
+:root:is([data-look="glass"],[data-look="liquid"]) .nudge, :root:is([data-look="glass"],[data-look="liquid"]) .pill, :root:is([data-look="glass"],[data-look="liquid"]) .md code, :root:is([data-look="glass"],[data-look="liquid"]) .fm span, :root:is([data-look="glass"],[data-look="liquid"]) .help code { background-color: var(--glass-2); }
+:root:is([data-look="glass"],[data-look="liquid"]) .nudge, :root:is([data-look="glass"],[data-look="liquid"]) .pill { box-shadow: var(--glass-hi); } :root:is([data-look="glass"],[data-look="liquid"]) .pill { border-color: var(--glass-line); }
+:root:is([data-look="glass"],[data-look="liquid"]) .pill.yes { background: var(--mint); border-color: var(--mint); }
+:root:is([data-look="glass"],[data-look="liquid"]) .types button[aria-pressed="true"] { background: var(--amber); border-color: var(--amber); }
+:root:is([data-look="glass"],[data-look="liquid"]) .cover { background: linear-gradient(140deg, rgba(255,196,110,.95), rgba(255,170,50,.86)); border-color: rgba(255,255,255,.35); position: relative; overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 20px 50px -22px rgba(255,181,71,.5); }
+:root:is([data-look="glass"],[data-look="liquid"]) .cover::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(115deg, rgba(255,255,255,.28), transparent 40%); }
+:root:is([data-look="glass"],[data-look="liquid"]) .fab { background: rgba(255,181,71,.88); box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 12px 30px -8px rgba(0,0,0,.7); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); }
+:root:is([data-look="glass"],[data-look="liquid"]) .sheet { background: rgba(12,13,15,.72); -webkit-backdrop-filter: blur(28px) saturate(160%); backdrop-filter: blur(28px) saturate(160%); }
+:root:is([data-look="glass"],[data-look="liquid"]) .sheet > header { border-bottom-color: var(--glass-line); }
+:root:is([data-look="glass"],[data-look="liquid"]) .toast { background: rgba(236,234,228,.85); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); }
+:root:is([data-look="glass"],[data-look="liquid"]) .md pre { background: var(--glass-2); border-color: var(--glass-line); }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { :root:is([data-look="glass"],[data-look="liquid"]) .tile { background-color: var(--tile); } :root:is([data-look="glass"],[data-look="liquid"]) .sheet { background: var(--bg); } }
+
+/* ---------- liquid: light follows the pointer, rims catch it, controls squish; on Chromium the backdrop bends ---------- */
+:root[data-look="liquid"] :is(.tile, .nudge, .fab) { position: relative; isolation: isolate; box-shadow: inset 0 1px 0 rgba(255,255,255,.2), inset 0 -1px 0 rgba(0,0,0,.25), 0 18px 40px -24px rgba(0,0,0,.6); }
+:root[data-look="liquid"] :is(.tile, .nudge, .fab)::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: -1;
+  background: radial-gradient(360px circle at var(--mx, 30%) var(--my, -30%), rgba(255,255,255,.11), transparent 62%); transition: opacity .3s; }
+:root[data-look="liquid"] :is(.tile:not(.cover), .nudge)::before { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; padding: 1px;
+  background: radial-gradient(180px circle at var(--mx, 30%) var(--my, -30%), rgba(255,255,255,.55), transparent 70%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+:root[data-look="liquid"] :is(.pill, .ib, .fab, .types button, .go) { transition: transform .45s var(--ease), background-color .2s; }
+:root[data-look="liquid"] :is(.pill, .ib, .fab, .types button, .go):active { transform: scale(.94); transition-duration: .1s; }
+:root[data-look="liquid"].lens :is(.tile, .sheet) { -webkit-backdrop-filter: url(#liquid-lens) blur(12px) saturate(175%); backdrop-filter: url(#liquid-lens) blur(12px) saturate(175%); }
+@media (prefers-reduced-motion: reduce) { :root[data-look="liquid"] :is(.pill, .ib, .fab, .types button, .go):active { transform: none; } }
+
+.looks { display: flex; gap: 6px; }
+.looks button { flex: 1; border: 1px solid var(--line); background: var(--tile); border-radius: 999px; padding: 9px 0; font-weight: 600; color: var(--muted); }
+.looks button[aria-pressed="true"] { background: var(--amber); border-color: var(--amber); color: var(--amber-ink); }
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="liquid-lens" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.006 0.01" numOctaves="2" seed="7" result="n"/><feGaussianBlur in="n" stdDeviation="3" result="nb"/><feDisplacementMap in="SourceGraphic" in2="nb" scale="34" xChannelSelector="R" yChannelSelector="G"/></filter></svg>
 <div class="bar">
   <h1 id="greet">Brain</h1><span class="sp"></span>
   <span class="dot" id="syncDot" title="Sync status"></span>
@@ -213,6 +261,9 @@ button, .row, header[data-sec] { -webkit-touch-callout: none; }
     <label for="token">GitHub key</label>
     <input id="token" type="password" placeholder="github_pat_…" autocapitalize="off" autocorrect="off" spellcheck="false" required>
     <p class="help">Make one at <b>github.com → Settings → Developer settings → Fine-grained tokens</b>: only your notes repo, with <code>Contents: Read and write</code>. You can revoke it there anytime.</p>
+    <label>Look</label>
+    <div class="looks"><button type="button" data-look-btn="solid">Solid</button><button type="button" data-look-btn="glass">Glass</button><button type="button" data-look-btn="liquid">Liquid</button></div>
+    <p class="help">Liquid adds light that follows your finger. Saved on this phone.</p>
     <button class="go" type="submit">Connect</button>
     <button class="more" type="button" id="signOut">Forget this key on this phone</button>
   </form>
@@ -349,6 +400,29 @@ function knows(p) {
     <p style="margin:6px 0 10px;color:var(--muted);font-size:13.5px">${esc(v)}</p>
     ${p.entries.slice(0, 5).map(e => `<div class="idea"><small>${e.hit ? "✓ right" : "✗ wrong"} · ${esc(e.conf)}% · ${esc(e.kind)}</small><div class="t" style="margin-bottom:0">${esc(e.bet)}${e.hit ? "" : ` <span class="empty">→ ${esc(e.got)}</span>`}</div></div>`).join("")}`);
 }
+
+/* ---------- look switcher + liquid pointer light ---------- */
+const LOOKS = ["solid", "glass", "liquid"];
+function setLook(l) {
+  document.documentElement.dataset.look = l;
+  try { localStorage.setItem("brain.look", l); } catch {}
+  document.querySelectorAll("[data-look-btn]").forEach(b => b.setAttribute("aria-pressed", b.dataset.lookBtn === l));
+  const chip = document.getElementById("lookChip"); if (chip) chip.textContent = "look: " + l;
+}
+setLook(document.documentElement.dataset.look || "glass");
+let litRaf = 0;
+addEventListener("pointermove", e => {
+  if (document.documentElement.dataset.look !== "liquid" || matchMedia("(prefers-reduced-motion: reduce)").matches || litRaf) return;
+  litRaf = requestAnimationFrame(() => {
+    litRaf = 0;
+    const el = e.target.closest && e.target.closest(".tile, .nudge, .fab"); if (!el) return;
+    const r = el.getBoundingClientRect();
+    el.style.setProperty("--mx", (e.clientX - r.left) + "px"); el.style.setProperty("--my", (e.clientY - r.top) + "px");
+  });
+}, { passive: true });
+
+document.querySelectorAll("[data-look-btn]").forEach(b => b.onclick = () => setLook(b.dataset.lookBtn));
+
 let showAllIdeas = false, lastHtml = "", introDone = false;
 // A collapsible group. Which ones are folded is remembered on this phone.
 let folded = new Set(store.get("folded", []));
