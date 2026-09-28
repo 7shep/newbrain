@@ -32,7 +32,7 @@ class CodexTest(unittest.TestCase):
             cmd = Agents(tempfile.mkdtemp()).command
         finally:
             del os.environ["BRAIN_AGENT"]
-        self.assertEqual(cmd[1:3], ["exec", "--cd"])
+        self.assertEqual(cmd[1:5], ["--ask-for-approval", "never", "exec", "--cd"])  # exec itself rejects the flag
         self.assertIn("workspace-write", cmd)
         self.assertEqual(Agents(tempfile.mkdtemp()).command[1], "--setting-sources")  # default stays Claude
 

@@ -8,9 +8,9 @@ import unittest
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "app"))
 from agents import Agents  # noqa: E402
 
-# Stands in for claude: prints a report built from the prompt (last arg); "sleep" in the prompt stalls it.
+# Stands in for claude: prints a report built from the prompt (on stdin); "sleep" in the prompt stalls it.
 FAKE = [sys.executable, "-c",
-        "import sys,time; p=sys.argv[-1]; time.sleep(3 if 'sleep' in p else 0.05); "
+        "import sys,time; sys.stdin.reconfigure(encoding='utf-8'); p=sys.stdin.read(); time.sleep(3 if 'sleep' in p else 0.05); "
         "sys.exit(2) if 'boom' in p else print('did: ' + p.split(': ',1)[1].splitlines()[0])"]
 
 
@@ -72,6 +72,18 @@ class AgentsTest(unittest.TestCase):
         run = wait(a, 1)[0]
         self.assertEqual(run["status"], "failed")
         self.assertIn("wasn't found", run["report"])
+
+    def test_prompt_goes_in_whole_on_stdin(self):
+        # A multi-line, non-ASCII prompt must arrive intact (on Windows, a .cmd shim would cut an argument at its
+        # first newline, and the default code page can't encode every character).
+        echo = [sys.executable, "-c", "import sys; sys.stdin.reconfigure(encoding='utf-8'); "
+                "sys.stdout.reconfigure(encoding='utf-8'); "
+                "print('\\n'.join(l for l in sys.stdin.read().splitlines() if 'caf' in l or 'line two' in l))"]
+        a = Agents(self.notes, command=echo)
+        a.submit("note", "caf\u00e9 \u00b7 line one\nline two")
+        report = wait(a, 1)[0]["report"]
+        self.assertIn("caf\u00e9 \u00b7 line one", report)
+        self.assertIn("line two", report)
 
     def test_recover_marks_leftovers_failed(self):
         a = Agents(self.notes, command=FAKE)

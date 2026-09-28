@@ -141,6 +141,10 @@ time it rebuilds `INDEX.md`, and anything else in the file is left alone. To hav
 agents](#background-agents-optional) run through Codex instead of Claude, start Brain with `BRAIN_AGENT=codex brain`.
 They use `codex exec` in a `workspace-write` sandbox: your notes and `~/Projects`, no network.
 
+**Windows:** run `py %USERPROFILE%\Notes\.brain\codex.py` once, then start Brain with Codex agents from a Command
+Prompt with `set BRAIN_AGENT=codex` followed by `%USERPROFILE%\Notes\.brain\bin\brain.cmd` (PowerShell:
+`$env:BRAIN_AGENT="codex"`). Log in to Codex first (`codex login`), since background agents can't answer a login prompt.
+
 ## How it fits together
 
 ```
