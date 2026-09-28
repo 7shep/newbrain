@@ -32,6 +32,7 @@ sys.path.insert(0, BRAIN)
 import build  # noqa: E402  (INDEX.md generator + frontmatter parser)
 from agents import Agents  # noqa: E402  (headless agent per capture, when agents/ exists)
 from sync import Sync  # noqa: E402  (git pull/commit/push for the phone app, when phone/ exists)
+import codex  # noqa: E402  (Codex adapter: brain block in ~/.codex/AGENTS.md)
 
 TOKEN = secrets.token_urlsafe(24)
 CLAUDE_PROJECTS = os.path.expanduser("~/.claude/projects")
@@ -84,6 +85,7 @@ def rebuild_index():
         with open(os.path.join(NOTES, "INDEX.md"), "w", encoding="utf-8") as f:
             f.write(build.build_index(docs, build.other_folders(known)))
         TOUCHED.add("INDEX.md")
+        codex.sync()  # keep Codex's AGENTS.md brain block current (no-op without Codex)
     except Exception as e:  # the index is a convenience; never fail a save over it
         print("index rebuild failed:", e, file=sys.stderr)
 

@@ -86,6 +86,20 @@ somewhere else.
    > write a session note (`.brain/session-template.md`), update the project page and `now.md`, then run
    > `python3 ~/Notes/.brain/build.py`.
 
+### Connect Codex
+
+Codex has no session-start hook, but it reads `~/.codex/AGENTS.md` at the start of every session. Run this once:
+
+```bash
+python3 ~/Notes/.brain/codex.py
+```
+
+It adds a marked **Brain** block to that file with the standing instructions (read `INDEX.md` first, follow the `on`
+habits, file inbox captures, write a session note) plus the current habits and inbox. Brain refreshes the block every
+time it rebuilds `INDEX.md`, and anything else in the file is left alone. To have [background
+agents](#background-agents-optional) run through Codex instead of Claude, start Brain with `BRAIN_AGENT=codex brain`.
+They use `codex exec` in a `workspace-write` sandbox: your notes and `~/Projects`, no network.
+
 ## How it fits together
 
 ```
@@ -107,6 +121,7 @@ somewhere else.
     ├── mobile/               the phone app (served from GitHub Pages)
     ├── build.py              regenerates INDEX.md
     ├── session_start.py      Claude Code SessionStart hook
+    ├── codex.py              Codex adapter: keeps a brain block in ~/.codex/AGENTS.md
     ├── bin/brain, brain.cmd  launchers (macOS/Linux, Windows)
     ├── FORMATS.md            file shapes the app parses
     ├── example/              fictional notes to try it with

@@ -39,6 +39,18 @@ def claude_command(notes):
             "--add-dir", os.path.expanduser("~/Projects"), "--allowedTools", *ALLOWED, "-p"]
 
 
+def codex_command(notes):
+    # Codex's sandbox is the boundary here: it can write the notes folder and ~/Projects, nothing else, and it has
+    # no network by default, so outward actions can only come back as text in the report.
+    return [shutil.which("codex") or "codex", "exec", "--cd", notes, "--sandbox", "workspace-write",
+            "--add-dir", os.path.expanduser("~/Projects"), "--skip-git-repo-check", "--ask-for-approval", "never"]
+
+
+def default_command(notes):
+    """BRAIN_AGENT=codex runs agents through Codex; anything else (the default) uses Claude Code."""
+    return codex_command(notes) if os.environ.get("BRAIN_AGENT", "").lower() == "codex" else claude_command(notes)
+
+
 def now():
     return datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 
@@ -47,7 +59,7 @@ class Agents:
     def __init__(self, notes, command=None, timeout=TIMEOUT):
         self.notes = notes
         self.dir = os.path.join(notes, "agents")
-        self.command = command or claude_command(notes)
+        self.command = command or default_command(notes)
         self.timeout = timeout
         self.jobs = queue.Queue()
         self.lock = threading.Lock()

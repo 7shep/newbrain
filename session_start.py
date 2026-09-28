@@ -37,6 +37,11 @@ def main():
                            capture_output=True, timeout=8)
         except (OSError, subprocess.TimeoutExpired):
             pass
+    print(context())
+
+
+def context():
+    """The brain summary every session starts with. Also written into Codex's AGENTS.md by codex.py."""
     habits = blocks(read("claude/habits.md"))
     on = [t for _, t, s, _src in habits if s == "on"]
     proposed = [t for _, t, s, src in habits if s == "proposed" and not src.startswith("brainstorm")]
@@ -55,7 +60,7 @@ def main():
     if inbox:
         lines.append("Inbox has %d capture(s) from the app — file each into the right note, then delete it from inbox.md:" % len(inbox))
         lines += ["  - " + i for i in inbox[:15]]
-    print("\n".join(lines))
+    return "\n".join(lines)
 
 
 if __name__ == "__main__":
