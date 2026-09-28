@@ -40,3 +40,23 @@ class PredictionsTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CalibrationLineTest(unittest.TestCase):
+    def run_hook(self, lines):
+        import subprocess, tempfile
+        notes = tempfile.mkdtemp()
+        os.makedirs(os.path.join(notes, "claude"))
+        with open(os.path.join(notes, "claude", "predictions.md"), "w") as f:
+            f.write("# Predictions\n" + "\n".join(lines) + "\n")
+        hook = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "session_start.py")
+        return subprocess.run([sys.executable, hook], capture_output=True, text=True, env={**os.environ, "BRAIN_NOTES": notes}).stdout
+
+    def test_too_few_bets_says_nothing(self):
+        self.assertNotIn("Calibration", self.run_hook(["- 2026-09-27 · 70% · draft · bet: a · got: b · miss"] * 4))
+
+    def test_advice_needs_three_bets_of_a_kind(self):
+        out = self.run_hook(["- 2026-09-27 · 70% · draft · bet: a · got: b · miss"] * 3 + ["- 2026-09-27 · 60% · habit · bet: c · got: d · miss"] * 2)
+        self.assertIn("offer 2 short versions", out)
+        self.assertNotIn("habit-driven", out)  # only 2 habit bets
+        self.assertIn('bet "c", got "d"', out)
