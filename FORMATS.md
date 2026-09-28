@@ -67,6 +67,18 @@ the SessionStart hook asks Claude to talk it through with you and refine it.
 - source: conversation, 2026-09-04
 ```
 
+## `claude/predictions.md` — how well Claude knows you
+Claude logs a line whenever it bets on what you'll want, and marks it once you answer. Kinds: `recommend` (an option
+it marked Recommended), `guess` (a stated guess about what you meant), `draft` (something it wrote that you kept or
+rewrote), `habit` (a habit made it act and you went along or pushed back). Confidence is 50–100%. Brain turns this into
+a score and a calibration chart (the score chip in the top bar).
+```
+# Predictions
+
+- 2026-09-27 · 70% · recommend · bet: Status, then recent · got: Status, then recent · hit
+- 2026-09-27 · 60% · recommend · bet: Todos only · got: Everything · miss
+```
+
 ## `now.md` — the cover story
 Claude rewrites after real work. Headline is punchy, magazine-style, true. `*word*` renders italic.
 ```

@@ -289,6 +289,7 @@ body.map-full { overflow: hidden; }
   <span class="chip" id="issue"></span>
   <span class="chip streak" id="streak" hidden></span>
   <button class="chip agents-chip" id="agentChip" hidden title="Background agents"></button>
+  <button class="chip agents-chip" id="knowsChip" hidden title="How well Claude knows you"></button>
   <button class="pill sm people-btn" id="openPeople"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6M17 11a3 3 0 100-6M22 21c0-3-2-5-5-5"/></svg>People &amp; me</button>
   <button class="capture-btn" id="openPalette"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Capture a thought, or jump to anything<kbd>⌘K</kbd></button>
 </div>
@@ -538,7 +539,7 @@ function render() {
   $("issue").textContent = `Issue ${S.issue} · ${sub}`;
   $("streak").hidden = S.streak < 2;
   $("streak").innerHTML = `${I.flame}${S.streak}-day streak`;
-  renderCover(); renderNext(); renderNudges(); renderProjects(); renderIdeas(); renderHabits(); renderTimeline(); renderAgents();
+  renderCover(); renderNext(); renderNudges(); renderProjects(); renderIdeas(); renderHabits(); renderTimeline(); renderAgents(); renderKnows();
   if (doc?.panel) openPeople();
 }
 
@@ -632,6 +633,46 @@ document.addEventListener("click", e => {
   openRuns.has(f) ? openRuns.delete(f) : openRuns.add(f);
   row.classList.toggle("open");
 });
+
+/* ---------- how well Claude knows you (claude/predictions.md) ---------- */
+function knowsVerdict(p) {
+  if (p.n < 5) return "Too few bets to judge yet.";
+  const o = p.overconfidence;
+  return o > 8 ? `A bit cocky: says ${p.avg_conf}% sure, right ${p.hit_rate}% of the time.`
+    : o < -8 ? `Humble: says ${p.avg_conf}% sure, but right ${p.hit_rate}% of the time.`
+    : `Well calibrated: says ${p.avg_conf}% sure, right ${p.hit_rate}% of the time.`;
+}
+function knowsChart(p) {
+  // x: stated confidence 50–100%, y: how often it was right 0–100%. On the diagonal = calibrated.
+  const W = 300, H = 220, L = 34, B = 26, T = 8, R = 10;
+  const x = c => L + (c - 50) / 50 * (W - L - R), y = h => T + (100 - h) / 100 * (H - T - B);
+  const grid = [0, 25, 50, 75, 100].map(h => `<line x1="${L}" x2="${W - R}" y1="${y(h)}" y2="${y(h)}" stroke="var(--line)"/><text x="${L - 6}" y="${y(h) + 4}" text-anchor="end">${h}</text>`).join("")
+    + [50, 60, 70, 80, 90, 100].map(c => `<text x="${x(c)}" y="${H - 8}" text-anchor="middle">${c}</text>`).join("");
+  const dots = p.buckets.map(b => `<circle cx="${x(b.conf)}" cy="${y(b.hit)}" r="${4 + Math.sqrt(b.n) * 2.2}" fill="${b.hit >= b.conf ? "var(--mint)" : "var(--rose)"}" opacity=".85"><title>${b.n} bet${b.n > 1 ? "s" : ""} at ~${b.conf}%: right ${b.hit}%</title></circle>`).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:420px;font:500 10px var(--mono);fill:var(--dim)" role="img" aria-label="Calibration chart">
+    ${grid}<line x1="${x(50)}" y1="${y(50)}" x2="${x(100)}" y2="${y(100)}" stroke="var(--muted)" stroke-dasharray="4 4"/>${dots}</svg>
+    <p style="color:var(--dim);font-size:12px;margin:4px 0 0">Across: how sure Claude said it was. Up: how often it was right. On the dashed line = honest. Green above it = humble, red below = cocky.</p>`;
+}
+function openKnows() {
+  const p = S.predictions, kindName = { recommend: "Recommended options", guess: "Guesses about you", draft: "Drafts you kept", habit: "Habit calls" };
+  const kinds = Object.entries(p.kinds).map(([k, v]) => `<li>${esc(kindName[k] || k)}: ${v.hits}/${v.n} right</li>`).join("");
+  const bets = p.entries.map(e => `<li>${e.hit ? "✓" : "✗"} <b>${esc(e.conf)}%</b> ${esc(e.bet)}${e.hit ? "" : ` <span style="color:var(--dim)">→ you: ${esc(e.got)}</span>`} <span style="color:var(--dim);font:500 11px var(--mono)">${esc(e.date.slice(5))} · ${esc(e.kind)}</span></li>`).join("");
+  const change = p.week_change == null ? "" : ` · ${p.week_change >= 0 ? "+" : ""}${p.week_change} this week`;
+  openPanel("How well Claude knows you", `<div class="md">
+    <h1>${p.score}<span style="font-size:18px;color:var(--dim)"> / 100</span></h1>
+    <p><b>${esc(knowsVerdict(p))}</b><br><span style="color:var(--dim)">${p.n} bets${change}. 100 = always sure and right; 0 = no better than a coin flip.</span></p>
+    ${knowsChart(p)}
+    <h2>By kind</h2><ul>${kinds}</ul>
+    <h2>Latest bets</h2><ul style="list-style:none;padding-left:0">${bets}</ul>
+    <p style="color:var(--dim);font-size:12px">From <code>claude/predictions.md</code>. Claude logs a line whenever it bets on what you'll want.</p></div>`);
+}
+$("knowsChip").addEventListener("click", openKnows);
+function renderKnows() {
+  const p = S.predictions, chip = $("knowsChip");
+  chip.hidden = !p || !p.n;
+  if (chip.hidden) return;
+  chip.innerHTML = `<span class="st" style="background:${p.overconfidence > 8 ? "var(--rose)" : "var(--mint)"}"></span>knows you ${p.score}`;
+}
 
 let showAllProjects = false;
 function renderProjects() {

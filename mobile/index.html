@@ -314,11 +314,22 @@ function render() {
         : `<div class="empty">No open ideas.</div>`}</section>
     <section class="tile"><header><h2>How Claude adapts to you</h2><span class="n">${habits.filter(x => x.status === "on").length} on</span></header>
       ${habits.map(x => `<div class="habit"><div><div class="t">${esc(x.title)}</div><small>${x.status === "proposed" ? "proposed · waiting on you" : esc(x.status)}</small></div>
-        <button class="sw ${x.status === "on" ? "on" : ""}" role="switch" aria-checked="${x.status === "on"}" aria-label="${esc(x.title)}" data-habit="${esc(x.id)}"></button></div>`).join("")}</section>`;
+        <button class="sw ${x.status === "on" ? "on" : ""}" role="switch" aria-checked="${x.status === "on"}" aria-label="${esc(x.title)}" data-habit="${esc(x.id)}"></button></div>`).join("")}</section>
+    ${knows(view.predictions)}`;
   // Only rebuild when something changed, so the entrance animation doesn't replay on every refresh.
   if (html === lastHtml) return;
   const main = $("main"); main.innerHTML = lastHtml = html;
   if (!introDone) { introDone = true; main.classList.add("intro"); setTimeout(() => main.classList.remove("intro"), 1300); }
+}
+// How well Claude knows you: score + verdict + latest bets (desktop has the full chart).
+function knows(p) {
+  if (!p || !p.n) return "";
+  const o = p.overconfidence, v = p.n < 5 ? "Too few bets to judge yet." : o > 8 ? `A bit cocky: says ${p.avg_conf}% sure, right ${p.hit_rate}% of the time.`
+    : o < -8 ? `Humble: says ${p.avg_conf}% sure, right ${p.hit_rate}% of the time.` : `Well calibrated: ${p.avg_conf}% sure, right ${p.hit_rate}% of the time.`;
+  return `<section class="tile"><header><h2>How well Claude knows you</h2><span class="n">${p.n} bets</span></header>
+    <div style="display:flex;align-items:baseline;gap:8px"><b style="font:800 40px/1 var(--display)">${esc(p.score)}</b><span class="empty">/ 100${p.week_change == null ? "" : ` · ${p.week_change >= 0 ? "+" : ""}${esc(p.week_change)} this week`}</span></div>
+    <p style="margin:6px 0 10px;color:var(--muted);font-size:13.5px">${esc(v)}</p>
+    ${p.entries.slice(0, 5).map(e => `<div class="idea"><small>${e.hit ? "✓ right" : "✗ wrong"} · ${esc(e.conf)}% · ${esc(e.kind)}</small><div class="t" style="margin-bottom:0">${esc(e.bet)}${e.hit ? "" : ` <span class="empty">→ ${esc(e.got)}</span>`}</div></div>`).join("")}</section>`;
 }
 let showAllIdeas = false, lastHtml = "", introDone = false;
 
