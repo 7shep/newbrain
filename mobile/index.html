@@ -139,17 +139,17 @@ input { width: 100%; background: var(--tile); border: 1px solid var(--line); bor
 .pill, .ib, .go, .fab, .types button, .row { transition: transform .18s var(--ease), background-color .2s, color .2s; }
 .pill:active, .ib:active, .go:not(:disabled):active, .types button:active { transform: scale(.92); }
 .fab:active { transform: scale(.94); } .row:active { transform: scale(.985); }
-.fab { animation: pop .7s cubic-bezier(.34, 1.56, .64, 1) .4s backwards; }
+.fab { animation: pop .7s var(--ease) .4s backwards; }
 .fab .i { transition: transform .35s var(--ease); } .fab:active .i { transform: rotate(90deg); }
 @keyframes pop { from { opacity: 0; transform: translateY(40px) scale(.5); } }
 .ib.spin .i { animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .dot.ok { animation: ping .9s ease-out; }
 @keyframes ping { from { box-shadow: 0 0 0 0 rgba(126,224,176,.7); } to { box-shadow: 0 0 0 10px rgba(126,224,176,0); } }
-.sw::after { transition: transform .3s cubic-bezier(.34, 1.56, .64, 1), width .15s; }
-.sw:active::after { width: 25px; } .sw.on:active::after { transform: translateX(13px); }
-.toast { transition: opacity .3s var(--ease), transform .4s cubic-bezier(.34, 1.56, .64, 1); transform: translateY(16px) scale(.9); }
-.types button[aria-pressed="true"] { animation: boop .35s cubic-bezier(.34, 1.56, .64, 1); }
+.sw::after { transition: transform .3s var(--ease); transform-origin: left center; }
+.sw:active::after { transform: scaleX(1.25); } .sw.on::after { transform-origin: right center; } .sw.on:active::after { transform: translateX(18px) scaleX(1.25); }
+.toast { transition: opacity .3s var(--ease), transform .4s var(--ease); transform: translateY(16px) scale(.9); }
+.types button[aria-pressed="true"] { animation: boop .35s var(--ease); }
 @keyframes boop { 40% { transform: scale(1.1); } }
 .confetti { position: fixed; width: 7px; height: 10px; border-radius: 2px; pointer-events: none; z-index: 40; }
 @media (prefers-reduced-motion: reduce) { .dot.pending, .dot.ok, #main.intro > .tile, #main.intro .cover h3, .fab, .ib.spin .i, .types button[aria-pressed="true"] { animation: none; }

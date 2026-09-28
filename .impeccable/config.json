@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "mobile/index.html"
+        ],
+        "createdAt": "2026-09-28T00:28:45.788Z",
+        "reason": "Claude: L127 is the markdown note reader's blockquote rule (3px left border), the standard quote convention, mirroring app/index.html's .md blockquote; not a card accent"
+      }
+    ]
+  }
+}
