@@ -9,3 +9,6 @@ __pycache__/
 example/INDEX.md
 docs/*.tmp.png
 app/.stats-cache.json
+
+# Local personal notes (never commit to the public app repo)
+personal-notes/
