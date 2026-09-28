@@ -32,7 +32,6 @@ svg.i { width: 15px; height: 15px; flex: none; }
 .bar h1 { font-size: 26px; font-weight: 700; letter-spacing: -.025em; margin: 0; }
 .bar h1 span { color: var(--muted); font-weight: 400; }
 .chip { display: inline-flex; align-items: center; gap: 7px; font: 500 12px var(--mono); color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 5px 10px; white-space: nowrap; }
-.chip.streak { color: var(--amber); border-color: rgba(255,181,71,.35); }
 .chip.agents-chip { background: none; cursor: pointer; color: var(--dim); border-color: transparent; font: inherit; }
 .chip.agents-chip:hover, .chip.agents-chip.on { color: var(--muted); border-color: var(--line); }
 .chip.agents-chip.busy { color: var(--amber); border-color: rgba(255,181,71,.35); }
@@ -57,8 +56,8 @@ kbd { font: 500 11px var(--mono); border: 1px solid var(--line); border-radius: 
 .empty { color: var(--dim); font-size: 13.5px; padding: 6px 0 2px; }
 
 .cover { grid-column: span 8; background: var(--amber); color: var(--amber-ink); border: 0; display: flex; flex-direction: column; min-height: 320px; padding: clamp(20px, 2.6vw, 30px); position: relative; overflow: hidden; }
-.cover .issue { display: flex; gap: 10px; align-items: baseline; font: 500 12px var(--mono); color: rgba(26,18,4,.6); }
-.cover .issue b { font: 800 13px var(--sans); color: var(--amber-ink); letter-spacing: .02em; }
+.cover .issue { display: flex; flex-wrap: wrap; gap: 2px 10px; align-items: baseline; font: 500 12px var(--mono); color: rgba(26,18,4,.6); }
+.cover .issue b { font: 800 13px var(--sans); color: var(--amber-ink); letter-spacing: .02em; white-space: nowrap; }
 .cover h3 { font: 800 clamp(34px, 4.4vw, 62px)/.96 var(--display); letter-spacing: -.02em; margin: 16px 0 0; max-width: 18ch; text-wrap: balance; }
 .cover h3 em { font-style: italic; font-weight: 600; }
 .cover p { max-width: 58ch; margin: 14px 0 0; font-size: 15.5px; color: rgba(26,18,4,.82); }
@@ -126,7 +125,10 @@ kbd { font: 500 11px var(--mono); border: 1px solid var(--line); border-radius: 
 .panel-head h2 { margin: 0 !important; }
 .panel-head .add { margin-left: auto; border: 1px solid var(--line); background: none; border-radius: 8px; padding: 3px 9px; font-size: 12px; font-weight: 600; color: var(--muted); }
 .people-btn { margin-left: auto; }
-.people-btn + .capture-btn { margin-left: 0; }
+/* second row: capture takes the room, the chips sit after it in one outlined style */
+.bar-tools { flex-basis: 100%; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.bar-tools .capture-btn { margin-left: 0; flex: 1 1 320px; width: auto; }
+.bar-tools .chip.agents-chip { border-color: var(--line); }
 
 .habits { grid-column: span 12; }
 .brainstorm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
@@ -280,7 +282,6 @@ body.map-full { overflow: hidden; }
 }
 @media (max-width: 700px) {
   .idea-grid { grid-template-columns: 1fr; }
-  .capture-btn { margin-left: 0; width: 100%; }
   .proj .ib.hide { opacity: 1; }
   .drawer .edit { grid-template-columns: 1fr; } .drawer .edit .md { display: none; }
   .day { grid-template-columns: 1fr; gap: 4px; }
@@ -293,14 +294,14 @@ body.map-full { overflow: hidden; }
 
 <div class="bar">
   <h1 id="greet">Brain</h1>
-  <span class="chip" id="issue"></span>
-  <span class="chip streak" id="streak" hidden></span>
-  <button class="chip agents-chip" id="agentChip" hidden title="Background agents"></button>
-  <button class="chip agents-chip" id="knowsChip" hidden title="How well Claude knows you"></button>
-  <button class="chip agents-chip" id="statsChip" title="Usage stats"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;margin-right:5px;vertical-align:-2px"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>stats</button>
-  <button class="chip agents-chip" id="themeChip" title="Light or dark"></button>
   <button class="pill sm people-btn" id="openPeople"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6M17 11a3 3 0 100-6M22 21c0-3-2-5-5-5"/></svg>People &amp; me</button>
-  <button class="capture-btn" id="openPalette"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Capture a thought, or jump to anything<kbd>⌘K</kbd></button>
+  <div class="bar-tools">
+    <button class="capture-btn" id="openPalette"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Capture a thought, or jump to anything<kbd>⌘K</kbd></button>
+    <button class="chip agents-chip" id="agentChip" hidden title="Background agents"></button>
+    <button class="chip agents-chip" id="knowsChip" hidden title="How well Claude knows you"></button>
+    <button class="chip agents-chip" id="statsChip" title="Usage stats"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;margin-right:5px;vertical-align:-2px"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>stats</button>
+    <button class="chip agents-chip" id="themeChip" title="Light or dark"></button>
+  </div>
 </div>
 
 <main class="grid" id="grid">
@@ -584,11 +585,8 @@ async function initMap() {
 
 /* ---------- render ---------- */
 function render() {
-  const [hi, sub] = greeting();
+  const [hi] = greeting();
   $("greet").innerHTML = `${esc(hi)} <span>· ${esc(new Date().toLocaleDateString("en", { weekday: "long" }))}</span>`;
-  $("issue").textContent = `Issue ${S.issue} · ${sub}`;
-  $("streak").hidden = S.streak < 2;
-  $("streak").innerHTML = `${I.flame}${S.streak}-day streak`;
   renderCover(); renderNext(); renderNudges(); renderProjects(); renderIdeas(); renderHabits(); renderTimeline(); renderAgents(); renderKnows();
   if (doc?.panel) openPeople();
 }
@@ -617,7 +615,7 @@ function renderCover() {
   }
   const head = esc(n.headline).replace(/\*(.+?)\*/g, "<em>$1</em>");
   $("cover").innerHTML = `
-    <div class="issue"><b>ISSUE ${S.issue}</b> week of ${esc(new Date(S.today + "T12:00:00").toLocaleDateString("en", { month: "long", day: "numeric" }))}</div>
+    <div class="issue"><b>ISSUE ${S.issue}</b> week of ${esc(new Date(S.today + "T12:00:00").toLocaleDateString("en", { month: "long", day: "numeric" }))} · ${esc(greeting()[1])}${S.streak >= 2 ? ` · ${S.streak}-day streak` : ""}</div>
     <h3>${head}</h3>
     ${n.dek ? `<p>${esc(n.dek)}</p>` : ""}
     <div class="acts">${proj ? reopenButtons(proj, { big: true }) : ""}
