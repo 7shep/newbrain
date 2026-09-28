@@ -17,6 +17,7 @@ act on them.
 - **Edit in place:** every note, person and project page opens in a side panel with a live markdown preview. ⌘S saves the file.
 - **Reopen anything:** copy the command to resume a past Claude Code chat, open a project in VS Code, or open its live site.
 - **Map of everything:** if you've run graphify (the Claude Code skill) on your notes (`graphify-out/graph.json`), a Map tile draws the knowledge graph in the app's colours. Hover a dot to see its links, click to open its note, use the legend to focus one cluster, or search it: type a few letters and it suggests matching ideas and clusters, then flies to the one you pick.
+- **Light and dark:** two matte themes, Pro Black and Frost, that follow your system until you pick one: the chip in the desktop top bar, or **Settings → Dark mode** on the phone. Each device keeps its own choice.
 - **Everything we've done:** one self-contained note per session, in a full-width timeline.
 - **People & me:** your profile and contacts, one click away but out of the main view.
 - **On your phone:** a home-screen app with the cover, Up next, Notes to self, projects, ideas, habits and capture. It works with your laptop off, using a private GitHub repo as the backend. [Set it up →](#on-your-phone)
@@ -141,6 +142,10 @@ time it rebuilds `INDEX.md`, and anything else in the file is left alone. To hav
 agents](#background-agents-optional) run through Codex instead of Claude, start Brain with `BRAIN_AGENT=codex brain`.
 They use `codex exec` in a `workspace-write` sandbox: your notes and `~/Projects`, no network.
 
+**Windows:** run `py %USERPROFILE%\Notes\.brain\brain_codex.py` once, then start Brain with Codex agents from a Command
+Prompt with `set BRAIN_AGENT=codex` followed by `%USERPROFILE%\Notes\.brain\bin\brain.cmd` (PowerShell:
+`$env:BRAIN_AGENT="codex"`). Log in to Codex first (`codex login`), since background agents can't answer a login prompt.
+
 ## How it fits together
 
 ```
@@ -156,6 +161,7 @@ They use `codex exec` in a `workspace-write` sandbox: your notes and `~/Projects
 └── .brain/                   this repo
     ├── app/server.py         stdlib HTTP server: reads/writes the notes, serves the app
     ├── app/index.html        the whole UI (vanilla JS, no build)
+    ├── app/theme.css         colours and light/dark themes, shared with the phone app
     ├── app/agents.py         background agent runner (queue, one at a time, status files)
     ├── app/sync.py           git pull/commit/push for the phone app
     ├── app/phone.py          applies phone actions on GitHub, writes phone/state.json

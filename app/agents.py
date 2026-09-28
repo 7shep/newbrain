@@ -33,17 +33,25 @@ PROMPT = (
 )
 
 
+def _projects():
+    """["--add-dir", ~/Projects] when that folder exists; both CLIs reject a missing one."""
+    path = os.path.expanduser("~/Projects")
+    return ["--add-dir", path] if os.path.isdir(path) else []
+
+
+# Both commands take the prompt on stdin (see Agents.run), never as an argument: on Windows an npm install is a
+# .cmd shim, and cmd.exe cuts a command-line argument off at its first newline. which() finds those shims.
 def claude_command(notes):
-    # which(): on Windows an npm install is claude.cmd, which a bare "claude" wouldn't find.
     return [shutil.which("claude") or "claude", "--setting-sources", "project", "--permission-mode", "dontAsk",
-            "--add-dir", os.path.expanduser("~/Projects"), "--allowedTools", *ALLOWED, "-p"]
+            *_projects(), "--allowedTools", *ALLOWED, "-p"]
 
 
 def codex_command(notes):
     # Codex's sandbox is the boundary here: it can write the notes folder and ~/Projects, nothing else, and it has
-    # no network by default, so outward actions can only come back as text in the report.
-    return [shutil.which("codex") or "codex", "exec", "--cd", notes, "--sandbox", "workspace-write",
-            "--add-dir", os.path.expanduser("~/Projects"), "--skip-git-repo-check", "--ask-for-approval", "never"]
+    # no network by default, so outward actions can only come back as text in the report. The approval policy is
+    # a top-level flag, before "exec" (exec itself rejects it).
+    return [shutil.which("codex") or "codex", "--ask-for-approval", "never", "exec", "--cd", notes,
+            "--sandbox", "workspace-write", *_projects(), "--skip-git-repo-check"]
 
 
 def default_command(notes):
@@ -174,13 +182,13 @@ class Agents:
         meta = {"status": "running", "type": kind, "queued": self._read(path)[0].get("queued", now()), "started": now()}
         self._write(path, meta, text)
         try:
-            p = subprocess.run([*self.command, PROMPT.format(kind=kind, text=text)], cwd=self.notes,
-                               capture_output=True, text=True, timeout=self.timeout, stdin=subprocess.DEVNULL)
+            p = subprocess.run(self.command, input=PROMPT.format(kind=kind, text=text), cwd=self.notes,
+                               capture_output=True, encoding="utf-8", errors="replace", timeout=self.timeout)
             status = "done" if p.returncode == 0 else "failed"
             report = (p.stdout.strip() or p.stderr.strip() or "(no output)")
         except subprocess.TimeoutExpired:
             status, report = "failed", "Stopped after %d minutes." % (self.timeout // 60)
         except FileNotFoundError:
-            status, report = "failed", "The claude command wasn't found."
+            status, report = "failed", "The %s command wasn't found." % os.path.basename(self.command[0])
         meta.update(status=status, finished=now())
         self._write(path, meta, text, report[:2000])

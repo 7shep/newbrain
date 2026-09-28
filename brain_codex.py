@@ -32,7 +32,7 @@ def block():
         "Follow the `on` habits in `claude/habits.md` (they apply to you too); propose new ones there, never enable them.",
         "File inbox captures into the right note and remove them from `inbox.md`. Add to `nudges.md` only when it clearly",
         "helps, and never re-add one marked `no`. After real work, write a session note (`.brain/session-template.md`),",
-        "update the project page and `now.md`, then run `python3 %s/.brain/build.py`." % notes,
+        "update the project page and `now.md`, then run `%s %s/.brain/build.py`." % ("py" if os.name == "nt" else "python3", notes),
         "",
         "Current state (refreshed automatically):",
         "```",

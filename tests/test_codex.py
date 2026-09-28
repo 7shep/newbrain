@@ -19,7 +19,8 @@ class CodexTest(unittest.TestCase):
             f.write("# My own rules\nAlways use tabs.\n")
         codex.sync(path)
         codex.sync(path)  # second run replaces, doesn't duplicate
-        text = open(path, encoding="utf-8").read()
+        with open(path, encoding="utf-8") as f:
+            text = f.read()
         self.assertTrue(text.startswith("# My own rules\nAlways use tabs.\n"))
         self.assertEqual(text.count(codex.START), 1)
         self.assertIn("INDEX.md", text)
@@ -31,7 +32,7 @@ class CodexTest(unittest.TestCase):
             cmd = Agents(tempfile.mkdtemp()).command
         finally:
             del os.environ["BRAIN_AGENT"]
-        self.assertEqual(cmd[1:3], ["exec", "--cd"])
+        self.assertEqual(cmd[1:5], ["--ask-for-approval", "never", "exec", "--cd"])  # exec itself rejects the flag
         self.assertIn("workspace-write", cmd)
         self.assertEqual(Agents(tempfile.mkdtemp()).command[1], "--setting-sources")  # default stays Claude
 
