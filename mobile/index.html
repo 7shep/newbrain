@@ -165,6 +165,9 @@ input { width: 100%; background: var(--tile); border: 1px solid var(--line); bor
 </div>
 <div id="banner"></div>
 <main id="main"><div class="tile empty">Loading…</div></main>
+<section class="tile" id="mapTile" hidden><header><h2>Search your map</h2><span class="n" id="mapCount"></span></header>
+  <input id="mapQ" list="mapList" placeholder="Ideas, projects, people, clusters…" autocomplete="off" autocapitalize="off" aria-label="Search your map"><datalist id="mapList"></datalist>
+  <div id="mapOut"></div></section>
 <button class="fab" id="openCapture" hidden><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>Capture</button>
 
 <section class="sheet" id="capture" aria-label="Capture">
@@ -362,6 +365,45 @@ function leave(el, dir) {
   ], { duration: 480, easing: "cubic-bezier(.16,1,.3,1)", fill: "forwards" }).finished;
 }
 
+/* ---------- map search (phone/graph.json, published by the Mac from graphify) ---------- */
+let G = null;
+const CL = " (cluster)";
+async function loadGraph() {
+  try {
+    const r = await gh("phone/graph.json"); if (!r.ok) return;
+    const g = await r.json(), byId = new Map(g.nodes.map(n => [n.id, { ...n, nb: new Set() }]));
+    for (const [a, b] of g.links) { const A = byId.get(a), B = byId.get(b); if (A && B && A !== B) { A.nb.add(B); B.nb.add(A); } }
+    const nodes = [...byId.values()].sort((a, b) => b.nb.size - a.nb.size);
+    const groups = [...new Set(nodes.map(n => n.groupName || "Cluster " + n.group))];
+    G = { nodes, groups };
+    $("mapCount").textContent = `${nodes.length} ideas`;
+    $("mapList").innerHTML = [...groups.map(x => x + CL), ...new Set(nodes.map(n => n.label))].map(x => `<option value="${esc(x)}"></option>`).join("");
+    $("mapTile").hidden = false;
+  } catch {}
+}
+const nodeBtn = n => `<button class="row" data-node="${esc(n.id)}"><span class="st"></span><div><div class="t">${esc(n.label)}</div><div class="s">${esc(n.groupName || "")} · ${n.nb.size} link${n.nb.size === 1 ? "" : "s"}</div></div></button>`;
+function showNode(n) {
+  $("mapQ").value = n.label;
+  $("mapOut").innerHTML = `<div class="nudge" style="margin-top:12px"><h4>${esc(n.label)}</h4><p class="full" style="margin-bottom:${n.file ? 10 : 0}px">${esc(n.groupName || "")} · ${n.nb.size} connection${n.nb.size === 1 ? "" : "s"}</p>
+    ${/\.md$/.test(n.file || "") ? `<div class="acts"><button class="pill yes" data-open="${esc(n.file)}">Open note</button></div>` : ""}</div>
+    ${n.nb.size ? `<small class="empty">Connected to</small>${[...n.nb].sort((a, b) => b.nb.size - a.nb.size).slice(0, 20).map(nodeBtn).join("")}` : ""}`;
+}
+function mapSearch() {
+  const q = $("mapQ").value.trim(), ql = q.toLowerCase();
+  if (!G || !q) return;
+  if (q.endsWith(CL)) {
+    const name = q.slice(0, -CL.length), members = G.nodes.filter(n => (n.groupName || "Cluster " + n.group) === name);
+    $("mapOut").innerHTML = `<p class="empty" style="margin:12px 0 4px">${members.length} ideas in ${esc(name)}</p>${members.slice(0, 25).map(nodeBtn).join("")}`;
+    return;
+  }
+  const n = G.nodes.find(x => x.label.toLowerCase() === ql) || G.nodes.find(x => x.label.toLowerCase().startsWith(ql))
+    || G.nodes.find(x => x.label.toLowerCase().includes(ql)) || G.nodes.find(x => (x.file || "").toLowerCase().includes(ql));
+  n ? showNode(n) : ($("mapOut").innerHTML = `<p class="empty" style="margin-top:12px">Nothing on the map matches "${esc(q)}".</p>`);
+}
+$("mapQ").addEventListener("change", mapSearch);
+$("mapQ").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); $("mapQ").blur(); mapSearch(); } });
+$("mapOut").addEventListener("click", e => { const b = e.target.closest("[data-node]"); if (b && G) { showNode(G.nodes.find(n => n.id === b.dataset.node)); $("mapTile").scrollIntoView({ behavior: "smooth", block: "start" }); } });
+
 /* ---------- note reader ---------- */
 function inline(s) {
   s = esc(s);
@@ -486,7 +528,7 @@ async function refresh(manual) {
 function boot() {
   $("openCapture").hidden = !cfg;
   if (!cfg) { $("main").innerHTML = `<section class="tile"><p>Connect your notes repo to get started.</p><button class="go" onclick="document.getElementById('openSettings').click()">Connect</button></section>`; return; }
-  render(); refresh(); flush();
+  render(); refresh(); flush(); if (!G) loadGraph();
 }
 document.addEventListener("visibilitychange", () => { if (!document.hidden) { refresh(); flush(); } });
 addEventListener("online", flush);

@@ -487,6 +487,20 @@ def graph_get():
     return {"nodes": nodes, "links": links, "built": datetime.datetime.fromtimestamp(os.path.getmtime(path)).date().isoformat()}
 
 
+def publish_graph():
+    """Phone app: copy the trimmed Map into phone/graph.json (committed, since graphify-out/ isn't) when it changed."""
+    if not SYNC.enabled():
+        return
+    g = graph_get()
+    if not g:
+        return
+    text = json.dumps(g, ensure_ascii=False, separators=(",", ":"))
+    if read("phone/graph.json") != text:
+        write("phone/graph.json", text)
+        SYNC.commit(["phone/graph.json"], "brain: publish the Map for the phone")
+    TOUCHED.discard("phone/graph.json")
+
+
 class Server(socketserver.ThreadingMixIn, http.server.HTTPServer):
     daemon_threads = True
     allow_reuse_address = True
@@ -506,6 +520,7 @@ def main():
     SYNC.pull(gap=0)  # start from GitHub's latest: whatever the phone did while the Mac was off
     rebuild_index()
     TOUCHED.clear()  # the startup index rebuild isn't worth a commit on its own
+    publish_graph()
     AGENTS.recover()
     if "--no-open" not in sys.argv:
         threading.Timer(0.4, lambda: subprocess.run(["open", url]) if sys.platform == "darwin" else webbrowser.open(url)).start()
