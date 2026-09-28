@@ -8,3 +8,4 @@ __pycache__/
 # generated from the example notes when you try it
 example/INDEX.md
 docs/*.tmp.png
+app/.stats-cache.json

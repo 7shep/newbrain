@@ -34,6 +34,7 @@ from agents import Agents  # noqa: E402  (headless agent per capture, when agent
 from sync import Sync  # noqa: E402  (git pull/commit/push for the phone app, when phone/ exists)
 import codex  # noqa: E402  (Codex adapter: brain block in ~/.codex/AGENTS.md)
 import predictions  # noqa: E402  (how well Claude knows you: claude/predictions.md)
+import stats  # noqa: E402  (usage stats from Claude Code transcripts)
 
 TOKEN = secrets.token_urlsafe(24)
 CLAUDE_PROJECTS = os.path.expanduser("~/.claude/projects")
@@ -434,6 +435,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return self.send(200, {**state(), "sync": {"on": SYNC.enabled(), "error": SYNC.error}})
             if url.path == "/api/file":
                 return self.send(200, file_get(urllib.parse.parse_qs(url.query)))
+            if url.path == "/api/stats":
+                return self.send(200, stats.collect(CLAUDE_PROJECTS, NOTES))
             if url.path == "/api/graph":
                 g = graph_get()
                 return self.send(200, g) if g else self.send(404, {"error": "No graph yet. Run graphify on your notes."})

@@ -290,6 +290,7 @@ body.map-full { overflow: hidden; }
   <span class="chip streak" id="streak" hidden></span>
   <button class="chip agents-chip" id="agentChip" hidden title="Background agents"></button>
   <button class="chip agents-chip" id="knowsChip" hidden title="How well Claude knows you"></button>
+  <button class="chip agents-chip" id="statsChip" title="Usage stats"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;margin-right:5px;vertical-align:-2px"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>stats</button>
   <button class="pill sm people-btn" id="openPeople"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6M17 11a3 3 0 100-6M22 21c0-3-2-5-5-5"/></svg>People &amp; me</button>
   <button class="capture-btn" id="openPalette"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Capture a thought, or jump to anything<kbd>⌘K</kbd></button>
 </div>
@@ -673,6 +674,38 @@ function renderKnows() {
   if (chip.hidden) return;
   chip.innerHTML = `<span class="st" style="background:${p.overconfidence > 8 ? "var(--rose)" : "var(--mint)"}"></span>knows you ${p.score}`;
 }
+
+/* ---------- usage stats (Claude Code transcripts + the notes' own size) ---------- */
+const big = n => n >= 1e9 ? (n / 1e9).toFixed(2) + "B" : n >= 1e6 ? (n / 1e6).toFixed(1) + "M" : n >= 1e4 ? Math.round(n / 1e3) + "k" : Number(n).toLocaleString();
+const bytes = n => n >= 1e6 ? (n / 1048576).toFixed(0) + " MB" : Math.round(n / 1024) + " KB";
+function bars(days, key, color) {
+  const W = 420, H = 90, max = Math.max(1, ...days.map(d => d[key])), bw = W / days.length;
+  return `<svg viewBox="0 0 ${W} ${H + 16}" width="100%" style="max-width:520px;font:500 10px var(--mono);fill:var(--dim)" role="img" aria-label="${key} per day, last 30 days">
+    ${days.map((d, i) => { const h = d[key] / max * H; return `<rect x="${i * bw + 1}" y="${H - h}" width="${bw - 2}" height="${Math.max(h, d[key] ? 1 : 0)}" rx="2" fill="${color}"><title>${d.date}: ${big(d[key])}</title></rect>`; }).join("")}
+    <text x="0" y="${H + 13}">${days[0].date.slice(5)}</text><text x="${W}" y="${H + 13}" text-anchor="end">today</text></svg>`;
+}
+async function openStats() {
+  let st; try { st = await api("/api/stats"); } catch (e) { return toast(e.message); }
+  const t = st.tokens, all = (t.input || 0) + (t.cache_write || 0) + (t.cache_read || 0) + (t.output || 0), n = st.storage.notes;
+  const cell = (v, l, sub) => `<div style="background:var(--tile-2);border-radius:12px;padding:12px 14px"><div style="font:800 26px/1.1 var(--display)">${v}</div><div style="font-weight:600;font-size:13px">${l}</div>${sub ? `<div style="color:var(--dim);font-size:12px">${sub}</div>` : ""}</div>`;
+  openPanel("Stats", `<div class="md">
+    <h1>Stats</h1><p style="color:var(--dim)">Every Claude Code session on this Mac since ${esc(st.since || "—")}.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:14px 0">
+      ${cell(big(st.prompts), "prompts sent", `${big(st.week.prompts)} this week`)}
+      ${cell(big(st.sessions), "sessions", `last ${esc((st.last || "").slice(5))}`)}
+      ${cell(big(st.subagents), "subagents", `${st.subagent_sessions} with their own transcript`)}
+      ${cell(big(st.tool_calls), "tool calls", "")}
+      ${cell(big(all), "tokens processed", `${big(st.week.tokens)} this week`)}
+      ${cell(big(t.output || 0), "tokens written by Claude", "")}
+      ${cell(bytes(n.bytes), "notes", `${n.files} files · ${big(n.words)} words`)}
+      ${cell(bytes(st.storage.transcripts_bytes), "transcripts", "in ~/.claude/projects")}
+    </div>
+    <h2>Prompts per day</h2>${bars(st.days, "prompts", "var(--amber)")}
+    <h2>Tokens per day</h2>${bars(st.days, "tokens", "var(--sky)")}
+    <h2>Most-used tools</h2><ul>${st.top_tools.map(([k, v]) => `<li><code>${esc(k.replace(/^mcp__claude_ai_/, "").replace(/__/g, " · "))}</code> ${v.toLocaleString()}</li>`).join("")}</ul>
+    <p style="color:var(--dim);font-size:12px">Most tokens are cache reads (${big(t.cache_read || 0)}): Claude re-reading the conversation so far, billed at a fraction of new input. Subagents' own work adds ${big(Object.values(st.subagent_tokens).reduce((a, b) => a + b, 0))} more.</p></div>`);
+}
+$("statsChip").addEventListener("click", openStats);
 
 let showAllProjects = false;
 function renderProjects() {
