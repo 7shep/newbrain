@@ -729,9 +729,27 @@ const big = n => n >= 1e9 ? (n / 1e9).toFixed(2) + "B" : n >= 1e6 ? (n / 1e6).to
 const bytes = n => n >= 1e6 ? (n / 1048576).toFixed(0) + " MB" : Math.round(n / 1024) + " KB";
 function bars(days, key, color) {
   const W = 420, H = 90, max = Math.max(1, ...days.map(d => d[key])), bw = W / days.length;
-  return `<svg viewBox="0 0 ${W} ${H + 16}" width="100%" style="max-width:520px;font:500 10px var(--mono);fill:var(--dim)" role="img" aria-label="${key} per day, last 30 days">
-    ${days.map((d, i) => { const h = d[key] / max * H; return `<rect x="${i * bw + 1}" y="${H - h}" width="${bw - 2}" height="${Math.max(h, d[key] ? 1 : 0)}" rx="2" fill="${color}"><title>${d.date}: ${big(d[key])}</title></rect>`; }).join("")}
-    <text x="0" y="${H + 13}">${days[0].date.slice(5)}</text><text x="${W}" y="${H + 13}" text-anchor="end">today</text></svg>`;
+  return `<div class="stats-chart" style="position:relative;max-width:520px"><svg viewBox="0 0 ${W} ${H + 16}" width="100%" style="display:block;font:500 10px var(--mono);fill:var(--dim)" role="img" aria-label="${key} per day, last 30 days">
+    ${days.map((d, i) => { const h = d[key] / max * H, label = `${d.date}: ${big(d[key])} ${key}`; return `<g class="stats-bar" tabindex="0" aria-label="${esc(label)}" data-label="${esc(label)}"><rect x="${i * bw + 1}" y="${H - h}" width="${bw - 2}" height="${Math.max(h, d[key] ? 1 : 0)}" rx="2" fill="${color}"/><rect x="${i * bw}" y="0" width="${bw}" height="${H}" fill="transparent"/></g>`; }).join("")}
+    <text x="0" y="${H + 13}">${days[0].date.slice(5)}</text><text x="${W}" y="${H + 13}" text-anchor="end">today</text></svg><div class="stats-tooltip" hidden style="position:absolute;z-index:2;pointer-events:none;background:var(--tile-3);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font:600 12px var(--mono);white-space:nowrap"></div></div>`;
+}
+function enableStatsTooltips() {
+  document.querySelectorAll(".stats-chart").forEach(chart => {
+    const tip = chart.querySelector(".stats-tooltip");
+    const show = (bar, clientX) => {
+      tip.textContent = bar.dataset.label;
+      tip.hidden = false;
+      const box = chart.getBoundingClientRect();
+      tip.style.left = `${Math.max(0, Math.min(clientX - box.left - tip.offsetWidth / 2, box.width - tip.offsetWidth))}px`;
+      tip.style.top = `${Math.max(0, (box.height - tip.offsetHeight) / 2)}px`;
+    };
+    chart.querySelectorAll(".stats-bar").forEach(bar => {
+      bar.addEventListener("pointermove", e => show(bar, e.clientX));
+      bar.addEventListener("pointerleave", () => { tip.hidden = true; });
+      bar.addEventListener("focus", () => show(bar, bar.getBoundingClientRect().left + bar.getBoundingClientRect().width / 2));
+      bar.addEventListener("blur", () => { tip.hidden = true; });
+    });
+  });
 }
 async function openStats() {
   let st; try { st = await api("/api/stats"); } catch (e) { return toast(e.message); }
@@ -753,6 +771,7 @@ async function openStats() {
     <h2>Tokens per day</h2>${bars(st.days, "tokens", "var(--sky)")}
     <h2>Most-used tools</h2><ul>${st.top_tools.map(([k, v]) => `<li><code>${esc(k.replace(/__/g, " · "))}</code> ${v.toLocaleString()}</li>`).join("")}</ul>
     <p style="color:var(--dim);font-size:12px">${big(t.cache_read || 0)} input tokens came from cache. Subagents' own work adds ${big((st.subagent_tokens.input || 0) + (st.subagent_tokens.output || 0))} tokens.</p></div>`);
+  enableStatsTooltips();
 }
 $("statsChip").addEventListener("click", openStats);
 
