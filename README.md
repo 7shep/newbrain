@@ -127,13 +127,16 @@ agent runner still uses Claude Code because its configured tool allowlist has no
 
 **Personal Windows daily setup:** Keep private notes in `personal-notes/` (ignored by Git). Run
 `powershell -ExecutionPolicy Bypass -File bin/install-daily.ps1` from this repo. This installs a user-level
-`SessionStart` hook in `~/.codex/hooks.json` and a Windows Startup shortcut. Each new Codex session reads the current
-Brain context and inbox; the hook also refreshes `now.md` from private Google Calendar iCal feeds when configured.
+`SessionStart`, `Stop`, and `SessionEnd` hooks in `~/.codex/hooks.json` and a Windows Startup shortcut. Each new Codex session reads the current
+Brain context and inbox; the start hook also refreshes `now.md` from private Google Calendar iCal feeds when configured.
+The save hooks create or update a transcript-based note after each completed turn and again when Codex closes normally.
+This covers `/clear` after a completed turn and normal terminal exit. The generated note records requests and final responses;
+it cannot infer all decisions or file changes, so authored session notes remain useful for significant work.
 The installer grants Codex write access to `personal-notes/` from sessions started in other project folders, so it can
 file captures and update session notes there.
 At Windows sign-in, Brain opens in the browser alongside an interactive Codex terminal. Run
 `bin/brain-daily.ps1` to start the same pair immediately. Codex asks you to review and trust a new non-managed hook
-before it runs: type `/hooks` in the terminal, select the Brain `SessionStart` hook, and trust it.
+before it runs: type `/hooks` in the terminal, select and trust the Brain hooks.
 [Codex hook documentation](https://learn.chatgpt.com/docs/hooks) explains that trust step.
 
 For calendar updates, put `{"urls":["<secret iCal address>"]}` in `personal-notes/calendar_sources.json`. Use the

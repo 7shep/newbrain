@@ -27,6 +27,25 @@ if (-not $existing) {
         })
     }
 }
+$saveScript = Join-Path $brainRoot 'brain_save_session.py'
+$saveCommand = "py `"$saveScript`""
+foreach ($eventName in @('Stop', 'SessionEnd')) {
+    if (-not $config.hooks.PSObject.Properties[$eventName]) {
+        $config.hooks | Add-Member -NotePropertyName $eventName -NotePropertyValue @()
+    }
+    $installed = @($config.hooks.$eventName | ForEach-Object { $_.hooks } | Where-Object { $_.commandWindows -eq $saveCommand -or $_.command -eq $saveCommand })
+    if (-not $installed) {
+        $config.hooks.$eventName = @($config.hooks.$eventName) + [pscustomobject]@{
+            hooks = @(@{
+                type = 'command'
+                command = $saveCommand
+                commandWindows = $saveCommand
+                timeout = $(if ($eventName -eq 'SessionEnd') { 3 } else { 10 })
+                statusMessage = 'Saving session to Brain'
+            })
+        }
+    }
+}
 $json = $config | ConvertTo-Json -Depth 20
 [System.IO.File]::WriteAllText($hooksFile, $json + "`n", (New-Object System.Text.UTF8Encoding $false))
 
