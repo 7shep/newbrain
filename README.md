@@ -130,17 +130,33 @@ somewhere else.
 
 ### Connect Codex
 
-Codex has no session-start hook, but it reads `~/.codex/AGENTS.md` at the start of every session. Run this once:
+Codex supports `SessionStart` hooks. To add Brain's standing instructions to `~/.codex/AGENTS.md`, run:
 
 ```bash
 python3 ~/Notes/.brain/brain_codex.py
 ```
 
 It adds a marked **Brain** block to that file with the standing instructions (read `INDEX.md` first, follow the `on`
-habits, file inbox captures, write a session note) plus the current habits and inbox. Brain refreshes the block every
-time it rebuilds `INDEX.md`, and anything else in the file is left alone. To have [background
+habits, file inbox captures, write a session note) plus a snapshot of the current habits and inbox. The Codex
+`SessionStart` hook loads fresh state for each session, and anything else in the file is left alone. To have [background
 agents](#background-agents-optional) run through Codex instead of Claude, start Brain with `BRAIN_AGENT=codex brain`.
 They use `codex exec` in a `workspace-write` sandbox: your notes and `~/Projects`, no network.
+
+**Personal Windows daily setup:** Keep private notes in `personal-notes/` (ignored by Git). Run
+`powershell -ExecutionPolicy Bypass -File bin/install-daily.ps1` from this repo. This installs a user-level
+`SessionStart` hook in `~/.codex/hooks.json` and a Windows Startup shortcut. Each new Codex session reads the current
+Brain context and inbox; the hook also refreshes `now.md` from private Google Calendar iCal feeds when configured.
+The installer grants Codex write access to `personal-notes/` from sessions started in other project folders, so it can
+file captures and update session notes there.
+At Windows sign-in, Brain opens in the browser alongside an interactive Codex terminal. Run
+`bin/brain-daily.ps1` to start the same pair immediately. Codex asks you to review and trust a new non-managed hook
+before it runs: type `/hooks` in the terminal, select the Brain `SessionStart` hook, and trust it.
+[Codex hook documentation](https://learn.chatgpt.com/docs/hooks) explains that trust step.
+
+For calendar updates, put `{"urls":["<secret iCal address>"]}` in `personal-notes/calendar_sources.json`. Use the
+**Secret address in iCal format** from Google Calendar settings. This file stays local and is not tracked by Git.
+The importer reads upcoming events only; it never changes your calendar. Add a second secret address to include a
+second calendar. Google Calendar remains the source of truth.
 
 **Windows:** run `py %USERPROFILE%\Notes\.brain\brain_codex.py` once, then start Brain with Codex agents from a Command
 Prompt with `set BRAIN_AGENT=codex` followed by `%USERPROFILE%\Notes\.brain\bin\brain.cmd` (PowerShell:

@@ -43,14 +43,14 @@ def main():
 
 
 def context():
-    """The brain summary every session starts with. Also written into Codex's AGENTS.md by codex.py."""
+    """The brain summary every session starts with. Also written into Codex's AGENTS.md by brain_codex.py."""
     habits = blocks(read("claude/habits.md"))
     on = [t for _, t, s, _src in habits if s == "on"]
     proposed = [t for _, t, s, src in habits if s == "proposed" and not src.startswith("brainstorm")]
     brainstorm = [t for _, t, s, src in habits if s == "proposed" and src.startswith("brainstorm")]
     inbox = [l[2:] for l in read("inbox.md").splitlines() if l.startswith("- ")]
     name = (re.search(r"^name:\s*(\S+)", read("me.md"), re.M) or [None, "the user"])[1]
-    home = NOTES.replace(os.path.expanduser("~"), "~", 1)
+    home = NOTES.replace(os.path.expanduser("~"), "~", 1).replace("\\", "/")
     lines = ["[Brain] %s is %s's brain: read %s/INDEX.md + the relevant project page before project work." % (home, name, home)]
     if on:
         lines.append("Habits %s has on (follow them): " % name + " | ".join(on))
