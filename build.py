@@ -11,7 +11,7 @@ import re
 HERE = os.path.dirname(os.path.abspath(__file__))
 NOTES = os.path.abspath(os.path.expanduser(os.environ.get("BRAIN_NOTES") or os.path.dirname(HERE)))
 PROJECTS_DIR = os.path.expanduser(os.environ.get("BRAIN_PROJECTS_DIR", "~/Projects"))
-SKIP_DIRS = {".brain", ".claude", ".git", ".obsidian", "agents", "phone"}  # agents/: run logs; phone/: the phone app's queue and state
+SKIP_DIRS = {".brain", ".claude", ".codex", ".git", ".obsidian", "agents", "phone"}  # agents/: run logs; phone/: the phone app's queue and state
 OPEN_TASK = re.compile(r"^\s*[-*] \[ \] (.+)$", re.M)
 
 
@@ -145,7 +145,7 @@ def build_index(docs, folders):
               for d in sorted(people, key=lambda d: d["path"])]
     L += ["", "## About me and the rest", "",
           "- `me.md` profile · `now.md` cover story + upcoming · `nudges.md` reminders for me · "
-          "`claude/habits.md` how Claude adapts · `ideas.md` · `inbox.md` captures to file"]
+          "`codex/habits.md` how Codex adapts · `ideas.md` · `inbox.md` captures to file"]
     L += ["- [%s](%s)" % (d["title"], d["path"]) for d in others if not d["path"].startswith("people/")]
     if folders:
         L += ["", "## ~/Projects folders with no notes yet", "",

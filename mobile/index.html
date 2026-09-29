@@ -354,7 +354,7 @@ function render() {
         <div class="acts"><button class="pill yes" data-idea="${esc(l)}" data-a="done">Done</button><button class="pill" data-idea="${esc(l)}" data-a="dismissed">Dismiss</button></div></div>`; }).join("")
         + (view.ideas.length > 5 ? `<button class="more" id="allIdeas">${showAllIdeas ? "Show fewer" : `Show all ${view.ideas.length}`}</button>` : "")
         : `<div class="empty">No open ideas.</div>`}`)}
-    ${sec("habits", "How Claude adapts to you", habits.filter(x => x.status === "on").length + " on", `${habits.map(x => `<div class="habit"><div><div class="t">${esc(x.title)}</div><small>${x.status === "proposed" ? "proposed · waiting on you" : esc(x.status)}</small></div>
+    ${sec("habits", "How Codex adapts to you", habits.filter(x => x.status === "on").length + " on", `${habits.map(x => `<div class="habit"><div><div class="t">${esc(x.title)}</div><small>${x.status === "proposed" ? "proposed · waiting on you" : esc(x.status)}</small></div>
         <button class="sw ${x.status === "on" ? "on" : ""}" role="switch" aria-checked="${x.status === "on"}" aria-label="${esc(x.title)}" data-habit="${esc(x.id)}"></button></div>`).join("")}`)}
     ${knows(view.predictions)}`;
   // Only rebuild when something changed, so the entrance animation doesn't replay on every refresh.
@@ -362,12 +362,12 @@ function render() {
   const main = $("main"); main.innerHTML = lastHtml = html;
   if (!introDone) { introDone = true; main.classList.add("intro"); setTimeout(() => main.classList.remove("intro"), 1300); }
 }
-// How well Claude knows you: score + verdict + latest bets (desktop has the full chart).
+// How well Codex knows you: score + verdict + latest bets (desktop has the full chart).
 function knows(p) {
   if (!p || !p.n) return "";
   const o = p.overconfidence, v = p.n < 5 ? "Too few bets to judge yet." : o > 8 ? `A bit cocky: says ${p.avg_conf}% sure, right ${p.hit_rate}% of the time.`
     : o < -8 ? `Humble: says ${p.avg_conf}% sure, right ${p.hit_rate}% of the time.` : `Well calibrated: ${p.avg_conf}% sure, right ${p.hit_rate}% of the time.`;
-  return sec("knows", "How well Claude knows you", p.n + " bets", `<div style="display:flex;align-items:baseline;gap:8px"><b style="font:800 40px/1 var(--display)">${esc(p.score)}</b><span class="empty">/ 100${p.week_change == null ? "" : ` · ${p.week_change >= 0 ? "+" : ""}${esc(p.week_change)} this week`}</span></div>
+  return sec("knows", "How well Codex knows you", p.n + " bets", `<div style="display:flex;align-items:baseline;gap:8px"><b style="font:800 40px/1 var(--display)">${esc(p.score)}</b><span class="empty">/ 100${p.week_change == null ? "" : ` · ${p.week_change >= 0 ? "+" : ""}${esc(p.week_change)} this week`}</span></div>
     <p style="margin:6px 0 10px;color:var(--muted);font-size:13.5px">${esc(v)}</p>
     ${p.entries.slice(0, 5).map(e => `<div class="idea"><small>${e.hit ? "✓ right" : "✗ wrong"} · ${esc(e.conf)}% · ${esc(e.kind)}</small><div class="t" style="margin-bottom:0">${esc(e.bet)}${e.hit ? "" : ` <span class="empty">→ ${esc(e.got)}</span>`}</div></div>`).join("")}`);
 }
@@ -573,7 +573,7 @@ async function openDoc(path) {
 function open(id) { $(id).classList.add("on"); }
 function close(id) { $(id).classList.remove("on"); }
 document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => close(b.closest(".sheet").id));
-const TYPES = [["note", "Note"], ["idea", "Idea"], ["todo", "Todo"], ["person", "Person"], ["habit", "Habit for Claude"]];
+const TYPES = [["note", "Note"], ["idea", "Idea"], ["todo", "Todo"], ["person", "Person"], ["habit", "Habit for Codex"]];
 let capType = "note";
 function drawTypes() { $("types").innerHTML = TYPES.map(([k, l]) => `<button type="button" data-type="${k}" aria-pressed="${k === capType}">${l}</button>`).join(""); }
 $("types").onclick = e => { const b = e.target.closest("[data-type]"); if (b) { capType = b.dataset.type; drawTypes(); } };

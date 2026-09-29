@@ -3,7 +3,7 @@ date: 2026-09-10            # session start, YYYY-MM-DD
 title: Short name of what we did
 projects: [design-club]     # project slugs, see projects/*.md; [misc] if none fits
 status: done                # done | partial | abandoned | info (question answered, nothing built)
-session: 1a2b3c4d           # first 8 chars of the Claude Code session id
+session: 1a2b3c4d           # first 8 chars of the Codex session id
 cwd: ~/Projects/design-club
 ---
 

@@ -4,6 +4,7 @@ app/.brain.log
 __pycache__/
 *.pyc
 .claude/
+.codex/
 .DS_Store
 # generated from the example notes when you try it
 example/INDEX.md

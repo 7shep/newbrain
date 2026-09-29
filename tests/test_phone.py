@@ -58,7 +58,7 @@ class ApplyQueueTest(unittest.TestCase):
         self.assertEqual(next(n for n in state["nudges"] if n["id"] == "N-001")["status"], "done")
         self.assertIn("Plant tracker sends a weekly photo collage of growth (done", read(notes, "ideas.md"))
         self.assertEqual(next(h for h in state["habits"] if h["id"] == "H-002")["status"], "off")
-        self.assertIn("Ask before long builds", read(notes, "claude/habits.md"))
+        self.assertIn("Ask before long builds", read(notes, "codex/habits.md"))
         self.assertNotIn("sessions", state)  # the phone only gets what it shows
 
     def test_captures_are_parked_for_the_mac_not_run(self):

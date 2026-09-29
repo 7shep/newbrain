@@ -1,4 +1,4 @@
-# Claude's habits
+# Codex's habits
 
 ## H-001 · Lead with the answer, keep it short
 - status: on

@@ -32,7 +32,7 @@ Then stop. No caveats section, no "of course, consider…".
 
 ## Grounding
 
-Pull specifics from his world so ideas are his, not generic: `~/Notes/INDEX.md`, `now.md`, the relevant `projects/*.md`, `ideas.md`. Real names, real projects, real constraints (he leaves his laptop at home, he's a student, he builds with Claude) make the weird ideas land.
+Pull specifics from his world so ideas are his, not generic: `~/Notes/INDEX.md`, `now.md`, the relevant `projects/*.md`, `ideas.md`. Real names, real projects, real constraints (he leaves his laptop at home, he's a student, he builds with Codex) make the weird ideas land.
 
 ## Common mistakes
 

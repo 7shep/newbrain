@@ -46,8 +46,8 @@ class CalibrationLineTest(unittest.TestCase):
     def run_hook(self, lines):
         import subprocess, tempfile
         notes = tempfile.mkdtemp()
-        os.makedirs(os.path.join(notes, "claude"))
-        with open(os.path.join(notes, "claude", "predictions.md"), "w", encoding="utf-8") as f:
+        os.makedirs(os.path.join(notes, "codex"))
+        with open(os.path.join(notes, "codex", "predictions.md"), "w", encoding="utf-8") as f:
             f.write("# Predictions\n" + "\n".join(lines) + "\n")
         hook = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "session_start.py")
         return subprocess.run([sys.executable, hook], capture_output=True, encoding="utf-8", env={**os.environ, "BRAIN_NOTES": notes}).stdout

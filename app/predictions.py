@@ -1,10 +1,10 @@
-"""How well Claude knows you: predictions Claude logged in claude/predictions.md, scored for calibration.
+"""How well Codex knows you: predictions logged in codex/predictions.md, scored for calibration.
 
 One line per prediction (see FORMATS.md):
     - 2026-09-27 · 70% · recommend · bet: Status, then recent · got: Status, then recent · hit
 
 Kinds: recommend (a "(Recommended)" option), guess (a stated guess about what you meant or want), draft (something
-Claude wrote that you kept or rewrote), habit (a habit made Claude act and you went along or pushed back).
+the assistant wrote that you kept or rewrote), habit (a habit made the assistant act and you went along or pushed back).
 The score is a Brier skill score: 100 = perfectly confident and right, 0 = no better than always saying 50%.
 Being 90% sure and wrong costs far more than being 55% sure and wrong.
 """

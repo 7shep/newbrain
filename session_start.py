@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""SessionStart hook: a few lines of brain context for Claude. No model calls; one quick git pull when the phone app is set up.
+"""SessionStart hook: a few lines of brain context for Codex. No model calls; one quick git pull when the phone app is set up.
 
-Prints Claude's active habits, habits the user hasn't decided on, and anything waiting in the inbox.
+Prints Codex's active habits, habits the user hasn't decided on, and anything waiting in the inbox.
 Notes folder = parent of this folder, or $BRAIN_NOTES. Silent if it isn't there, so it never blocks a session.
 """
 import os
@@ -44,7 +44,7 @@ def main():
 
 def context():
     """The brain summary every session starts with. Also written into Codex's AGENTS.md by brain_codex.py."""
-    habits = blocks(read("claude/habits.md"))
+    habits = blocks(read("codex/habits.md"))
     on = [t for _, t, s, _src in habits if s == "on"]
     proposed = [t for _, t, s, src in habits if s == "proposed" and not src.startswith("brainstorm")]
     brainstorm = [t for _, t, s, src in habits if s == "proposed" and src.startswith("brainstorm")]
@@ -69,14 +69,14 @@ def context():
 
 
 def calibration():
-    """One line from claude/predictions.md: the score, what the misses say about how to answer, the latest misses.
+    """One line from codex/predictions.md: the score, what the misses say about how to answer, the latest misses.
     Advice only appears once a kind has 3+ bets, so one bad call can't steer a whole session."""
     sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "app"))
     try:
         import predictions
     except ImportError:
         return ""
-    entries = predictions.parse(read("claude/predictions.md"))
+    entries = predictions.parse(read("codex/predictions.md"))
     if len(entries) < 5:
         return ""
     st = predictions.stats(entries)
@@ -99,7 +99,7 @@ def calibration():
     elif st["overconfidence"] < -8:
         tips.append("you're right more often than you claim, so trust your reads")
     misses = [e for e in reversed(entries) if not e["hit"]][:3]
-    line = "Calibration (claude/predictions.md, H-017): %s/100, right %s%% at %s%% claimed confidence." % (st["score"], st["hit_rate"], st["avg_conf"])
+    line = "Calibration (codex/predictions.md, H-017): %s/100, right %s%% at %s%% claimed confidence." % (st["score"], st["hit_rate"], st["avg_conf"])
     if tips:
         line += " Adjust: " + "; ".join(tips) + "."
     if misses:

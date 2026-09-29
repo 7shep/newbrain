@@ -1,4 +1,4 @@
-"""Run: python3 -m unittest discover -s tests   (from the brain folder). No real claude calls."""
+"""Run: python3 -m unittest discover -s tests   (from the brain folder). No real Claude calls."""
 import os
 import sys
 import tempfile
@@ -8,7 +8,7 @@ import unittest
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "app"))
 from agents import Agents  # noqa: E402
 
-# Stands in for claude: prints a report built from the prompt (on stdin); "sleep" in the prompt stalls it.
+# Stands in for Claude: prints a report built from the prompt (on stdin); "sleep" in the prompt stalls it.
 FAKE = [sys.executable, "-c",
         "import sys,time; sys.stdin.reconfigure(encoding='utf-8'); p=sys.stdin.read(); time.sleep(3 if 'sleep' in p else 0.05); "
         "sys.exit(2) if 'boom' in p else print('did: ' + p.split(': ',1)[1].splitlines()[0])"]

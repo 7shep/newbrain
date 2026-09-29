@@ -1,6 +1,6 @@
 # Brain file formats
 
-The app (`app/server.py`) parses these. Claude writes them. Keep to the shapes exactly;
+The app (`app/server.py`) parses these. Codex writes them. Keep to the shapes exactly;
 free markdown is fine inside bodies. Dates are absolute `YYYY-MM-DD`.
 All names below are fictional examples.
 
@@ -38,7 +38,7 @@ links: [mailto:priya@example.com]
 ```
 
 ## `nudges.md` — reminders for you
-Claude adds one only when it clearly helps. Status `no` is permanent: never re-add that nudge.
+Codex adds one only when it clearly helps. Status `no` is permanent: never re-add that nudge.
 ```
 # Nudges
 
@@ -53,12 +53,12 @@ Claude adds one only when it clearly helps. Status `no` is permanent: never re-a
 - created: 2026-09-14
 ```
 
-## `claude/habits.md` — how Claude adapts to you
+## `codex/habits.md` — how Codex adapts to you
 `on` habits are followed every session. `off` ones show under "Past habits". `proposed` ones wait for you to decide.
 A habit typed into the app's brainstorm box is saved as `proposed` with a `source:` starting `brainstorm` —
-the SessionStart hook asks Claude to talk it through with you and refine it.
+the SessionStart hook asks Codex to talk it through with you and refine it.
 ```
-# Claude's habits
+# Codex's habits
 
 ## H-001 · Lead with the answer, keep it short
 - status: on              # on | off | proposed
@@ -67,8 +67,8 @@ the SessionStart hook asks Claude to talk it through with you and refine it.
 - source: conversation, 2026-09-04
 ```
 
-## `claude/predictions.md` — how well Claude knows you
-Claude logs a line whenever it bets on what you'll want, and marks it once you answer. Kinds: `recommend` (an option
+## `codex/predictions.md` — how well Codex knows you
+Codex logs a line whenever it bets on what you'll want, and marks it once you answer. Kinds: `recommend` (an option
 it marked Recommended), `guess` (a stated guess about what you meant), `draft` (something it wrote that you kept or
 rewrote), `habit` (a habit made it act and you went along or pushed back). Confidence is 50–100%. Brain turns this into
 a score and a calibration chart (the score chip in the top bar).
@@ -80,7 +80,7 @@ a score and a calibration chart (the score chip in the top bar).
 ```
 
 ## `now.md` — the cover story
-Claude rewrites after real work. Headline is punchy, magazine-style, true. `*word*` renders italic.
+Codex rewrites after real work. Headline is punchy, magazine-style, true. `*word*` renders italic.
 ```
 ---
 headline: The site is live. *Now* the club has to show up.
@@ -108,7 +108,7 @@ Open ideas are the bullets before any section. The app moves an idea to `## Done
 ```
 
 ## `inbox.md` — quick captures from the app
-The app appends; Claude files each line into the right note at the start of the next session and deletes it.
+The app appends; Codex files each line into the right note at the start of the next session and deletes it.
 ```
 # Inbox
 - 2026-09-14 19:02 · idea · text
@@ -119,4 +119,4 @@ Kinds: `note`, `idea`, `todo`, `person`.
 Project pages: frontmatter `name, status (active|paused|done|abandoned), updated, paths: [...], links: [...], summary`,
 optional `archived: YYYY-MM-DD` (set by the app's hide button; hidden projects appear under "Show hidden"),
 then `**TL;DR:**` and sections. Session notes: see `session-template.md`. A session's `session:` id (first 8 chars
-of the Claude Code session id) powers the app's "resume chat" button.
+of the Codex session id) powers the app's "resume chat" button.

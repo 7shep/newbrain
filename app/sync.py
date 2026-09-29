@@ -40,7 +40,7 @@ class Sync:
             if p.returncode != 0:
                 self._git("rebase", "--abort")  # leave the folder exactly as it was
                 msg = (p.stderr or p.stdout).strip().splitlines()
-                self.error = "Sync paused: " + (msg[-1] if msg else "git pull failed") + ". Fix it in a terminal or ask Claude."
+                self.error = "Sync paused: " + (msg[-1] if msg else "git pull failed") + ". Fix it in a terminal or ask Codex."
                 return False
             self.error = None
         self.on_pulled()
@@ -71,7 +71,7 @@ class Sync:
                     return False
                 if p.returncode != 0:
                     self._git("rebase", "--abort")
-                    self.error = "Sync paused: your Mac and GitHub both changed the same note. Fix it in a terminal or ask Claude."
+                    self.error = "Sync paused: your Mac and GitHub both changed the same note. Fix it in a terminal or ask Codex."
                     return False
             self.error = "Push kept failing. It will retry on the next change."
             return False

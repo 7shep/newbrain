@@ -33,7 +33,7 @@ def block():
         "## Brain",
         "`%s` is my brain: plain markdown notes. Before project work, read `%s/INDEX.md` and that project's page."
         % (notes, notes),
-        "Follow the `on` habits in `claude/habits.md` (they apply to you too); propose new ones there, never enable them.",
+        "Follow the `on` habits in `codex/habits.md` (they apply to you too); propose new ones there, never enable them.",
         "File inbox captures into the right note and remove them from `inbox.md`. Add to `nudges.md` only when it clearly",
         "helps, and never re-add one marked `no`. After real work, write a session note (`%s/session-template.md`)," % root,
         "update the project page and `now.md`, then run `%s %s/build.py` with `BRAIN_NOTES=%s`." % (command, root, notes),
