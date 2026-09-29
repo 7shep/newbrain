@@ -33,10 +33,11 @@ import build  # noqa: E402  (INDEX.md generator + frontmatter parser)
 from agents import Agents  # noqa: E402  (headless agent per capture, when agents/ exists)
 from sync import Sync  # noqa: E402  (git pull/commit/push for the phone app, when phone/ exists)
 import predictions  # noqa: E402  (how well Claude knows you: claude/predictions.md)
-import stats  # noqa: E402  (usage stats from Claude Code transcripts)
+import stats  # noqa: E402  (usage stats from Codex transcripts)
 
 TOKEN = secrets.token_urlsafe(24)
 CLAUDE_PROJECTS = os.path.expanduser("~/.claude/projects")
+CODEX_HOME = os.path.abspath(os.path.expanduser(os.environ.get("CODEX_HOME") or "~/.codex"))
 LOCK = threading.Lock()
 AGENTS = Agents(NOTES)
 SYNC = Sync(NOTES, on_pulled=AGENTS.drain_pending)
@@ -437,7 +438,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if url.path == "/api/file":
                 return self.send(200, file_get(urllib.parse.parse_qs(url.query)))
             if url.path == "/api/stats":
-                return self.send(200, stats.collect(CLAUDE_PROJECTS, NOTES))
+                return self.send(200, stats.collect(CODEX_HOME, NOTES))
             if url.path == "/api/graph":
                 g = graph_get()
                 return self.send(200, g) if g else self.send(404, {"error": "No graph yet. Run graphify on your notes."})

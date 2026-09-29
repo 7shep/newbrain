@@ -1,17 +1,17 @@
-"""Usage stats for Brain's Stats panel: Claude Code transcripts (~/.claude/projects) plus the notes' own size.
+"""Usage stats from Codex session transcripts and Brain's markdown notes.
 
-Per transcript: prompts you typed, tool calls, subagents started, and tokens (each reply counted once, even when
-the transcript splits it across several lines). Parsed results are cached by file size + mtime in
-app/.stats-cache.json, so only new or growing sessions get re-read.
+Codex stores active sessions in ~/.codex/sessions and archived sessions in
+~/.codex/archived_sessions. Parsed counts are cached by file size and mtime.
 """
 import collections
 import datetime
 import json
 import os
 
-AGENT_TOOLS = {"Agent", "Task"}
-NOT_PROMPTS = ("<local-command", "<task-notification", "Caveat: The messages below", "[SYSTEM NOTIFICATION")
 CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".stats-cache.json")
+CACHE_VERSION = 3
+TOKEN_FIELDS = {"input": "input_tokens", "cache_write": "cache_write_input_tokens",
+                "cache_read": "cached_input_tokens", "output": "output_tokens"}
 
 
 def _day(ts):
@@ -21,52 +21,70 @@ def _day(ts):
         return None
 
 
-def _text(content):
-    if isinstance(content, str):
-        return content
-    if isinstance(content, list):
-        if any(isinstance(b, dict) and b.get("type") == "tool_result" for b in content):
-            return None
-        return " ".join(b.get("text", "") for b in content if isinstance(b, dict) and b.get("type") == "text")
-    return None
+def _tokens(usage):
+    if not isinstance(usage, dict):
+        return {}
+    return {name: int(usage.get(field) or 0) for name, field in TOKEN_FIELDS.items()}
+
+
+def _add_usage(out, usage, day):
+    parts = _tokens(usage)
+    out["tokens"].update(parts)
+    if day:
+        out["days"][day]["tokens"] += parts.get("input", 0) + parts.get("output", 0)
 
 
 def scan_file(path):
-    """One transcript -> counts. Unreadable lines are skipped."""
-    out = {"prompts": 0, "subagents": 0, "tools": collections.Counter(), "tokens": collections.Counter(),
-           "days": collections.defaultdict(lambda: {"prompts": 0, "tokens": 0}), "first": None, "last": None}
-    seen = set()
+    """One Codex JSONL transcript -> counts; skip incomplete or unknown records."""
+    out = {"prompts": 0, "subagent": False, "tools": collections.Counter(),
+           "tokens": collections.Counter(),
+           "days": collections.defaultdict(lambda: {"prompts": 0, "tokens": 0}),
+           "first": None, "last": None}
+    seen_responses, usage_records, fallback = set(), False, []
     with open(path, encoding="utf-8", errors="replace") as f:
         for line in f:
             try:
-                d = json.loads(line)
+                record = json.loads(line)
             except ValueError:
                 continue
-            day = _day(d.get("timestamp"))
+            if not isinstance(record, dict):
+                continue
+            kind = record.get("type")
+            payload = record.get("payload") or {}
+            if not isinstance(payload, dict):
+                continue
+            day = _day(record.get("timestamp"))
             if day:
                 out["first"] = min(out["first"] or day, day)
                 out["last"] = max(out["last"] or day, day)
-            msg = d.get("message") if isinstance(d.get("message"), dict) else {}
-            if d.get("type") == "user" and not d.get("isMeta") and not d.get("isSidechain"):
-                text = _text(msg.get("content"))
-                if text and text.strip() and not text.lstrip().startswith(NOT_PROMPTS):
+            if kind == "session_meta":
+                out["subagent"] = isinstance(payload.get("source"), dict) and "subagent" in payload["source"]
+            elif kind == "response_item":
+                if payload.get("type") == "message" and payload.get("role") == "user" and payload.get("content"):
                     out["prompts"] += 1
                     if day:
                         out["days"][day]["prompts"] += 1
-            elif d.get("type") == "assistant":
-                for b in msg.get("content") or []:
-                    if isinstance(b, dict) and b.get("type") == "tool_use":
-                        out["tools"][b.get("name", "?")] += 1
-                        if b.get("name") in AGENT_TOOLS:
-                            out["subagents"] += 1
-                mid, u = msg.get("id"), msg.get("usage")
-                if isinstance(u, dict) and mid not in seen:  # a reply split over several lines repeats its usage
-                    seen.add(mid)
-                    parts = {"input": u.get("input_tokens", 0), "cache_write": u.get("cache_creation_input_tokens", 0),
-                             "cache_read": u.get("cache_read_input_tokens", 0), "output": u.get("output_tokens", 0)}
-                    out["tokens"].update({k: v or 0 for k, v in parts.items()})
-                    if day:
-                        out["days"][day]["tokens"] += sum(v or 0 for v in parts.values())
+                elif payload.get("type") in ("function_call", "custom_tool_call"):
+                    out["tools"][payload.get("name") or "unknown"] += 1
+            elif kind == "token_usage_record":
+                response_id = payload.get("response_id")
+                if response_id and response_id in seen_responses:
+                    continue
+                if response_id:
+                    seen_responses.add(response_id)
+                if isinstance(payload.get("usage"), dict):
+                    usage_records = True
+                    _add_usage(out, payload["usage"], day)
+            elif kind == "event_msg" and payload.get("type") == "token_count":
+                usage = (payload.get("info") or {}).get("total_token_usage")
+                if isinstance(usage, dict):
+                    fallback.append((day, _tokens(usage)))
+    if not usage_records:
+        previous = collections.Counter()
+        for day, cumulative in fallback:
+            delta = {k: max(0, value - previous[k]) for k, value in cumulative.items()}
+            _add_usage(out, {field: delta[name] for name, field in TOKEN_FIELDS.items()}, day)
+            previous = collections.Counter(cumulative)
     out["tools"], out["tokens"], out["days"] = dict(out["tools"]), dict(out["tokens"]), dict(out["days"])
     return out
 
@@ -75,12 +93,12 @@ def notes_storage(notes):
     files = size = words = 0
     for root, dirs, names in os.walk(notes):
         dirs[:] = [d for d in dirs if not d.startswith(".") and d != "graphify-out"]
-        for n in names:
-            if n.endswith(".md"):
-                p = os.path.join(root, n)
+        for name in names:
+            if name.endswith(".md"):
+                path = os.path.join(root, name)
                 files += 1
-                size += os.path.getsize(p)
-                with open(p, encoding="utf-8", errors="replace") as f:
+                size += os.path.getsize(path)
+                with open(path, encoding="utf-8", errors="replace") as f:
                     words += len(f.read().split())
     return {"files": files, "bytes": size, "words": words}
 
@@ -88,61 +106,65 @@ def notes_storage(notes):
 def _load_cache():
     try:
         with open(CACHE_FILE, encoding="utf-8") as f:
-            return json.load(f)
-    except (OSError, ValueError):
+            data = json.load(f)
+        return data.get("entries", {}) if data.get("version") == CACHE_VERSION else {}
+    except (OSError, ValueError, AttributeError):
         return {}
 
 
-def collect(projects_dir, notes, cache=None):
-    persist = cache is None  # tests pass their own cache and never touch the real file
-    cache = _load_cache() if cache is None else cache
+def collect(codex_home, notes, cache=None):
+    persist = cache is None
+    cache = _load_cache() if persist else cache
     fresh, sessions, sub_files, transcript_bytes = {}, 0, 0, 0
-    totals = {"prompts": 0, "subagents": 0}
+    totals = {"prompts": 0}
     tools, tokens, sub_tokens = collections.Counter(), collections.Counter(), collections.Counter()
     days = collections.defaultdict(lambda: {"prompts": 0, "tokens": 0})
     first = last = None
-    for root, _, names in os.walk(projects_dir):
-        for n in names:
-            if not n.endswith(".jsonl"):
-                continue
-            p = os.path.join(root, n)
-            st = os.stat(p)
-            transcript_bytes += st.st_size
-            key = "%d:%d" % (st.st_size, int(st.st_mtime))
-            hit = cache.get(p)
-            r = hit["r"] if hit and hit["k"] == key else scan_file(p)
-            fresh[p] = {"k": key, "r": r}
-            if os.sep + "subagents" + os.sep in p:  # a subagent's own transcript: count its tokens separately
-                sub_files += 1
-                sub_tokens.update(r["tokens"])
-                continue
-            sessions += 1
-            totals["prompts"] += r["prompts"]
-            totals["subagents"] += r["subagents"]
-            tools.update(r["tools"])
-            tokens.update(r["tokens"])
-            for d, v in r["days"].items():
-                days[d]["prompts"] += v["prompts"]
-                days[d]["tokens"] += v["tokens"]
-            if r["first"]:
-                first = min(first or r["first"], r["first"])
-                last = max(last or r["last"], r["last"])
+    for folder in ("sessions", "archived_sessions"):
+        for root, _, names in os.walk(os.path.join(codex_home, folder)):
+            for name in names:
+                if not name.endswith(".jsonl"):
+                    continue
+                path = os.path.join(root, name)
+                try:
+                    stat = os.stat(path)
+                    transcript_bytes += stat.st_size
+                    key = "%d:%d" % (stat.st_size, stat.st_mtime_ns)
+                    hit = cache.get(path)
+                    result = hit["r"] if hit and hit.get("k") == key else scan_file(path)
+                except OSError:
+                    continue
+                fresh[path] = {"k": key, "r": result}
+                tools.update(result["tools"])
+                if result["subagent"]:
+                    sub_files += 1
+                    sub_tokens.update(result["tokens"])
+                    continue
+                sessions += 1
+                totals["prompts"] += result["prompts"]
+                tokens.update(result["tokens"])
+                for day, values in result["days"].items():
+                    days[day]["prompts"] += values["prompts"]
+                    days[day]["tokens"] += values["tokens"]
+                if result["first"]:
+                    first = min(first or result["first"], result["first"])
+                    last = max(last or result["last"], result["last"])
     if persist:
         try:
             with open(CACHE_FILE + ".tmp", "w", encoding="utf-8") as f:
-                json.dump(fresh, f)
+                json.dump({"version": CACHE_VERSION, "entries": fresh}, f)
             os.replace(CACHE_FILE + ".tmp", CACHE_FILE)
         except OSError:
             pass
     today = datetime.date.today()
     last30 = [(today - datetime.timedelta(days=i)).isoformat() for i in range(29, -1, -1)]
-    week = [d for d in last30[-7:]]
+    week = last30[-7:]
     return {
         "sessions": sessions, "subagent_sessions": sub_files, "since": first, "last": last,
-        "prompts": totals["prompts"], "subagents": totals["subagents"], "tool_calls": sum(tools.values()),
+        "prompts": totals["prompts"], "subagents": sub_files, "tool_calls": sum(tools.values()),
         "tokens": dict(tokens), "subagent_tokens": dict(sub_tokens),
         "week": {"prompts": sum(days[d]["prompts"] for d in week), "tokens": sum(days[d]["tokens"] for d in week)},
-        "days": [{"date": d, **days[d]} for d in last30],
-        "top_tools": collections.Counter(tools).most_common(8),
+        "days": [{"date": day, **days[day]} for day in last30],
+        "top_tools": tools.most_common(8),
         "storage": {"notes": notes_storage(notes), "transcripts_bytes": transcript_bytes},
     }
