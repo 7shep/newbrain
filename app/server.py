@@ -11,6 +11,7 @@ the notes.
 import datetime
 import http.server
 import json
+import mimetypes
 import os
 import re
 import secrets
@@ -428,6 +429,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
             with open(os.path.join(HERE, "index.html"), encoding="utf-8") as f:
                 html = f.read().replace("__BRAIN_TOKEN__", TOKEN).replace('"__NOTES_ROOT__"', json.dumps(NOTES))  # json: Windows backslashes stay intact
             return self.send(200, html.encode(), "text/html; charset=utf-8")
+        if url.path.startswith("/vendor/katex/"):
+            base = os.path.realpath(os.path.join(HERE, "vendor", "katex"))
+            asset = os.path.realpath(os.path.join(base, urllib.parse.unquote(url.path[len("/vendor/katex/"):])))
+            if not asset.startswith(base + os.sep) or not os.path.isfile(asset):
+                return self.send(404, {"error": "not found"})
+            with open(asset, "rb") as f:
+                ctype = {".woff2": "font/woff2", ".woff": "font/woff", ".ttf": "font/ttf"}.get(os.path.splitext(asset)[1])
+                return self.send(200, f.read(), ctype or mimetypes.guess_type(asset)[0] or "application/octet-stream")
         if url.path == "/theme.css":  # shared with the phone app
             with open(os.path.join(HERE, "theme.css"), "rb") as f:
                 return self.send(200, f.read(), "text/css; charset=utf-8")

@@ -21,7 +21,7 @@ act on them.
 - **Everything we've done:** one self-contained note per session, in a full-width timeline.
 - **People & me:** your profile and contacts, one click away but out of the main view.
 - **On your phone:** a home-screen app with the cover, Up next, Notes to self, projects, ideas, habits and capture. It works with your laptop off, using a private GitHub repo as the backend. [Set it up →](#on-your-phone)
-- **Background agents:** captures can start an agent that files them or does the task. Codex execution is available with `BRAIN_AGENT=codex`; the default runner retains a separate tool allowlist. [More →](#background-agents-optional)
+- **Background agents:** captures can start an agent that files them or does the task. Opt-in Codex mode analyzes captures and proposes actions without editing; the default Claude runner retains its separate tool allowlist. [More →](#background-agents-optional)
 - **Stats:** prompts sent, sessions, subagents, tool calls, tokens and storage, with 30-day charts, read from Codex's session transcripts.
 - **How well Codex knows you:** Codex logs each bet it makes about what you'll want (a recommended option, a guess, a draft), and Brain scores its calibration.
 
@@ -122,7 +122,7 @@ python3 ~/Notes/.brain/brain_codex.py
 It adds a marked **Brain** block to that file with the standing instructions (read `INDEX.md` first, follow the `on`
 habits, file inbox captures, write a session note) plus a snapshot of the current habits and inbox. The Codex
 `SessionStart` hook loads fresh state for each session, and anything else in the file is left alone. Codex background
-agents can be selected with `BRAIN_AGENT=codex`; they use `codex exec` in a `workspace-write` sandbox. The default
+agents can be selected with `BRAIN_AGENT=codex`; they use `codex exec` in a read-only sandbox and propose actions in the Agents report. The default
 agent runner still uses Claude Code because its configured tool allowlist has no equivalent Codex enforcement.
 
 **Personal Windows daily setup:** Keep private notes in `personal-notes/` (ignored by Git). Run
@@ -144,9 +144,9 @@ For calendar updates, put `{"urls":["<secret iCal address>"]}` in `personal-note
 The importer reads upcoming events only; it never changes your calendar. Add a second secret address to include a
 second calendar. Google Calendar remains the source of truth.
 
-**Windows:** run `py %USERPROFILE%\Notes\.brain\brain_codex.py` once, then start Brain with Codex agents from a Command
-Prompt with `set BRAIN_AGENT=codex` followed by `%USERPROFILE%\Notes\.brain\bin\brain.cmd` (PowerShell:
-`$env:BRAIN_AGENT="codex"`). Log in to Codex first (`codex login`), since background agents can't answer a login prompt.
+**Windows:** to use Codex for read-only capture analysis, install and log in to the Codex CLI, then set
+`BRAIN_AGENT=codex` before starting Brain (`$env:BRAIN_AGENT="codex"` in PowerShell). Create `personal-notes/agents/`
+to opt in to background jobs. Codex will propose note text or task steps in each Agents report; it will not edit the notes.
 
 ## How it fits together
 
@@ -190,6 +190,10 @@ top bar turns amber while one is working. Click it for the reports.
 The default agent uses Claude Code with an allowlist, so user settings can't widen it and anything off the list is refused. It can read, edit notes and
 project files, search the web, create Gmail drafts and add calendar events. It can't send email or texts, commit,
 push or run arbitrary shell commands. Outward actions come back as drafts for you to send.
+
+With `BRAIN_AGENT=codex`, the agent instead runs in read-only mode with apps, hooks, and web search disabled. It reads
+the captured item and Brain context, then reports a proposed note change or short task plan. It cannot file or execute
+the task itself. See the [Codex background-agent spec](docs/specs/2026-09-29-headless-codex-agents.md).
 
 Each run writes `agents/<time>-<slug>.md` (queued, running, then done or failed), so the state survives a restart. The
 runner's tests use a fake command, so they're free: `python3 -m unittest discover -s tests`.
@@ -250,3 +254,9 @@ buttons read session ids from `~/.codex/projects`.
 ## License
 
 [MIT](LICENSE)
+
+### Math in notes
+
+Notes and editor previews typeset LaTeX using bundled KaTeX 0.16.22, including local fonts. Use `$x^2$` or `\(x^2\)` for inline math, and `$$...$$` or `\[...\]` for display equations. Display expressions can span multiple lines and include environments such as `aligned`, `pmatrix`, and `cases`. Code spans and fenced code blocks show their source literally. Unsupported TeX appears in red without interrupting the note.
+
+Run the math regression checks with `node tests/test_math.cjs`; run the Python suite with `py -m unittest discover -s tests`.

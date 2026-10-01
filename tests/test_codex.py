@@ -53,11 +53,17 @@ class CodexTest(unittest.TestCase):
     def test_brain_agent_codex_uses_codex_exec(self):
         os.environ["BRAIN_AGENT"] = "codex"
         try:
-            cmd = Agents(tempfile.mkdtemp()).command
+            agent = Agents(tempfile.mkdtemp())
+            cmd = agent.command
         finally:
             del os.environ["BRAIN_AGENT"]
-        self.assertEqual(cmd[1:5], ["--ask-for-approval", "never", "exec", "--cd"])  # exec itself rejects the flag
-        self.assertIn("workspace-write", cmd)
+        self.assertIn("--ignore-user-config", cmd)
+        self.assertEqual(cmd[cmd.index("--ask-for-approval"):cmd.index("--ask-for-approval") + 4],
+                         ["--ask-for-approval", "never", "exec", "--cd"])
+        self.assertIn("read-only", cmd)
+        self.assertNotIn("--add-dir", cmd)
+        self.assertEqual(cmd[-1], "-")  # read the entire capture prompt from stdin
+        self.assertIn("Analyze this capture only", agent.prompt)
         self.assertEqual(Agents(tempfile.mkdtemp()).command[1], "--setting-sources")  # default stays Claude
 
 

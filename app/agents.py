@@ -31,6 +31,14 @@ PROMPT = (
     "an action. Don't git commit. End with a report of at most 3 lines: what you did, and any files "
     "changed or drafts made."
 )
+CODEX_PROMPT = (
+    "Alex added this in Brain ({kind}): {text}\n\n"
+    "Read INDEX.md and the relevant project page in this notes folder. Analyze this capture only. "
+    "Do not edit files, execute changes, send messages, or use external services. "
+    "If it is only a thought to keep, identify the exact note where it belongs and propose the text to add. "
+    "If it is a task, give Alex a short concrete plan and identify any decision needed. "
+    "End with at most 3 lines for the Brain Agents report."
+)
 
 
 def _projects():
@@ -47,11 +55,12 @@ def claude_command(notes):
 
 
 def codex_command(notes):
-    # Codex's sandbox is the boundary here: it can write the notes folder and ~/Projects, nothing else, and it has
-    # no network by default, so outward actions can only come back as text in the report. The approval policy is
-    # a top-level flag, before "exec" (exec itself rejects it).
-    return [shutil.which("codex") or "codex", "--ask-for-approval", "never", "exec", "--cd", notes,
-            "--sandbox", "workspace-write", *_projects(), "--skip-git-repo-check"]
+    # A read-only workspace boundary is enforceable; Codex has no equivalent of Claude's allowedTools list.
+    # Ignore interactive config and turn off hooks/apps so those cannot perform side effects outside the sandbox.
+    return [shutil.which("codex") or "codex", "--ignore-user-config", "--disable", "hooks",
+            "--disable", "apps", "--disable", "multi_agent", "--ask-for-approval", "never",
+            "exec", "--cd", notes, "--sandbox", "read-only", "-c", 'web_search="disabled"',
+            "--skip-git-repo-check", "-"]
 
 
 def default_command(notes):
@@ -68,6 +77,8 @@ class Agents:
         self.notes = notes
         self.dir = os.path.join(notes, "agents")
         self.command = command or default_command(notes)
+        self.runner = "codex-read-only" if command is None and os.environ.get("BRAIN_AGENT", "").lower() == "codex" else "claude"
+        self.prompt = CODEX_PROMPT if self.runner == "codex-read-only" else PROMPT
         self.timeout = timeout
         self.jobs = queue.Queue()
         self.lock = threading.Lock()
@@ -118,7 +129,7 @@ class Agents:
         slug = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:40] or "item"
         stamp = datetime.datetime.now().strftime("%Y-%m-%d-%H%M%S")
         path = os.path.join(self.dir, "%s-%s.md" % (stamp, slug))
-        self._write(path, {"status": "queued", "type": kind, "queued": now()}, text)
+        self._write(path, {"status": "queued", "type": kind, "runner": self.runner, "queued": now()}, text)
         self.jobs.put((path, kind, text))
         with self.lock:
             if not self.worker or not self.worker.is_alive():
@@ -165,7 +176,7 @@ class Agents:
         for path in self._files()[:n]:
             meta, text, report = self._read(path)
             out.append({"file": "agents/" + os.path.basename(path), "status": meta.get("status", "failed"),
-                        "type": meta.get("type", ""), "queued": meta.get("queued", ""),
+                        "type": meta.get("type", ""), "runner": meta.get("runner", ""), "queued": meta.get("queued", ""),
                         "finished": meta.get("finished", ""), "text": text, "report": report})
         return out
 
@@ -179,10 +190,11 @@ class Agents:
             self.run(*job)
 
     def run(self, path, kind, text):
-        meta = {"status": "running", "type": kind, "queued": self._read(path)[0].get("queued", now()), "started": now()}
+        meta = {"status": "running", "type": kind, "runner": self.runner,
+                "queued": self._read(path)[0].get("queued", now()), "started": now()}
         self._write(path, meta, text)
         try:
-            p = subprocess.run(self.command, input=PROMPT.format(kind=kind, text=text), cwd=self.notes,
+            p = subprocess.run(self.command, input=self.prompt.format(kind=kind, text=text), cwd=self.notes,
                                capture_output=True, encoding="utf-8", errors="replace", timeout=self.timeout)
             status = "done" if p.returncode == 0 else "failed"
             report = (p.stdout.strip() or p.stderr.strip() or "(no output)")
