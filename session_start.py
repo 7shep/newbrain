@@ -4,6 +4,7 @@
 Prints Codex's active habits, habits the user hasn't decided on, and anything waiting in the inbox.
 Notes folder = parent of this folder, or $BRAIN_NOTES. Silent if it isn't there, so it never blocks a session.
 """
+import datetime
 import os
 import re
 import subprocess
@@ -52,6 +53,15 @@ def context():
     name = (re.search(r"^name:\s*(\S+)", read("me.md"), re.M) or [None, "the user"])[1]
     home = NOTES.replace(os.path.expanduser("~"), "~", 1).replace("\\", "/")
     lines = ["[Brain] %s is %s's brain: read %s/INDEX.md + the relevant project page before project work." % (home, name, home)]
+    today = datetime.date.today().isoformat()
+    if "## Today · " + today not in read("now.md"):
+        lines.append(
+            "MORNING UPDATE not recorded for today. When it fits the user's request, review inbox captures, "
+            "Upcoming and active project threads; verify completion before marking anything done. "
+            "Use configured calendar data when available and label suggested work blocks. "
+            "Write '## Today · %s' in %s/now.md and rebuild INDEX.md using this Brain checkout. "
+            "Follow the notes repository's own commit permissions; don't assume calendars or a ~/Notes path. "
+            "Handle the user's current request first." % (today, home))
     if on:
         lines.append("Habits %s has on (follow them): " % name + " | ".join(on))
     if proposed:

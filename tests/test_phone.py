@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from pathlib import Path
 
 BRAIN = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(BRAIN, "app"))
@@ -34,6 +35,115 @@ def queue(notes, name, action, body):
 def read(notes, rel):
     with open(os.path.join(notes, rel), encoding="utf-8") as f:
         return f.read()
+
+
+class AskTest(unittest.TestCase):
+    def run_ask(self, notes, response=None, fail=False):
+        # Substitute only the CLI process: test the real queue, prompt, flags, response validation and capture.
+        code = r"""
+import json, os, sys
+from unittest.mock import patch
+from types import SimpleNamespace
+sys.path.insert(0, sys.argv[1])
+sys.argv = ["phone.py", sys.argv[2]]
+import phone
+
+def fake(command, **kw):
+    assert command[-1] == "-" and "read-only" in command
+    assert "--ignore-user-config" in command and "--ignore-rules" in command
+    disabled = [command[i+1] for i, value in enumerate(command[:-1]) if value == "--disable"]
+    assert all(f in disabled for f in ["hooks", "apps", "plugins", "multi_agent", "shell_tool"])
+    assert "--output-schema" in command and "--ephemeral" in command
+    assert "now.md" in kw["input"] and "question" in kw["input"]
+    assert kw["cwd"] != phone.NOTES
+    if os.environ.get("TEST_CODEX_FAIL") == "1":
+        return SimpleNamespace(returncode=1)
+    path = command[command.index("--output-last-message") + 1]
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(os.environ["TEST_CODEX_RESPONSE"])
+    return SimpleNamespace(returncode=0)
+with patch.object(phone.subprocess, "run", side_effect=fake):
+    phone.main()
+"""
+        env = {**os.environ, "TEST_CODEX_RESPONSE": json.dumps(response), "TEST_CODEX_FAIL": str(int(fail))}
+        result = subprocess.run([sys.executable, "-c", code, os.path.join(BRAIN, "app"), notes],
+                                capture_output=True, text=True, env=env)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(read(notes, "phone/state.json"))
+
+    def test_ask_answers_and_captures(self):
+        notes = notes_copy()
+        queue(notes, "q1", "ask", {"id": "a1", "text": "remember to buy milk"})
+        state = self.run_ask(notes, {"answer": "Noted, milk is on your list.", "capture": "buy milk"})
+        self.assertEqual(state["failed"], [])
+        self.assertEqual([(a["id"], a["a"]) for a in state["answers"]], [("a1", "Noted, milk is on your list.")])
+        self.assertIn("buy milk", read(notes, "inbox.md"))
+        self.assertEqual(len(os.listdir(os.path.join(notes, "agents", "pending"))), 1)
+
+    def test_question_without_capture_or_projects_folder(self):
+        notes = notes_copy()
+        shutil.rmtree(os.path.join(notes, "projects"))
+        before = read(notes, "inbox.md")
+        queue(notes, "q1", "ask", {"id": "a1", "text": "what is on today?"})
+        state = self.run_ask(notes, {"answer": "The notes do not say.", "capture": None})
+        self.assertEqual(state["failed"], [])
+        self.assertEqual(read(notes, "inbox.md"), before)
+
+    def test_invalid_answer_or_cli_failure_does_not_block_capture(self):
+        for reply, fail in [({"answer": "", "capture": "unexpected"}, False), (None, True)]:
+            with self.subTest(reply=reply, fail=fail):
+                notes = notes_copy()
+                queue(notes, "1-ask", "ask", {"id": "a1", "text": "what is next?"})
+                queue(notes, "2-capture", "capture", {"kind": "note", "text": "keep this"})
+                state = self.run_ask(notes, reply, fail)
+                self.assertEqual([f["id"] for f in state["failed"]], ["1-ask"])
+                self.assertEqual(state["applied"], ["2-capture"])
+                self.assertNotIn("unexpected", read(notes, "inbox.md"))
+                self.assertIn("keep this", read(notes, "inbox.md"))
+
+    def test_hosted_answers_match_question_ids_and_reject_duplicates(self):
+        for duplicate in (False, True):
+            with self.subTest(duplicate=duplicate):
+                notes = notes_copy()
+                queue(notes, "q1", "ask", {"id": "a1", "text": "remember milk"})
+                response = {"id": "a1", "answer": "Noted.", "capture": "milk"}
+                path = os.path.join(tempfile.mkdtemp(), "answers.json")
+                with open(path, "w", encoding="utf-8") as f:
+                    json.dump({"answers": [response] * (2 if duplicate else 1)}, f)
+                result = subprocess.run([sys.executable, os.path.join(BRAIN, "app", "phone.py"), notes,
+                                         "--answers-file", path], capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                state = json.loads(read(notes, "phone/state.json"))
+                if duplicate:
+                    self.assertEqual(len(state["failed"]), 1)
+                    self.assertEqual(state["answers"], [])
+                else:
+                    self.assertEqual(state["failed"], [])
+                    self.assertEqual(state["answers"][0]["a"], "Noted.")
+
+    def test_prepare_writes_only_fixture_context_for_the_action(self):
+        notes = notes_copy()
+        queue(notes, "q1", "ask", {"id": "a1", "text": "what is next?"})
+        work = tempfile.mkdtemp()
+        output = os.path.join(work, "github-output")
+        code = """
+import sys
+sys.path.insert(0, sys.argv[1])
+work = sys.argv[3]
+sys.argv = ["phone.py", sys.argv[2]]
+import phone
+phone.__file__ = work + "/app/phone.py"
+phone.prepare_asks()
+"""
+        result = subprocess.run([sys.executable, "-c", code, os.path.join(BRAIN, "app"), notes, work],
+                                capture_output=True, text=True, env={**os.environ, "GITHUB_OUTPUT": output})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        with open(os.path.join(work, "phone-ask-prompt.txt"), encoding="utf-8") as f:
+            prompt = f.read()
+        self.assertIn('"id": "a1"', prompt)
+        self.assertIn('"now.md"', prompt)
+        self.assertIn("has_questions=true", Path(output).read_text())
+        self.assertTrue(os.path.exists(os.path.join(notes, "phone", "queue", "q1.json")))
 
 
 class ApplyQueueTest(unittest.TestCase):
@@ -153,6 +263,22 @@ class SyncTest(unittest.TestCase):
     def test_off_without_phone_folder(self):
         shutil.rmtree(os.path.join(self.mac, "phone"))
         self.assertFalse(Sync(self.mac).enabled())
+
+
+@unittest.skipUnless(shutil.which("node"), "needs node")
+class TranscriptTest(unittest.TestCase):
+    """The mic's transcript() in mobile/index.html, fed Chrome-style and iOS-style result lists."""
+    def test_joins_chrome_and_ios_results(self):
+        js = r"""
+const h = require("fs").readFileSync(process.argv[1], "utf8");
+eval(h.match(/function transcript[\s\S]*?\n}\n/)[0]);
+const R = (...ts) => ts.map(t => [{ transcript: t }]), eq = (a, b) => { if (a !== b) throw new Error(JSON.stringify(a)); };
+eq(transcript(R("can you fix", " the talking on brain")), "can you fix the talking on brain");
+eq(transcript(R("Can you fix the talking", "On brain")), "Can you fix the talking On brain");
+eq(transcript(R("Can you", "can you fix the", "Can you fix the talking on brain")), "Can you fix the talking on brain");
+eq(transcript(R("Can you fix the talking on brain", "on brain", "")), "Can you fix the talking on brain");
+"""
+        subprocess.run(["node", "-e", js, os.path.join(BRAIN, "mobile", "index.html")], check=True)
 
 
 if __name__ == "__main__":

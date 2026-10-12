@@ -1,6 +1,8 @@
 # brain
 
-[![tests](https://github.com/zacfink/brain/actions/workflows/tests.yml/badge.svg)](https://github.com/zacfink/brain/actions/workflows/tests.yml)
+[![tests](https://github.com/7shep/newbrain/actions/workflows/tests.yml/badge.svg)](https://github.com/7shep/newbrain/actions/workflows/tests.yml)
+
+Alex's fork of [zacfink/brain](https://github.com/zacfink/brain), with Codex integration, calendar context, automatic session notes, and local math rendering.
 
 A personal "digital brain" for working with Codex: a folder of plain
 markdown notes that Codex reads instead of re-deriving context every session, plus a small local app to browse and
@@ -17,11 +19,11 @@ act on them.
 - **Edit in place:** every note, person and project page opens in a side panel with a live markdown preview. ⌘S saves the file.
 - **Reopen anything:** copy the command to resume a past Codex chat, open a project in VS Code, or open its live site.
 - **Map of everything:** if you've run graphify on your notes (`graphify-out/graph.json`), a Map tile draws the knowledge graph in the app's colours. Hover a dot to see its links, click to open its note, use the legend to focus one cluster, or search it: type a few letters and it suggests matching ideas and clusters, then flies to the one you pick.
-- **Light and dark:** two matte themes, Pro Black and Frost, that follow your system until you pick one: the chip in the desktop top bar, or **Settings → Dark mode** on the phone. Each device keeps its own choice.
+- **Themes:** Pro Black, Frost, and Soft that follow your system until you pick one: the chip in the desktop top bar, or the theme switches in phone Settings. Each device keeps its own choice.
 - **Everything we've done:** one self-contained note per session, in a full-width timeline.
 - **People & me:** your profile and contacts, one click away but out of the main view.
 - **On your phone:** a home-screen app with the cover, Up next, Notes to self, projects, ideas, habits and capture. It works with your laptop off, using a private GitHub repo as the backend. [Set it up →](#on-your-phone)
-- **Background agents:** captures can start an agent that files them or does the task. Opt-in Codex mode analyzes captures and proposes actions without editing; the default Claude runner retains its separate tool allowlist. [More →](#background-agents-optional)
+- **Background agents:** opt-in captures start a read-only Codex agent that proposes note changes or task steps in a report. [More →](#background-agents-optional)
 - **Stats:** prompts sent, sessions, subagents, tool calls, tokens and storage, with 30-day charts, read from Codex's session transcripts.
 - **How well Codex knows you:** Codex logs each bet it makes about what you'll want (a recommended option, a guess, a draft), and Brain scores its calibration.
 
@@ -30,7 +32,7 @@ standard library, has no build step, and runs on macOS, Windows and Linux.
 
 ![A person page open in the side panel](docs/page.png)
 
-## How I actually use it
+## Upstream usage example (Zac, not Alex)
 
 I've run every Codex session through this since May 2026: 49 sessions across 13 projects, with 15 habits Codex
 follows on every session. A few things it has shipped:
@@ -122,8 +124,8 @@ python3 ~/Notes/.brain/brain_codex.py
 It adds a marked **Brain** block to that file with the standing instructions (read `INDEX.md` first, follow the `on`
 habits, file inbox captures, write a session note) plus a snapshot of the current habits and inbox. The Codex
 `SessionStart` hook loads fresh state for each session, and anything else in the file is left alone. Codex background
-agents can be selected with `BRAIN_AGENT=codex`; they use `codex exec` in a read-only sandbox and propose actions in the Agents report. The default
-agent runner still uses Claude Code because its configured tool allowlist has no equivalent Codex enforcement.
+agents use `codex exec` by default in a read-only sandbox and propose actions in the Agents report.
+`BRAIN_AGENT=codex` remains compatible; no Claude installation is needed.
 
 **Personal Windows daily setup:** Keep private notes in `personal-notes/` (ignored by Git). Run
 `powershell -ExecutionPolicy Bypass -File bin/install-daily.ps1` from this repo. This installs a user-level
@@ -144,8 +146,7 @@ For calendar updates, put `{"urls":["<secret iCal address>"]}` in `personal-note
 The importer reads upcoming events only; it never changes your calendar. Add a second secret address to include a
 second calendar. Google Calendar remains the source of truth.
 
-**Windows:** to use Codex for read-only capture analysis, install and log in to the Codex CLI, then set
-`BRAIN_AGENT=codex` before starting Brain (`$env:BRAIN_AGENT="codex"` in PowerShell). Create `personal-notes/agents/`
+**Windows:** to use read-only capture analysis, install and log in to the Codex CLI. Create `personal-notes/agents/`
 to opt in to background jobs. Codex will propose note text or task steps in each Agents report; it will not edit the notes.
 
 ## How it fits together
@@ -183,17 +184,16 @@ a file costs nothing until it's needed, and you stay in control of your own data
 ## Background agents (optional)
 
 Create an `agents/` folder in your notes and anything you capture in the app (a note, idea, todo, person or habit
-proposal) also starts a headless agent. It files the thought where it belongs, or does the
+proposal) also starts a headless Codex agent. It proposes where to file the thought or how to do the
 task, writes a short report and exits. Runs go one at a time with a 20-minute limit, and a small "agents" chip in the
 top bar turns amber while one is working. Click it for the reports.
 
-The default agent uses Claude Code with an allowlist, so user settings can't widen it and anything off the list is refused. It can read, edit notes and
-project files, search the web, create Gmail drafts and add calendar events. It can't send email or texts, commit,
-push or run arbitrary shell commands. Outward actions come back as drafts for you to send.
-
-With `BRAIN_AGENT=codex`, the agent instead runs in read-only mode with apps, hooks, and web search disabled. It reads
-the captured item and Brain context, then reports a proposed note change or short task plan. It cannot file or execute
-the task itself. See the [Codex background-agent spec](docs/specs/2026-09-29-headless-codex-agents.md).
+The runner uses a read-only sandbox and ignores interactive config and execution rules. Hooks,
+apps, plugins, browser/computer tools, additional agents, and web search are disabled. It reads the
+captured item and notes, then reports a proposed note change or short task plan. It does not edit notes,
+create external drafts or calendar events, commit, push, or publish. The interactive CLI remains where
+you approve and carry out work. Set `BRAIN_CODEX_MODEL` to choose a model; otherwise Codex uses its default.
+See the [Codex background-agent spec](docs/specs/2026-09-29-headless-codex-agents.md).
 
 Each run writes `agents/<time>-<slug>.md` (queued, running, then done or failed), so the state survives a restart. The
 runner's tests use a fake command, so they're free: `python3 -m unittest discover -s tests`.
@@ -229,12 +229,35 @@ git can't combine, it stops and says "Sync paused" instead of guessing.
      then choose *Read and write*.)
    - The summary should read "Read access to metadata" and "Read and Write access to code". Generate it and copy
      the `github_pat_…` key.
-4. **Install the app:** on your phone, open **https://zacfink.github.io/brain/mobile/** in Safari (or Chrome on
+4. **Install the app:** on your phone, open the `mobile/` URL from your fork's GitHub Pages deployment in Safari (or Chrome on
    Android) → Share → **Add to Home Screen**. Open it, tap **Connect**, enter `your-name/notes` and paste the key.
 
 The key stays on your phone only. The app's code is public and holds no notes. You can revoke the key on GitHub
 anytime.
 <br clear="right">
+
+### Phone voice questions
+
+Hold the mic, speak, and release to ask your notes a question; supported browsers read the answer aloud.
+The queue still goes through the private notes repo. This fork uses Codex rather than Anthropic:
+`app/phone.py` can run the CLI locally, or consume validated answers generated by the Codex GitHub Action.
+Only `INDEX.md`, `now.md`, and project Markdown pages are supplied as question context.
+
+Copy the updated [workflow template](docs/notes-workflow.yml) to the private notes repo. It checks out
+`7shep/newbrain`, prepares voice questions, runs `openai/codex-action@v1` in read-only mode, then applies
+answers and ordinary phone actions through Python. Add an `OPENAI_API_KEY` repository secret to enable
+cloud voice answers while the laptop is off. The secret is passed only to the Codex action. With no secret
+or an invalid answer, the question fails visibly while other queued actions continue. This template has
+been checked locally against the released Action interface; a hosted run needs the private repo setup.
+[Official Codex Action documentation](https://learn.chatgpt.com/docs/github-action) describes its authentication and sandbox controls. Normal captures and reminders need no
+OpenAI secret. For a local queue run, use an installed, authenticated Codex CLI instead.
+
+### Internships and morning context
+
+Rows in `internships/tracker.md` appear in the desktop Internships tile, grouped by status. The three
+themes work on desktop and phone. Up next reads only the `## Upcoming` section of `now.md`, sorted by
+date and time. Session context reminds Codex when today's `## Today · YYYY-MM-DD` section is missing,
+using the configured notes folder and available calendar data without delaying your current request.
 
 ## Security
 

@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link
-  href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&family=Bodoni+Moda:ital,opsz,wght@0,6..96,700;0,6..96,800;1,6..96,600&display=swap"
+  href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Schibsted+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&family=Bodoni+Moda:ital,opsz,wght@0,6..96,700;0,6..96,800;1,6..96,600&display=swap"
   rel="stylesheet"
 />
 
@@ -308,10 +308,7 @@
     border: 1px solid var(--line);
     background: var(--tile-2);
     color: var(--ink);
-    transition:
-      transform 0.25s var(--ease),
-      background 0.2s,
-      border-color 0.2s;
+    transition: transform .5s var(--spring), background .2s, border-color .2s;
     white-space: nowrap;
   }
   .pill:hover {
@@ -388,9 +385,7 @@
     border-radius: 14px;
     padding: 14px;
     margin-bottom: 10px;
-    transition:
-      opacity 0.45s var(--ease),
-      transform 0.45s var(--ease);
+    transition: opacity .45s var(--ease), transform .55s var(--spring);
   }
   .nudge h4 {
     margin: 0 0 4px;
@@ -510,10 +505,7 @@
     place-items: center;
     color: var(--muted);
     text-decoration: none;
-    transition:
-      color 0.2s,
-      border-color 0.2s,
-      transform 0.2s var(--ease);
+    transition: color .2s, border-color .2s, transform .45s var(--spring);
   }
   .ib:hover {
     border-color: var(--amber);
@@ -752,9 +744,7 @@
     height: 16px;
     border-radius: 50%;
     background: var(--mint-ink);
-    transition:
-      transform 0.3s var(--ease),
-      background 0.25s;
+    transition: transform .5s var(--spring), background .25s;
   }
   .sw.off {
     background: var(--tile-3);
@@ -852,9 +842,7 @@
     pointer-events: none;
     opacity: 0;
     transform: translateY(-4px);
-    transition:
-      opacity 0.18s,
-      transform 0.25s var(--ease);
+    transition: opacity .18s, transform .45s var(--spring);
   }
   .map .card.on {
     opacity: 1;
@@ -989,6 +977,34 @@
   .ideas {
     grid-column: span 12;
   }
+/* ---------- internships: snap table; hidden columns sit at 0fr so the snap can animate ---------- */
+.intern { grid-column: span 12; }
+.it { container-type: inline-size; }
+.it-grp { display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 6px; padding: 7px 10px; border: 0; border-radius: 10px; background: var(--tile-2); font-weight: 600; font-size: 13px; text-align: left; }
+.it-grp:first-child { margin-top: 0; }
+.it-grp .c { font: 500 11px var(--mono); color: var(--dim); }
+.it-grp i { width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--mint); }
+.it-grp i.applied { background: var(--mint); } .it-grp i.apply { border-right-color: transparent; } .it-grp i.out { border-color: var(--dim); }
+.it-grp .more { margin-left: auto; font-weight: 500; color: var(--dim); }
+.it-row { display: grid; grid-template-columns: 1fr 0fr 0fr .3fr; align-items: center; padding: 8px 10px; border-radius: 10px; color: inherit; text-decoration: none;
+  transition: grid-template-columns .6s var(--spring), background .15s; }
+a.it-row:hover { background: var(--tile-2); }
+.it-row > * { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.it-co b { font-weight: 600; }
+.it-inl, .it-role, .it-term, .it-due { color: var(--muted); font-size: 13px; }
+.it-inl { margin-left: 8px; transition: opacity .2s; }
+.it-role, .it-term { padding-left: 14px; opacity: 0; transform: translateX(14px); transition: opacity .25s, transform .6s var(--spring); }
+.it-due { text-align: right; font-family: var(--mono); font-size: 12px; }
+.it-due.soon { color: var(--rose); font-weight: 600; } .it-due.past { color: var(--dim); text-decoration: line-through; }
+@container (min-width: 620px) {
+  .it-row { grid-template-columns: .8fr 1.4fr 0fr .35fr; }
+  .it-inl { display: none; } .it-role { opacity: 1; transform: none; }
+}
+@container (min-width: 900px) {
+  .it-row { grid-template-columns: .8fr 1.4fr 1fr .35fr; }
+  .it-term { opacity: 1; transform: none; }
+}
+
   .agents {
     grid-column: span 12;
   }
@@ -1066,9 +1082,7 @@
     flex-direction: column;
     gap: 8px;
     min-height: 132px;
-    transition:
-      opacity 0.4s var(--ease),
-      transform 0.4s var(--ease);
+    transition: opacity .4s var(--ease), transform .5s var(--spring);
   }
   .idea-card small {
     font: 500 11px var(--mono);
@@ -1339,7 +1353,7 @@
     border: 1px solid var(--tile-3);
     border-radius: 18px;
     z-index: 31;
-    transition: 0.3s var(--ease);
+    transition: opacity .2s, transform .5s var(--spring);
     box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.7);
     overflow: hidden;
   }
@@ -1434,7 +1448,7 @@
     border-radius: 12px;
     font-weight: 600;
     font-size: 13.5px;
-    transition: 0.4s var(--ease);
+    transition: opacity .3s, transform .6s var(--spring);
     z-index: 40;
     display: flex;
     gap: 12px;
@@ -1575,7 +1589,7 @@
     <button
       class="chip agents-chip"
       id="themeChip"
-      title="Light or dark"
+      title="Dark, light or soft"
     ></button>
   </div>
 </div>
@@ -1631,6 +1645,7 @@
     </header>
     <div id="projects"></div>
   </section>
+  <section class="tile intern"><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M3 13h18"/></svg><h2>Internships</h2><span class="n" id="internCount"></span><button class="add" data-open="internships/tracker.md">Open tracker</button></header><div class="it" id="intern"></div></section>
   <section class="tile agents" id="agentsTile" hidden>
     <header>
       <svg
@@ -1828,15 +1843,12 @@
         localStorage.setItem("brain.theme", t);
       } catch {}
     const chip = document.getElementById("themeChip");
-    if (chip) chip.textContent = t === "light" ? "☀ light" : "☾ dark";
+    if (chip) chip.textContent = { light: "☀ light", soft: "◐ soft" }[t] || "☾ dark";
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.content = t === "light" ? "#e6e8eb" : "#0c0d0f";
+    if (meta) meta.content = { light: "#e6e8eb", soft: "#e9e9ea" }[t] || "#0c0d0f";
   }
   setTheme(document.documentElement.dataset.theme, false);
-  document.getElementById("themeChip").onclick = () =>
-    setTheme(
-      document.documentElement.dataset.theme === "light" ? "dark" : "light",
-    );
+  document.getElementById("themeChip").onclick = () => setTheme({ dark: "light", light: "soft" }[document.documentElement.dataset.theme] || "dark");
 
   const TOKEN = "__BRAIN_TOKEN__";
   const $ = (id) => document.getElementById(id);
@@ -2420,6 +2432,7 @@
     renderNext();
     renderNudges();
     renderProjects();
+    renderInternships();
     renderIdeas();
     renderHabits();
     renderTimeline();
@@ -2833,6 +2846,31 @@
     return `<div class="habit ${h.status === "off" ? "off" : ""}" data-habit="${esc(h.id)}"><div><b>${esc(h.title)}</b><small>${esc(h.why || "")}</small></div>
     <button class="sw ${h.status === "off" ? "off" : ""}" role="switch" aria-checked="${h.status !== "off"}" aria-label="${esc(h.title)}" data-hset="${h.status === "off" ? "on" : "off"}"></button></div>`;
   }
+const IT_GROUPS = [["applied", "Applied"], ["apply", "To apply"], ["check", "To check"], ["out", "Out"]];
+const isoKey = d => /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : "9";
+const monthDay = iso => new Date(iso + "T12:00:00").toLocaleDateString("en", { month: "short", day: "numeric" });
+let showOutJobs = false;
+function renderInternships() {
+  const rows = S.internships || [];
+  $("internCount").textContent = rows.length ? `${rows.filter(r => r.group === "applied").length} applied` : "";
+  $("intern").innerHTML = IT_GROUPS.map(([g, label]) => {
+    const rs = rows.filter(r => r.group === g).sort((a, b) => isoKey(a.deadline).localeCompare(isoKey(b.deadline)));
+    if (!rs.length) return "";
+    const open = g !== "out" || showOutJobs;
+    return `<button class="it-grp"${g === "out" ? ' id="toggleOutJobs"' : ""}><i class="${g}"></i>${label}<span class="c">${rs.length}</span>${g === "out" ? `<span class="more">${open ? "hide" : "show"}</span>` : ""}</button>`
+      + (open ? rs.map(internRow).join("") : "");
+  }).join("") || `<div class="empty">No postings yet. Rows in internships/tracker.md show up here.</div>`;
+}
+function internRow(r) {
+  const applied = r.group === "applied" && r.status.match(/\d{4}-\d{2}-\d{2}/);
+  const d = isoKey(r.deadline) === "9" ? null : daysFrom(r.deadline);
+  const due = applied ? `sent ${monthDay(applied[0])}` : d === null ? (r.deadline || "rolling") : d < 0 ? "closed" : d === 0 ? "today" : d === 1 ? "tmrw" : monthDay(r.deadline);
+  const cls = applied || d === null ? "" : d < 0 ? "past" : d <= 3 ? "soon" : "";
+  const cells = `<span class="it-co"><b>${esc(r.company)}</b><span class="it-inl">${esc(r.role)}</span></span><span class="it-role">${esc(r.role)}</span><span class="it-term">${esc(r.term)}</span><span class="it-due ${cls}">${esc(due)}</span>`;
+  return r.link ? `<a class="it-row" href="${esc(r.link)}" target="_blank" rel="noopener" title="${esc(r.status)}">${cells}</a>` : `<div class="it-row" title="${esc(r.status)}">${cells}</div>`;
+}
+
+
   function renderHabits() {
     const hs = S.habits,
       proposed = hs.filter((h) => h.status === "proposed"),
@@ -3220,7 +3258,7 @@
   let undo = null;
   document.addEventListener("click", async (e) => {
     const t = e.target.closest(
-      "[data-copy],[data-open],[data-nact],[data-hset],[data-iact],[data-archive],[data-action],[data-link],[data-capture],[data-jump],#toggleProjects,#toggleIdeas,#togglePast,#moreSessions",
+      "[data-copy],[data-open],[data-nact],[data-hset],[data-iact],[data-archive],[data-action],[data-link],[data-capture],[data-jump],#toggleProjects,#toggleIdeas,#toggleOutJobs,#togglePast,#moreSessions",
     );
     if (!t || e.target.closest("a[href]:not([data-link])")) return;
     if (t.dataset.copy !== undefined) {
@@ -3330,6 +3368,7 @@
       addPerson();
       return;
     }
+    if (t.id === "toggleOutJobs") { showOutJobs = !showOutJobs; renderInternships(); return; }
     if (t.id === "toggleIdeas") {
       showAllIdeas = !showAllIdeas;
       renderIdeas();
@@ -3569,14 +3608,8 @@
     const r = el.getBoundingClientRect(),
       cx = r.left + r.width / 2,
       cy = r.top + r.height / 2;
-    const colors = [
-      "#ffb547",
-      "#7ee0b0",
-      "#8cc4ff",
-      "#ff8a7a",
-      "#c3a6ff",
-      "#eceae4",
-    ];
+    const cs = getComputedStyle(document.documentElement);
+    const colors = ["--amber", "--mint", "--sky", "--rose", "--lilac", "--ink"].map(v => cs.getPropertyValue(v).trim());
     for (let k = 0; k < n; k++) {
       const b = document.createElement("i");
       b.className = "bit";

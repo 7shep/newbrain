@@ -1,4 +1,4 @@
-"""Headless Claude Code agents for things added in Brain (spec: docs/specs/2026-09-27-headless-agents.md).
+"""Headless read-only Codex agents for things added in Brain (spec: docs/specs/2026-09-27-headless-agents.md).
 
 Off unless the notes folder has an agents/ folder. One job at a time. Each job is a markdown file in
 agents/ that is rewritten as it moves queued -> running -> done/failed, so its state survives restarts.
@@ -11,26 +11,9 @@ import re
 import shutil
 import subprocess
 import threading
+import time
 
 TIMEOUT = 20 * 60
-# The whole permission boundary: --setting-sources project + dontAsk means nothing outside this list
-# runs, including allow rules from the user's own settings. Outward actions are drafts only.
-ALLOWED = [
-    "Read", "Glob", "Grep", "Edit", "Write", "WebSearch", "WebFetch",
-    "Bash(ls:*)", "Bash(cat:*)", "Bash(grep:*)", "Bash(git status:*)", "Bash(git log:*)", "Bash(git diff:*)",
-    "mcp__claude_ai_Gmail__search_threads", "mcp__claude_ai_Gmail__get_thread",
-    "mcp__claude_ai_Gmail__get_message", "mcp__claude_ai_Gmail__create_draft",
-    "mcp__claude_ai_Google_Calendar__list_events", "mcp__claude_ai_Google_Calendar__search_events",
-    "mcp__claude_ai_Google_Calendar__create_event",
-]
-PROMPT = (
-    "Zac just added this in Brain ({kind}): {text}\n\n"
-    "Read ~/Notes/INDEX.md and the relevant project page first. If it's only a thought to keep, file it "
-    "where it belongs in ~/Notes and stop. If it's a task, do it. Anything that would leave this machine "
-    "(email, texts, git push, a live site) becomes a draft (a Gmail draft, or text in your report), never "
-    "an action. Don't git commit. End with a report of at most 3 lines: what you did, and any files "
-    "changed or drafts made."
-)
 CODEX_PROMPT = (
     "Alex added this in Brain ({kind}): {text}\n\n"
     "Read INDEX.md and the relevant project page in this notes folder. Analyze this capture only. "
@@ -41,31 +24,24 @@ CODEX_PROMPT = (
 )
 
 
-def _projects():
-    """["--add-dir", ~/Projects] when that folder exists; both CLIs reject a missing one."""
-    path = os.path.expanduser("~/Projects")
-    return ["--add-dir", path] if os.path.isdir(path) else []
-
-
-# Both commands take the prompt on stdin (see Agents.run), never as an argument: on Windows an npm install is a
-# .cmd shim, and cmd.exe cuts a command-line argument off at its first newline. which() finds those shims.
-def claude_command(notes):
-    return [shutil.which("claude") or "claude", "--setting-sources", "project", "--permission-mode", "dontAsk",
-            *_projects(), "--allowedTools", *ALLOWED, "-p"]
-
-
 def codex_command(notes):
-    # A read-only workspace boundary is enforceable; Codex has no equivalent of Claude's allowedTools list.
-    # Ignore interactive config and turn off hooks/apps so those cannot perform side effects outside the sandbox.
-    return [shutil.which("codex") or "codex", "--ignore-user-config", "--disable", "hooks",
-            "--disable", "apps", "--disable", "multi_agent", "--ask-for-approval", "never",
-            "exec", "--cd", notes, "--sandbox", "read-only", "-c", 'web_search="disabled"',
-            "--skip-git-repo-check", "-"]
+    """Read-only Codex runner, independent of interactive settings and connectors."""
+    command = [shutil.which("codex") or "codex", "--ask-for-approval", "never", "exec",
+               "--ignore-user-config", "--ignore-rules", "--ephemeral",
+               "--disable", "hooks", "--disable", "apps", "--disable", "plugins",
+               "--disable", "multi_agent", "--disable", "browser_use", "--disable", "computer_use",
+               "--cd", notes, "--sandbox", "read-only", "-c", 'web_search="disabled"',
+               "-c", 'mcp_servers={}', "-c", 'project_doc_max_bytes=0',
+               "--skip-git-repo-check"]
+    model = os.environ.get("BRAIN_CODEX_MODEL", "").strip()
+    if model:
+        command += ["--model", model]
+    return command + ["-"]
 
 
 def default_command(notes):
-    """BRAIN_AGENT=codex runs agents through Codex; anything else (the default) uses Claude Code."""
-    return codex_command(notes) if os.environ.get("BRAIN_AGENT", "").lower() == "codex" else claude_command(notes)
+    """Codex is the only built-in runner; BRAIN_AGENT=codex remains compatible."""
+    return codex_command(notes)
 
 
 def now():
@@ -77,8 +53,8 @@ class Agents:
         self.notes = notes
         self.dir = os.path.join(notes, "agents")
         self.command = command or default_command(notes)
-        self.runner = "codex-read-only" if command is None and os.environ.get("BRAIN_AGENT", "").lower() == "codex" else "claude"
-        self.prompt = CODEX_PROMPT if self.runner == "codex-read-only" else PROMPT
+        self.runner = "codex-read-only" if command is None else "custom"
+        self.prompt = CODEX_PROMPT
         self.timeout = timeout
         self.jobs = queue.Queue()
         self.lock = threading.Lock()
@@ -96,7 +72,14 @@ class Agents:
         tmp = path + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
             f.write(body)
-        os.replace(tmp, path)
+        for attempt in range(20):  # Windows refuses the replace while a reader (recent()) has the file open
+            try:
+                os.replace(tmp, path)
+                return
+            except PermissionError:
+                if attempt == 19:
+                    raise
+                time.sleep(0.05)
 
     def _read(self, path):
         with open(path, encoding="utf-8", errors="replace") as f:
@@ -138,7 +121,7 @@ class Agents:
         return path
 
     # ------------------------------------------------------------ phone captures
-    # Captures applied on GitHub (no claude there) are parked in agents/pending/; the Mac runs them
+    # Captures applied on GitHub (no local CLI there) are parked in agents/pending/; the Mac runs them
     # after its next pull.
     def _park(self, kind, text):
         pending = os.path.join(self.dir, "pending")

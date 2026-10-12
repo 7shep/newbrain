@@ -14,7 +14,7 @@
 <link rel="icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&family=Bodoni+Moda:opsz,wght@6..96,700;6..96,800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Schibsted+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&family=Bodoni+Moda:opsz,wght@6..96,700;6..96,800&display=swap" rel="stylesheet">
 <!--
   Brain on your phone (spec: docs/specs/2026-09-27-phone-app.md). This page holds no notes: it reads
   phone/state.json and notes from your private notes repo with your own GitHub key, and every change is a
@@ -88,13 +88,25 @@ button { cursor: pointer; }
 .habit .t { font-weight: 600; font-size: 14px; }
 .habit small { color: var(--dim); font: 500 11px var(--mono); }
 .sw { width: 44px; height: 26px; border-radius: 26px; background: var(--tile-3); border: 0; position: relative; flex: none; margin-top: 2px; }
-.sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--muted); transition: transform .25s var(--ease); }
+.sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--muted); transition: transform .5s var(--spring); }
 .theme-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
 .sw.on { background: var(--mint); } .sw.on::after { transform: translateX(18px); background: var(--mint-ink); }
 .empty { color: var(--dim); font-size: 14px; }
-.more { background: none; border: 0; color: var(--muted); font-size: 13px; padding: 8px 0 0; }
+.more { background: none; border: 0; color: var(--muted); font-size: 13px; padding: 10px 0 4px; transform-origin: left center; }
 .fab { position: fixed; right: 18px; bottom: calc(env(safe-area-inset-bottom) + 18px); height: 56px; padding: 0 22px; border-radius: 28px; border: 0;
   background: var(--amber); color: var(--amber-ink); font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; box-shadow: 0 12px 30px -8px rgba(0,0,0,.7); z-index: 5; }
+.mic { position: fixed; left: 18px; bottom: calc(env(safe-area-inset-bottom) + 18px); width: 56px; height: 56px; border-radius: 50%; border: 0; z-index: 6;
+  background: var(--mint); color: var(--mint-ink); display: grid; place-items: center; box-shadow: 0 12px 30px -8px rgba(0,0,0,.7);
+  touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; animation: pop .7s var(--ease) .5s backwards; transition: transform .18s var(--ease); }
+.mic.hot { transform: scale(1.15); animation: ping 1s infinite; }
+.pop { position: fixed; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 88px); z-index: 6; background: var(--tile); border: 1px solid var(--line);
+  border-radius: 22px; padding: 16px 18px; box-shadow: 0 20px 50px -12px rgba(0,0,0,.7); opacity: 0; transform: translateY(16px) scale(.97); pointer-events: none;
+  transition: opacity .25s var(--ease), transform .35s var(--spring); }
+.pop.on { opacity: 1; transform: none; pointer-events: auto; }
+.pop small { display: block; font: 500 12px var(--mono); color: var(--dim); margin-bottom: 6px; }
+.pop p { margin: 0; font-size: 17px; line-height: 1.4; min-height: 1.4em; }
+.pop p.wait { color: var(--muted); animation: pulse 1.4s infinite; }
+.pop input { margin-top: 10px; }
 .sheet { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; background: var(--bg); transform: translateY(100%); transition: transform .35s var(--ease); }
 .sheet.on { transform: none; }
 .sheet > header { display: flex; align-items: center; gap: 10px; padding: calc(env(safe-area-inset-top) + 10px) 16px 10px; border-bottom: 1px solid var(--line); }
@@ -114,7 +126,28 @@ input { width: 100%; background: var(--tile); border: 1px solid var(--line); bor
 .toast { position: fixed; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom) + 86px); background: var(--ink); color: var(--bg); padding: 12px 14px; border-radius: 12px;
   font-weight: 600; font-size: 14px; opacity: 0; transform: translateY(10px); transition: .3s var(--ease); pointer-events: none; z-index: 30; }
 .toast.on { opacity: 1; transform: none; }
-.banner { background: rgba(255,138,122,.12); border: 1px solid rgba(255,138,122,.35); color: var(--rose); border-radius: 12px; padding: 10px 12px; font-size: 13.5px; margin-bottom: 12px; }
+.banner { background: color-mix(in srgb, var(--rose) 12%, transparent); border: 1px solid color-mix(in srgb, var(--rose) 35%, transparent); color: var(--rose); border-radius: 12px; padding: 10px 12px; font-size: 13.5px; margin-bottom: 12px; }
+/* home layout: one big countdown, pill actions and two stat tiles on top; the rest sits in a lower deck */
+.hero { padding: 6px 2px 18px; }
+.hero > small { font: 500 12px var(--mono); color: var(--muted); }
+.hero .big { font: 700 54px/1 var(--sans); letter-spacing: -.04em; margin: 6px 0 4px; }
+.hero .big span { color: var(--dim); font-weight: 600; font-size: 34px; letter-spacing: -.02em; }
+.hero .sub { margin: 0 0 16px; color: var(--muted); font-size: 14px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.hero .sub b { color: var(--mint); font-weight: 600; }
+.hero .acts { gap: 8px; margin-bottom: 14px; }
+.hero .acts .pill { padding: 9px 15px; font-size: 13.5px; background: var(--tile); border-color: var(--line); }
+.hero .acts .pill.solid { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.stats { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.stat { text-align: left; background: var(--tile); border: 1px solid var(--line); border-radius: 20px; padding: 14px 14px 16px; transition: transform .18s var(--ease); }
+.stat:active { transform: scale(.96); }
+.stat small { display: flex; gap: 6px; align-items: center; color: var(--muted); font-size: 12.5px; }
+.stat small i { width: 7px; height: 7px; border-radius: 50%; background: var(--rose); }
+.stat:last-child small i { background: var(--lilac); }
+.stat b { display: block; font: 700 28px/1 var(--sans); letter-spacing: -.03em; margin-top: 12px; }
+.stat em { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-top: 6px; font: 500 12.5px/1.35 var(--sans); color: var(--muted); }
+.deck { --deck: #000; background: var(--deck); margin: 0 -16px calc(-1 * (env(safe-area-inset-bottom) + 96px)); padding: 18px 16px calc(env(safe-area-inset-bottom) + 110px);
+  border-radius: 30px 30px 0 0; border-top: 1px solid var(--line); min-height: 60vh; }
+html[data-theme="light"] .deck, html[data-theme="soft"] .deck { --deck: #1d1d1f; border-top: 0; }
 /* note reader */
 .md h1 { font: 800 30px/1.05 var(--display); margin: 0 0 12px; }
 .md h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .09em; color: var(--amber); margin: 26px 0 8px; }
@@ -139,8 +172,12 @@ input { width: 100%; background: var(--tile); border: 1px solid var(--line); bor
 #main.intro > .tile:nth-child(6) { animation-delay: .35s; }
 #main.intro .cover h3 { animation: rise .8s var(--ease) .15s backwards; }
 @keyframes rise { from { opacity: 0; transform: translateY(18px) scale(.97); } }
-.pill, .ib, .go, .fab, .types button, .row { transition: transform .18s var(--ease), background-color .2s, color .2s; }
-.pill:active, .ib:active, .go:not(:disabled):active, .types button:active { transform: scale(.92); }
+.pill, .ib, .go, .fab, .types button, .row, .more { transition: transform .18s var(--ease), background-color .2s, color .2s; }
+.pill:active, .ib:active, .go:not(:disabled):active, .types button:active, .more:active { transform: scale(.92); }
+.more:active { color: var(--ink); }
+.tile > header[data-sec] h2 { transition: color .2s; } .tile > header[data-sec]:active h2 { color: var(--ink); }
+:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; } #capture :focus-visible { outline-color: var(--acc); }
+textarea:focus-visible, input:focus-visible { outline: 0; }
 .fab:active { transform: scale(.94); } .row:active { transform: scale(.985); }
 .fab { animation: pop .7s var(--ease) .4s backwards; }
 .fab .i { transition: transform .35s var(--ease); } .fab:active .i { transform: rotate(90deg); }
@@ -148,10 +185,10 @@ input { width: 100%; background: var(--tile); border: 1px solid var(--line); bor
 .ib.spin .i { animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .dot.ok { animation: ping .9s ease-out; }
-@keyframes ping { from { box-shadow: 0 0 0 0 rgba(126,224,176,.7); } to { box-shadow: 0 0 0 10px rgba(126,224,176,0); } }
-.sw::after { transition: transform .3s var(--ease); transform-origin: left center; }
+@keyframes ping { from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--mint) 70%, transparent); } to { box-shadow: 0 0 0 10px transparent; } }
+.sw::after { transition: transform .5s var(--spring); transform-origin: left center; }
 .sw:active::after { transform: scaleX(1.25); } .sw.on::after { transform-origin: right center; } .sw.on:active::after { transform: translateX(18px) scaleX(1.25); }
-.toast { transition: opacity .3s var(--ease), transform .4s var(--ease); transform: translateY(16px) scale(.9); }
+.toast { transition: opacity .3s var(--ease), transform .6s var(--spring); transform: translateY(16px) scale(.9); }
 .types button[aria-pressed="true"] { animation: boop .35s var(--ease); }
 @keyframes boop { 40% { transform: scale(1.1); } }
 /* collapsible groups: tap a header; the body folds with grid-template-rows (no layout-property animation) */
@@ -174,8 +211,31 @@ input { width: 100%; background: var(--tile); border: 1px solid var(--line); bor
 button, .row, header[data-sec] { -webkit-touch-callout: none; }
 #hap { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .confetti { position: fixed; width: 7px; height: 10px; border-radius: 2px; pointer-events: none; z-index: 40; }
-@media (prefers-reduced-motion: reduce) { .dot.pending, .dot.ok, #main.intro > .tile, #main.intro .cover h3, .fab, .ib.spin .i, .types button[aria-pressed="true"] { animation: none; }
-  .sheet, .toast, .sw::after, .pill, .ib, .go, .fab, .types button, .row { transition: none; } }
+/* capture: each type has its own colour, icon and prompt; the parts rise in when the sheet opens */
+#capture { --acc: var(--amber); --acc-ink: var(--amber-ink); }
+#capture[data-type="idea"] { --acc: var(--lilac); } #capture[data-type="todo"] { --acc: var(--mint); }
+#capture[data-type="person"] { --acc: var(--sky); } #capture[data-type="habit"] { --acc: var(--rose); }
+#capture .types button[aria-pressed="true"] { background: var(--acc); border-color: var(--acc); color: var(--acc-ink); }
+#capture textarea { transition: border-color .35s; } #capture textarea:focus { border-color: var(--acc); }
+#capture .go { background: var(--acc); color: var(--acc-ink); transition: transform .18s var(--ease), background-color .35s, box-shadow .35s; }
+#capture .go.ready { animation: breathe 1.8s ease-in-out infinite; }
+@keyframes breathe { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--acc) 50%, transparent); } 60% { box-shadow: 0 0 0 9px transparent; } }
+.cap-ico { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; flex: none; background: var(--acc); color: var(--acc-ink); transition: background-color .35s; }
+.cap-ico svg { width: 16px; height: 16px; }
+#capture.on .types button, #capture.on textarea, #capture.on .go, #capture.on .help, #capture.on .spark { animation: rise .6s var(--ease) backwards; }
+#capture.on .types button:nth-child(2) { animation-delay: .04s; } #capture.on .types button:nth-child(3) { animation-delay: .08s; }
+#capture.on .types button:nth-child(4) { animation-delay: .12s; } #capture.on .types button:nth-child(5) { animation-delay: .16s; }
+#capture.on textarea { animation-delay: .14s; } #capture.on .go { animation-delay: .2s; }
+#capture.on .help { animation-delay: .26s; } #capture.on .spark { animation-delay: .3s; }
+.spark { margin: 18px 0 0; min-height: 1.5em; font: 500 12px var(--mono); color: var(--dim); transition: opacity .25s; }
+.spark b { color: var(--acc); font-weight: 500; transition: color .35s; }
+.recent h4 { margin: 18px 0 8px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.recent .r { display: flex; gap: 10px; align-items: baseline; padding: 10px 12px; margin-bottom: 6px; background: var(--tile); border: 1px solid var(--line); border-radius: 12px; font-size: 14px; animation: rise .6s var(--ease) backwards; }
+.recent .r small { flex: none; font: 500 10.5px var(--mono); color: var(--dim); text-transform: uppercase; }
+.fly { position: fixed; z-index: 45; pointer-events: none; max-width: 70vw; padding: 10px 14px; border-radius: 14px; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (prefers-reduced-motion: reduce) { #capture.on .types button, #capture.on textarea, #capture.on .go, #capture.on .help, #capture.on .spark, #capture .go.ready, .recent .r { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .dot.pending, .dot.ok, #main.intro > .tile, #main.intro .cover h3, .fab, .mic, .mic.hot, .pop p.wait, .ib.spin .i, .types button[aria-pressed="true"] { animation: none; }
+  .mic, .pop, .sheet, .toast, .sw::after, .pill, .ib, .go, .fab, .types button, .row, .more { transition: none; } }
 
 </style>
 <link rel="stylesheet" href="../app/theme.css">
@@ -188,19 +248,27 @@ button, .row, header[data-sec] { -webkit-touch-callout: none; }
   <button class="ib" id="openSettings" aria-label="Settings"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 15.1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
 </div>
 <div id="banner"></div>
+<div id="hero"></div>
+<div class="deck">
 <main id="main"><div class="tile empty">Loading…</div></main>
 <section class="tile" id="mapTile" hidden><header data-sec="map" role="button" aria-expanded="true"><h2>Search your map</h2><span class="n" id="mapCount"></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></header>
   <div class="sb"><div><input id="mapQ" list="mapList" placeholder="Ideas, projects, people, clusters…" autocomplete="off" autocapitalize="off" aria-label="Search your map"><datalist id="mapList"></datalist>
   <div id="mapOut"></div></div></div></section>
+</div>
 <button class="fab" id="openCapture" hidden><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>Capture</button>
 
+<button class="mic" id="mic" hidden aria-label="Hold to ask your notes"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+<div class="pop" id="pop" role="dialog" aria-label="Ask your notes" aria-live="polite"><small id="popQ"></small><p id="popA"></p><input id="popIn" placeholder="Ask your notes…" hidden enterkeyhint="send"></div>
+
 <section class="sheet" id="capture" aria-label="Capture">
-  <header><button class="ib" data-close aria-label="Close"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button><span class="p">Capture a thought</span></header>
+  <header><button class="ib" data-close aria-label="Close"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button><span class="p">Capture a thought</span><span class="cap-ico" id="capIcon" aria-hidden="true"></span></header>
   <div class="body">
     <div class="types" id="types"></div>
     <textarea id="capText" placeholder="What's on your mind?"></textarea>
     <button class="go" id="capGo">Save</button>
     <p class="help">It lands in your notes within about a minute, and an agent picks it up the next time your Mac is on.</p>
+    <p class="spark" id="capSpark" aria-live="polite"></p>
+    <div class="recent" id="capRecent"></div>
   </div>
 </section>
 
@@ -213,6 +281,7 @@ button, .row, header[data-sec] { -webkit-touch-callout: none; }
   <header><button class="ib" data-close aria-label="Close"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button><span class="p">Connect your notes</span></header>
   <form class="body" id="setForm">
     <div class="theme-row"><span>Dark mode</span><button class="sw" type="button" role="switch" id="darkSw" aria-label="Dark mode"></button></div>
+    <div class="theme-row"><span>Soft look</span><button class="sw" type="button" role="switch" id="softSw" aria-label="Soft look"></button></div>
     <p class="help">Brain on your phone reads your private notes repo on GitHub. Nothing is stored anywhere except this phone.</p>
     <label for="repo">Notes repo</label>
     <input id="repo" placeholder="your-name/notes" autocapitalize="off" autocorrect="off" spellcheck="false" required>
@@ -236,13 +305,13 @@ matchMedia("(prefers-color-scheme: light)").addEventListener("change", e => {
 function setTheme(t, save = true) {
   document.documentElement.dataset.theme = t;
   if (save) try { localStorage.setItem("brain.theme", t); } catch {}
-  const sw = document.getElementById("darkSw");
-  if (sw) { sw.classList.toggle("on", t === "dark"); sw.setAttribute("aria-checked", t === "dark"); }
+  for (const [id, on] of [["darkSw", t === "dark"], ["softSw", t === "soft"]]) { const sw = document.getElementById(id); if (sw) { sw.classList.toggle("on", on); sw.setAttribute("aria-checked", on); } }
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.content = t === "light" ? "#e6e8eb" : "#0c0d0f";
+  if (meta) meta.content = { light: "#e6e8eb", soft: "#e9e9ea" }[t] || "#0c0d0f";
 }
 setTheme(document.documentElement.dataset.theme, false);
 document.getElementById("darkSw").onclick = () => setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+document.getElementById("softSw").onclick = () => setTheme(document.documentElement.dataset.theme === "soft" ? "light" : "soft");
 
 "use strict";
 const $ = id => document.getElementById(id);
@@ -286,7 +355,7 @@ function act(action, body, msg) {
   const a = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, action, body, sent: false };
   outbox.push(a); store.set("outbox", outbox);
   if (S) optimistic(a, S);
-  render(); if (msg) toast(msg); flush();
+  render(); if (msg) toast(msg); flush(); return a;
 }
 let flushing = false;
 async function flush() {
@@ -328,7 +397,7 @@ function paint() {
   $("banner").innerHTML = error ? `<div class="banner">${esc(error)}</div>` : "";
 }
 function render() {
-  paint();
+  paint(); showAnswer();
   if (!S) return;
   const view = JSON.parse(JSON.stringify(S));
   outbox.forEach(a => optimistic(a, view)); // unconfirmed changes stay applied on screen
@@ -339,10 +408,17 @@ function render() {
   const open = view.nudges.filter(x => x.status === "open" || (x.status === "snoozed" && x.snooze_until && x.snooze_until <= t));
   const projects = view.projects.filter(p => !p.archived && ["active", "paused"].includes(p.meta.status));
   const habits = view.habits;
+  const nx = up[0], dn = nx ? daysFrom(nx.date) : null;
+  $("hero").innerHTML = `<section class="hero">
+    <small>${nx ? "Next up · " + esc(new Date(nx.date + "T00:00").toLocaleDateString("en", { weekday: "short", month: "short", day: "numeric" })) : "Nothing scheduled"}</small>
+    <div class="big">${dn === null ? "Clear" : dn === 0 ? "Today" : dn === 1 ? "Tmrw" : `${dn}<span> days</span>`}</div>
+    <p class="sub">${nx ? esc(nx.title) : "No upcoming items in now.md."}</p>
+    <div class="acts"><button class="pill solid" data-go="capture">+ Capture</button><button class="pill" data-go="next">Agenda</button><button class="pill" data-go="projects">Projects</button><button class="pill" data-go="map">Map</button></div>
+    <div class="stats"><button class="stat" data-go="nudges"><small><i></i>Notes to self</small><b>${open.length}</b>${open[0] ? `<em>${esc(open[0].title)}</em>` : ""}</button><button class="stat" data-go="ideas"><small><i></i>Ideas open</small><b>${view.ideas.length}</b>${view.ideas[0] ? `<em>${esc(view.ideas[0].replace(/^\d{4}-\d{2}-\d{2} · /, "").replace(/ \(project: [\w-]+\)$/, ""))}</em>` : ""}</button></div></section>`;
   const html = `
     ${n.headline ? `<section class="tile cover"><small>ISSUE ${esc(view.issue)} · ${esc((n.updated || "").slice(5))}</small><h3>${esc(n.headline).replace(/\*([^*]+)\*/g, "<em>$1</em>")}</h3>${n.dek ? `<p>${esc(n.dek)}</p>` : ""}</section>` : ""}
-    ${sec("next", "Up next", "", `${up.length ? up.map(u => { const dd = daysFrom(u.date); return `<div class="next"><div><b>${esc(u.date.slice(8))}</b><small>${dd === 0 ? "today" : dd === 1 ? "tmrw" : esc(new Date(u.date + "T00:00").toLocaleDateString("en", { weekday: "short" }))}${u.time ? " " + esc(u.time) : ""}</small></div>
-        <div><div class="t">${esc(u.title)}</div>${u.detail ? `<div class="d">${esc(u.detail)}</div>` : ""}</div></div>`; }).join("") : `<div class="empty">Nothing coming up.</div>`}`)}
+    ${sec("next", "Up next", "", `${up.length > 1 ? up.slice(1).map(u => { const dd = daysFrom(u.date); return `<div class="next"><div><b>${esc(u.date.slice(8))}</b><small>${dd === 0 ? "today" : dd === 1 ? "tmrw" : esc(new Date(u.date + "T00:00").toLocaleDateString("en", { weekday: "short" }))}${u.time ? " " + esc(u.time) : ""}</small></div>
+        <div><div class="t">${esc(u.title)}</div>${u.detail ? `<div class="d">${esc(u.detail)}</div>` : ""}</div></div>`; }).join("") : `<div class="empty">Nothing else coming up.</div>`}`)}
     ${sec("nudges", "Notes to self", open.length ? open.length + " open" : "", `${open.length ? open.map(x => { const dd = x.due ? daysFrom(x.due) : null; const due = dd === null ? "" : dd < 0 ? `${-dd}d overdue` : dd === 0 ? "today" : `in ${dd}d`;
         return `<div class="nudge"><h4>${esc(x.title)}${due ? `<span class="due">${due}</span>` : ""}</h4>${x.why ? `<p data-expand>${esc(x.why)}</p>` : ""}
         <div class="acts"><button class="pill yes" data-nudge="${esc(x.id)}" data-a="done">Done</button><button class="pill" data-nudge="${esc(x.id)}" data-a="snooze" data-days="1">Tomorrow</button>
@@ -444,7 +520,7 @@ const calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 function confetti(from) {
   if (calm()) return;
   const r = from.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
-  const colors = ["#ffb547", "#7ee0b0", "#ff8a7a", "#eceae4", "#8ab4ff"];
+  const cs = getComputedStyle(document.documentElement), colors = ["--amber", "--mint", "--rose", "--sky", "--lilac"].map(v => cs.getPropertyValue(v).trim());
   for (let k = 0; k < 22; k++) {
     const c = document.createElement("span"); c.className = "confetti";
     c.style.cssText = `left:${x}px;top:${y}px;background:${colors[k % colors.length]}`;
@@ -574,16 +650,67 @@ function open(id) { $(id).classList.add("on"); }
 function close(id) { $(id).classList.remove("on"); }
 document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => close(b.closest(".sheet").id));
 const TYPES = [["note", "Note"], ["idea", "Idea"], ["todo", "Todo"], ["person", "Person"], ["habit", "Habit for Codex"]];
-let capType = "note";
-function drawTypes() { $("types").innerHTML = TYPES.map(([k, l]) => `<button type="button" data-type="${k}" aria-pressed="${k === capType}">${l}</button>`).join(""); }
-$("types").onclick = e => { const b = e.target.closest("[data-type]"); if (b) { capType = b.dataset.type; drawTypes(); } };
-$("openCapture").onclick = () => { drawTypes(); open("capture"); setTimeout(() => $("capText").focus(), 350); };
+// per type: prompt, icon paths, and the rotating "Try:" sparks under the form
+const CAP = {
+  note: ["What's on your mind?", '<path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h5"/>', ["something you noticed today", "a line from class worth keeping", "what's stuck in your head"]],
+  idea: ["What's the idea?", '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>', ["a feature for Brain", "a weekend project", "something you'd build if you had a week"]],
+  todo: ["What needs doing?", '<path d="M4 12l5 5L20 6"/>', ["the thing you keep forgetting", "an email you owe someone", "what's due this week"]],
+  person: ["Who'd you meet, and what's worth remembering?", '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>', ["someone new from today", "what a friend just told you", "who to follow up with"]],
+  habit: ["What should Codex start doing?", '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/>', ["something Codex got wrong today", "how you want replies to sound", "a rule Codex should always follow"]],
+};
+let capType = "note", sparkI = 0, sparkT = null;
+const spring = () => getComputedStyle(document.documentElement).getPropertyValue("--spring").trim() || "ease-out";  // Brain's shared spring curve
+function drawTypes() {
+  $("types").innerHTML = TYPES.map(([k, l]) => `<button type="button" data-type="${k}">${l}</button>`).join("");
+  setType(capType, false); drawRecent();
+}
+function setType(k, anim) {
+  capType = k; $("capture").dataset.type = k;
+  const b = $("types").querySelector(`[data-type="${k}"]`);
+  $("types").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  $("capText").placeholder = CAP[k][0];
+  $("capIcon").innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${CAP[k][1]}</svg>`;
+  sparkI = 0; spark();
+  if (!anim || calm()) return;
+  $("capIcon").animate([{ transform: "rotate(-120deg) scale(.3)" }, { transform: "none" }], { duration: 550, easing: spring() });
+  $("capText").animate([{ transform: "scale(.97)", opacity: .5 }, { transform: "none", opacity: 1 }], { duration: 380, easing: "cubic-bezier(.16,1,.3,1)" });
+  b.animate([{ transform: "scale(1)" }, { transform: "scale(1.12)" }, { transform: "scale(1)" }], { duration: 350, easing: "cubic-bezier(.16,1,.3,1)" });
+}
+function spark() {
+  const s = CAP[capType][2], el = $("capSpark"), set = () => { el.innerHTML = `Try: <b>${esc(s[sparkI++ % s.length])}</b>`; el.style.opacity = 1; };
+  if (calm() || !el.innerHTML) return set();
+  el.style.opacity = 0; setTimeout(set, 250);
+}
+function drawRecent() {  // last few inbox captures, newest first ("date · kind · text")
+  const items = (S?.inbox || []).slice(-3).reverse().map(l => l.split(" · "));
+  $("capRecent").innerHTML = items.length ? "<h4>Recently captured</h4>" + items.map(([, k, ...t], i) =>
+    `<div class="r" style="animation-delay:${.34 + i * .06}s"><small>${esc(t.length ? k : "")}</small><span>${esc(t.length ? t.join(" · ") : k)}</span></div>`).join("") : "";
+}
+function fly(text) {  // the saved text shrinks down into the + button
+  const from = $("capText").getBoundingClientRect(), to = $("openCapture").getBoundingClientRect(), cs = getComputedStyle($("capture"));
+  const f = document.createElement("div"); f.className = "fly"; f.textContent = text;
+  f.style.cssText += `left:${from.left + 12}px;top:${from.top + 12}px;background:${cs.getPropertyValue("--acc")};color:${cs.getPropertyValue("--acc-ink")}`;
+  document.body.appendChild(f);
+  const dx = to.left + to.width / 2 - (from.left + 12 + f.offsetWidth / 2), dy = to.top + to.height / 2 - (from.top + 12 + f.offsetHeight / 2);
+  return f.animate([{ transform: "none" }, { transform: `translate(${dx * .4}px, ${dy * .3}px) scale(.85) rotate(-4deg)`, offset: .45 },
+    { transform: `translate(${dx}px, ${dy}px) scale(.12)`, opacity: .3 }], { duration: 650, easing: "cubic-bezier(.55,0,.75,.2)" }).finished.then(() => f.remove());
+}
+$("types").onclick = e => { const b = e.target.closest("[data-type]"); if (b && b.dataset.type !== capType) setType(b.dataset.type, true); };
+$("capText").oninput = () => $("capGo").classList.toggle("ready", !!$("capText").value.trim());
+$("openCapture").onclick = () => {
+  drawTypes(); open("capture"); setTimeout(() => $("capText").focus(), 350);
+  clearInterval(sparkT); sparkT = setInterval(() => $("capture").classList.contains("on") ? spark() : clearInterval(sparkT), 3800);
+};
 $("capGo").onclick = () => {
   const text = $("capText").value.trim(); if (!text) return;
   if (capType === "habit") act("habit-new", { title: text, why: "" }, "Habit proposed");
   else act("capture", { kind: capType, text }, "Captured");
-  $("capText").value = ""; close("capture");
-  setTimeout(() => confetti($("openCapture")), 250);
+  $("capText").value = ""; $("capGo").classList.remove("ready"); close("capture");
+  if (calm()) return;
+  fly(text).then(() => {
+    confetti($("openCapture"));
+    $("openCapture").animate([{ transform: "scale(1)" }, { transform: "scale(1.18)" }, { transform: "scale(1)" }], { duration: 420, easing: spring() });
+  });
 };
 $("openSettings").onclick = () => { $("repo").value = cfg?.repo || ""; $("token").value = cfg?.token || ""; open("settings"); };
 $("setForm").onsubmit = async e => {
@@ -620,6 +747,57 @@ document.addEventListener("click", e => {
     const out = []; parts.forEach(p => p === ".." ? out.pop() : p && p !== "." && out.push(p)); if (/\.md$/.test(out.join("/"))) openDoc(out.join("/")); }
 });
 
+/* ---------- ask: hold the mic, talk, let go; the answer is read back ---------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, heard = "", asking = null; // asking = { id, queued }
+// Chrome gives each result its own leading space; iOS gives bare pieces ("talking","On brain") and can resend
+// earlier text inside a later result, so trim, drop a piece the next one repeats, and join with spaces.
+function transcript(results) {
+  return [...results].map(r => r[0].transcript.trim()).filter(Boolean).reduce((out, t) => {
+    const last = (out[out.length - 1] || "").toLowerCase(), n = t.toLowerCase();
+    if (last && n.startsWith(last)) out[out.length - 1] = t; else if (!last.endsWith(n)) out.push(t);
+    return out;
+  }, []).join(" ");
+}
+function pop(q, a, wait) { $("popQ").textContent = q; $("popA").textContent = a; $("popA").classList.toggle("wait", !!wait); $("pop").classList.add("on"); }
+$("hero").addEventListener("click", e => {
+  const b = e.target.closest("[data-go]"); if (!b) return; tap();
+  if (b.dataset.go === "capture") return $("openCapture").click();
+  const h = document.querySelector(`header[data-sec="${b.dataset.go}"]`); if (!h || h.closest("[hidden]")) return;
+  if (folded.has(b.dataset.go)) fold(h);
+  h.closest(".tile").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+function unpop() { $("pop").classList.remove("on"); $("popIn").hidden = true; speechSynthesis.cancel(); }
+function say(text) { const u = new SpeechSynthesisUtterance(text); u.lang = "en-CA"; speechSynthesis.cancel(); speechSynthesis.speak(u); }
+function ask(text) {
+  text = text.trim();
+  if (!text) { pop("Didn't catch that", "Hold the mic and talk, then let go."); return; }
+  const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  asking = { id, queued: act("ask", { id, text }).id };
+  pop(text, "Thinking… (about a minute)", true);
+}
+function showAnswer() {
+  if (!asking || !S) return;
+  const a = (S.answers || []).find(x => x.id === asking.id), f = (S.failed || []).find(x => x.id === asking.queued);
+  if (a) { asking = null; pop(a.q, a.a); say(a.a); }
+  else if (f) { asking = null; pop("Couldn't answer", f.error); }
+}
+$("mic").addEventListener("contextmenu", e => e.preventDefault());
+$("mic").addEventListener("pointerdown", e => {
+  e.preventDefault(); say(""); // a gesture now lets the answer speak later on iOS
+  if (!SR) { pop("Ask your notes", ""); $("popIn").hidden = false; $("popIn").value = ""; $("popIn").focus(); return; }
+  heard = ""; $("mic").classList.add("hot"); pop("Listening… let go to send", "");
+  rec = new SR(); rec.lang = "en-CA"; rec.interimResults = true; rec.continuous = true;
+  rec.onresult = ev => { heard = transcript(ev.results); $("popA").textContent = heard; };
+  rec.onerror = ev => { if (ev.error === "not-allowed") pop("Microphone blocked", "Allow the microphone for this site in Settings → Safari."); };
+  rec.onend = () => { if (rec) { rec = null; ask(heard); } };
+  try { rec.start(); } catch { rec = null; }
+});
+const release = () => { $("mic").classList.remove("hot"); if (rec) rec.stop(); };
+["pointerup", "pointercancel"].forEach(t => $("mic").addEventListener(t, release));
+$("popIn").addEventListener("keydown", e => { if (e.key === "Enter") { $("popIn").hidden = true; ask($("popIn").value); } });
+document.addEventListener("pointerdown", e => { if (!e.target.closest(".pop, .mic")) unpop(); });
+
 let tt;
 function toast(msg) { $("toast").textContent = msg; $("toast").classList.add("on"); clearTimeout(tt); tt = setTimeout(() => $("toast").classList.remove("on"), 2200); }
 
@@ -632,7 +810,7 @@ async function refresh(manual) {
   render();
 }
 function boot() {
-  $("openCapture").hidden = !cfg;
+  $("openCapture").hidden = $("mic").hidden = !cfg;
   if (!cfg) { $("main").innerHTML = `<section class="tile"><p>Connect your notes repo to get started.</p><button class="go" onclick="document.getElementById('openSettings').click()">Connect</button></section>`; return; }
   render(); refresh(); flush(); if (!G) loadGraph();
 }

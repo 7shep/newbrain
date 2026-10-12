@@ -1,4 +1,4 @@
-"""Run: python3 -m unittest discover -s tests   (from the brain folder). No real Claude calls."""
+"""Run: python3 -m unittest discover -s tests   (from the brain folder). No real Codex calls."""
 import os
 import sys
 import tempfile
@@ -8,7 +8,7 @@ import unittest
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "app"))
 from agents import Agents  # noqa: E402
 
-# Stands in for Claude: prints a report built from the prompt (on stdin); "sleep" in the prompt stalls it.
+# Stands in for Codex: prints a report built from the prompt (on stdin); "sleep" in the prompt stalls it.
 FAKE = [sys.executable, "-c",
         "import sys,time; sys.stdin.reconfigure(encoding='utf-8'); p=sys.stdin.read(); time.sleep(3 if 'sleep' in p else 0.05); "
         "sys.exit(2) if 'boom' in p else print('did: ' + p.split(': ',1)[1].splitlines()[0])"]
@@ -66,8 +66,8 @@ class AgentsTest(unittest.TestCase):
         self.assertEqual(runs["sleep forever"]["status"], "failed")
         self.assertIn("Stopped after", runs["sleep forever"]["report"])
 
-    def test_missing_claude_fails_cleanly(self):
-        a = Agents(self.notes, command=["/no/such/claude"])
+    def test_missing_codex_fails_cleanly(self):
+        a = Agents(self.notes, command=["/no/such/codex"])
         a.submit("note", "x")
         run = wait(a, 1)[0]
         self.assertEqual(run["status"], "failed")

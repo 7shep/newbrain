@@ -44,6 +44,18 @@ TOUCHED = set()  # notes files written since the last sync commit
 
 
 # ---------------------------------------------------------------- helpers
+
+def upcoming_items(now_body, t):
+    """Dated lines under `## Upcoming` in now.md, from today on. Only that section: Done is dated too,
+    and today's finished work isn't up next."""
+    section = re.search(r"^## Upcoming\s*\n(.*?)(?=^## |\Z)", now_body, re.M | re.S)
+    out = []
+    for line in (section.group(1) if section else "").splitlines():
+        m = re.match(r"^- (\d{4}-\d{2}-\d{2})(?: (\d{1,2}:\d{2}))? · ([^·]+?)(?: · (.+))?$", line.strip())
+        if m and m.group(1) >= t:
+            out.append({"date": m.group(1), "time": m.group(2), "title": m.group(3).strip(), "detail": m.group(4)})
+    return sorted(out, key=lambda u: (u["date"], u["time"] or "99"))  # soonest first; timed items before all-day ones
+
 def today():
     return datetime.date.today().isoformat()
 
@@ -224,12 +236,7 @@ def state():
     habits = parse_blocks(read("codex/habits.md"))
 
     now_meta, now_body = build.parse_frontmatter(read("now.md"))
-    upcoming = []
-    for line in now_body.splitlines():
-        m = re.match(r"^- (\d{4}-\d{2}-\d{2})(?: (\d{1,2}:\d{2}))? · ([^·]+?)(?: · (.+))?$", line.strip())
-        if m:
-            upcoming.append({"date": m.group(1), "time": m.group(2), "title": m.group(3).strip(), "detail": m.group(4)})
-    upcoming = [u for u in upcoming if u["date"] >= t]
+    upcoming = upcoming_items(now_body, t)
 
     me_meta, me_body = build.parse_frontmatter(read("me.md"))
     inbox = [l[2:] for l in read("inbox.md").splitlines() if l.startswith("- ")]
@@ -248,10 +255,46 @@ def state():
         "sessions": session_out[:60], "inbox": inbox, "ideas": ideas["open"][::-1], "ideas_closed": {"done": len(ideas["done"]), "dismissed": len(ideas["dismissed"])},
         "notes": [slim(d) for d in docs if d["kind"] == "note" and not d["path"].startswith("people/")
                   and d["path"] not in ("me.md", "now.md", "nudges.md", "ideas.md", "inbox.md", "codex/habits.md")],
+        "internships": internships(read("internships/tracker.md")),
         "agents": AGENTS.recent(),
         "predictions": predictions.stats(predictions.parse(read("codex/predictions.md"))),
         "has": {k: k in by_path for k in ("me.md", "now.md")},
     }
+
+
+# ---------------------------------------------------------------- internships: every table row in internships/tracker.md
+def internship_group(status):
+    s = status.lower()
+    if s.startswith("applied"):
+        return "applied"
+    if s.startswith(("out", "dropped")):
+        return "out"
+    if s.startswith(("to apply", "prep")):
+        return "apply"
+    return "check"
+
+
+def internships(text):
+    """Rows from every markdown table that has a company column. Status decides the group by its first words."""
+    rows, head = [], None
+    for line in text.splitlines():
+        if not line.startswith("|"):
+            head = None
+            continue
+        cells = [c.strip().replace("**", "") for c in line.strip().strip("|").split("|")]
+        if head is None:
+            head = [c.lower() for c in cells]
+            continue
+        if not line.strip("|-: "):
+            continue
+        r = dict(zip(head, cells))
+        if not r.get("company"):
+            continue
+        link = r.get("link", "")
+        rows.append({"company": r["company"], "role": r.get("role", ""), "term": r.get("term") or r.get("where", ""),
+                     "deadline": r.get("deadline", "").lstrip("~"), "link": link if link.startswith("http") else "",
+                     "status": r.get("status", ""), "group": internship_group(r.get("status", ""))})
+    return rows
 
 
 # ---------------------------------------------------------------- ideas: open list, then "## Done" / "## Dismissed"

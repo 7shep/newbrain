@@ -1,5 +1,5 @@
 # Applies the Brain phone app's queued actions and refreshes phone/state.json.
-# Copy to .github/workflows/brain.yml in your PRIVATE notes repo. Code: github.com/zacfink/brain (app/phone.py).
+# Copy to .github/workflows/brain.yml in your PRIVATE notes repo. Code: github.com/7shep/newbrain (app/phone.py).
 name: brain
 on:
   push:
@@ -21,12 +21,46 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
         with:
-          repository: zacfink/brain
+          repository: 7shep/newbrain
           path: .brain
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: python .brain/app/phone.py .
+      - name: Prepare voice questions
+        id: voice
+        run: python .brain/app/phone.py . --prepare-asks
+      - name: Configure isolated voice runner
+        if: steps.voice.outputs.has_questions == 'true'
+        run: |
+          mkdir -p "$RUNNER_TEMP/brain-phone-codex" "$RUNNER_TEMP/brain-phone-context"
+          cat > "$RUNNER_TEMP/brain-phone-codex/config.toml" <<'CONFIG'
+          web_search = "disabled"
+          project_doc_max_bytes = 0
+          [mcp_servers]
+          [features]
+          hooks = false
+          apps = false
+          plugins = false
+          multi_agent = false
+          shell_tool = false
+          browser_use = false
+          computer_use = false
+          CONFIG
+      - name: Answer voice questions with Codex
+        if: steps.voice.outputs.has_questions == 'true'
+        continue-on-error: true # A voice failure must not block captures or other phone actions.
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          codex-home: ${{ runner.temp }}/brain-phone-codex
+          working-directory: ${{ runner.temp }}/brain-phone-context
+          sandbox: read-only
+          safety-strategy: drop-sudo
+          prompt-file: .brain/phone-ask-prompt.txt
+          output-file: .brain/phone-ask-answers.json
+          output-schema-file: .brain/phone-ask-schema.json
+          codex-args: '["--ephemeral"]'
+      - run: python .brain/app/phone.py . --answers-file .brain/phone-ask-answers.json
       - name: Commit and push
         run: |
           git config user.name "brain-bot"

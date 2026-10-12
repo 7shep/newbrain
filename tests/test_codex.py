@@ -59,12 +59,16 @@ class CodexTest(unittest.TestCase):
             del os.environ["BRAIN_AGENT"]
         self.assertIn("--ignore-user-config", cmd)
         self.assertEqual(cmd[cmd.index("--ask-for-approval"):cmd.index("--ask-for-approval") + 4],
-                         ["--ask-for-approval", "never", "exec", "--cd"])
+                         ["--ask-for-approval", "never", "exec", "--ignore-user-config"])
         self.assertIn("read-only", cmd)
         self.assertNotIn("--add-dir", cmd)
         self.assertEqual(cmd[-1], "-")  # read the entire capture prompt from stdin
         self.assertIn("Analyze this capture only", agent.prompt)
-        self.assertEqual(Agents(tempfile.mkdtemp()).command[1], "--setting-sources")  # default stays Claude
+        self.assertEqual(Agents(tempfile.mkdtemp()).runner, "codex-read-only")
+        self.assertIn("--ignore-rules", cmd)
+        self.assertIn("--ephemeral", cmd)
+        for feature in ("hooks", "apps", "plugins", "multi_agent", "browser_use", "computer_use"):
+            self.assertIn(feature, [cmd[i + 1] for i, value in enumerate(cmd[:-1]) if value == "--disable"])
 
 
 if __name__ == "__main__":

@@ -1,5 +1,7 @@
 # Headless agents for Brain captures
 
+Historical upstream Claude design. This fork now uses the [Codex runner](2026-09-29-headless-codex-agents.md); its current permissions and behavior supersede this document.
+
 Approved in chat with Zac on 2026-09-27.
 
 ## Goal

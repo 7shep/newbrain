@@ -13,3 +13,8 @@ app/.stats-cache.json
 
 # Local personal notes (never commit to the public app repo)
 personal-notes/
+
+# Temporary private voice context produced for the Codex GitHub Action
+/phone-ask-prompt.txt
+/phone-ask-schema.json
+/phone-ask-answers.json

@@ -120,3 +120,15 @@ Project pages: frontmatter `name, status (active|paused|done|abandoned), updated
 optional `archived: YYYY-MM-DD` (set by the app's hide button; hidden projects appear under "Show hidden"),
 then `**TL;DR:**` and sections. Session notes: see `session-template.md`. A session's `session:` id (first 8 chars
 of the Codex session id) powers the app's "resume chat" button.
+
+## `internships/tracker.md`
+
+The desktop app reads Markdown tables with a `Company` column. Optional columns are `Role`, `Term`
+(or `Where`), `Deadline`, `Link`, and `Status`. Column names are case-insensitive; use absolute
+`YYYY-MM-DD` deadlines for date labels. Plain HTTP(S) links open the posting. Statuses beginning with
+`Applied`, `To apply`/`Prep`, or `Out`/`Dropped` form those groups; other statuses are `To check`.
+
+## `now.md` daily plan
+
+An optional `## Today · YYYY-MM-DD` section records today's plan. Only dated bullets under
+`## Upcoming` feed Up next; dated lines in `## Done` or other sections are excluded.
