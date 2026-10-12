@@ -30,22 +30,6 @@ standard library, has no build step, and runs on macOS, Windows and Linux.
 
 ![A person page open in the side panel](docs/page.png)
 
-## Brain OS companion display
-
-Keep your CLI on your main monitor and Brain on a second display. The desktop
-landing page has three saved workspaces: **Build** for projects and progress,
-**Study** for a searchable Markdown note library, and **Explore** for ideas,
-habits, and the optional knowledge graph. Capture, note editing, session resume
-commands, and existing background-agent reports remain available.
-
-The visible, idle dashboard refreshes every five seconds, without refreshing
-while a note or input is in use. CLI activity reads up to eight recently modified
-local Codex transcripts from the last 24 hours, showing their working folders,
-latest recognized events, and timestamps. These are observed events, not proof
-that a process is still running; prompt text and tool arguments are not displayed.
-Session notes still supply the durable history. The dashboard does not submit CLI
-prompts or control interactive agents. The phone retains its existing interface.
-
 ## How I actually use it
 
 I've run every Codex session through this since May 2026: 49 sessions across 13 projects, with 15 habits Codex
