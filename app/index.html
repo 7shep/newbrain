@@ -1515,6 +1515,14 @@
 </style>
 <link rel="stylesheet" href="theme.css" />
 
+<nav class="os-rail" aria-label="Workspaces">
+  <a class="os-brand" href="#">B<span>Brain OS</span></a>
+  <p>Your workspace</p>
+  <button data-workspace="build" aria-pressed="true">Build <small>Projects &amp; progress</small></button>
+  <button data-workspace="study" aria-pressed="false">Study <small>Notes &amp; understanding</small></button>
+  <button data-workspace="explore" aria-pressed="false">Explore <small>Ideas &amp; connections</small></button>
+  <div class="os-rail-foot">Work in your CLI.<br>Keep your context here.</div>
+</nav>
 <div class="bar">
   <h1 id="greet">Brain</h1>
   <button class="pill sm people-btn" id="openPeople">
@@ -1580,7 +1588,10 @@
   </div>
 </div>
 
+<section class="os-heading"><div><span id="workspaceLabel">BUILD WORKSPACE</span><h2 id="workspaceTitle">Make something happen.</h2><p id="workspaceDescription">Projects, recent work, and the next step.</p></div><span id="osConnection" role="status">Connecting…</span></section>
 <main class="grid" id="grid">
+  <section class="tile os-activity"><header><h2>CLI activity</h2><span class="n">Local sessions · last 24 hours</span></header><div id="cliActivity"></div></section>
+  <section class="tile os-library"><header><h2>Note library</h2><span class="n" id="libraryCount"></span></header><input id="librarySearch" type="search" placeholder="Find a note…" aria-label="Find a note" /><div id="libraryNotes"></div></section>
   <section class="tile cover" id="cover"></section>
   <section class="tile next">
     <header>
@@ -1889,7 +1900,9 @@
     try {
       S = await api("/api/state");
       render();
+      $("osConnection").textContent = "Updated " + new Date().toLocaleTimeString([], {hour: "2-digit", minute: "2-digit", second: "2-digit"});
     } catch (e) {
+      $("osConnection").textContent = "Disconnected · retrying";
       toast(
         e.status === 403
           ? "Session expired — restart with `brain`"
@@ -2416,6 +2429,7 @@
     const [hi] = greeting();
     $("greet").innerHTML =
       `${esc(hi)} <span>· ${esc(new Date().toLocaleDateString("en", { weekday: "long" }))}</span>`;
+    renderOS();
     renderCover();
     renderNext();
     renderNudges();
@@ -2426,6 +2440,40 @@
     renderAgents();
     renderKnows();
     if (doc?.panel) openPeople();
+  }
+
+  let workspace = "build";
+  try { workspace = localStorage.getItem("brain.workspace") || "build"; } catch (e) {}
+  if (!["build", "study", "explore"].includes(workspace)) workspace = "build";
+  const workspaceCopy = {
+    build: ["Make something happen.", "Projects, recent work, and the next step."],
+    study: ["Make room to understand.", "Your notes, source material, and learning in progress."],
+    explore: ["Follow the interesting thread.", "Ideas, connections, and experiments worth trying."]
+  };
+  function setWorkspace(value) {
+    workspace = value;
+    document.documentElement.dataset.workspace = value;
+    try { localStorage.setItem("brain.workspace", value); } catch (e) {}
+    document.querySelectorAll("[data-workspace]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.workspace === value)));
+    $("workspaceLabel").textContent = value.toUpperCase() + " WORKSPACE";
+    $("workspaceTitle").textContent = workspaceCopy[value][0];
+    $("workspaceDescription").textContent = workspaceCopy[value][1];
+    // A graph first loaded offscreen needs its canvas resized when revealed.
+    dispatchEvent(new Event("resize"));
+  }
+  document.querySelectorAll("[data-workspace]").forEach(b => b.onclick = () => setWorkspace(b.dataset.workspace));
+  setWorkspace(workspace);
+  function renderLibrary() {
+    const query = $("librarySearch").value.trim().toLowerCase();
+    const notes = (S.notes || []).filter(n => (n.title + " " + n.path).toLowerCase().includes(query));
+    $("libraryCount").textContent = notes.length + " notes";
+    $("libraryNotes").innerHTML = notes.map(n => `<button class="os-note" data-open="${esc(n.path)}"><b>${esc(n.title)}</b><small>${esc(n.path)}</small></button>`).join("") || '<div class="empty">No matching notes. Markdown notes appear here when added to your notes folder.</div>';
+  }
+  $("librarySearch").oninput = renderLibrary;
+  function renderOS() {
+    renderLibrary();
+    const sessions = S.cli_activity || [];
+    $("cliActivity").innerHTML = sessions.map(a => `<div class="os-session"><div><b>${esc(a.project)}</b><small>${esc(a.cwd)}</small></div><span>${esc(a.event)} · ${esc(new Date(a.updated * 1000).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"}))}</span></div>`).join("") || '<div class="empty">No recent CLI activity found on this computer. Saved session notes appear in the timeline below.</div>';
   }
 
   function reopenButtons(item, { big } = {}) {
@@ -3621,7 +3669,7 @@
     !doc && !/INPUT|TEXTAREA/.test(document.activeElement?.tagName || "");
   setInterval(() => {
     if (!document.hidden && idle()) load();
-  }, 30000);
+  }, 5000);
   addEventListener("focus", () => {
     if (idle()) load();
   });

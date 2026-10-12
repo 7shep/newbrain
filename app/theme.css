@@ -30,3 +30,39 @@ html[data-theme="light"] .cover .acts small { color: rgba(255,255,255,.45); }
 html[data-theme="light"] .cover .pill { background: #fff; color: #2f4866; }
 html[data-theme="light"] .cover .pill.ghost { background: transparent; color: #f4f5f7; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.35); }
 html[data-theme="light"] .scrim { background: rgba(30,35,45,.25); }
+
+/* Desktop companion workspace; the phone keeps its existing layout. */
+body:has(.os-rail) { padding-left: 236px; }
+.os-rail { position: fixed; inset: 0 auto 0 0; width: 208px; padding: 28px 18px; border-right: 1px solid var(--line); background: var(--tile); display: flex; flex-direction: column; gap: 10px; }
+.os-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--amber); font-size: 28px; font-weight: 800; }
+.os-brand span { font-size: 17px; color: var(--ink); }
+.os-rail p, .os-rail-foot { color: var(--muted); font-size: 12px; }
+.os-rail p { margin: 36px 10px 4px; }
+.os-rail button { text-align: left; border: 1px solid transparent; border-radius: 12px; padding: 14px 12px; background: transparent; font-weight: 600; }
+.os-rail button small { display: block; color: var(--muted); font-weight: 400; font-size: 11px; margin-top: 4px; }
+.os-rail button[aria-pressed="true"] { background: var(--tile-3); border-color: var(--line); color: var(--amber); }
+.os-rail-foot { margin-top: auto; padding: 10px; line-height: 1.8; }
+.os-heading { max-width: 1360px; margin: 32px auto 24px; display: flex; justify-content: space-between; align-items: end; gap: 16px; }
+.os-heading h2 { font: 600 clamp(24px, 3vw, 38px)/1.2 var(--sans); letter-spacing: -.04em; margin: 8px 0; }
+.os-heading p { color: var(--muted); margin: 0; }
+#workspaceLabel { color: var(--amber); font: 11px var(--mono); letter-spacing: .12em; }
+#osConnection { color: var(--muted); font: 11px var(--mono); white-space: nowrap; }
+.os-activity, .os-library { grid-column: 1 / -1; }
+.os-note { display: block; width: 100%; text-align: left; background: transparent; border: 0; border-bottom: 1px solid var(--line); padding: 14px 4px; }
+.os-note:hover { background: var(--tile-2); }
+.os-note small, .os-session small { display: block; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; margin-top: 4px; }
+#librarySearch { width: 100%; background: var(--tile-2); border: 1px solid var(--line); padding: 12px; border-radius: 10px; }
+#libraryNotes { max-height: 540px; overflow: auto; }
+.os-session { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.os-session span { color: var(--mint); font-size: 12px; }
+html[data-workspace="build"] .os-library, html[data-workspace="build"] .ideas, html[data-workspace="build"] .habits, html[data-workspace="build"] .map { display: none; }
+html[data-workspace="study"] .cover, html[data-workspace="study"] .ideas, html[data-workspace="study"] .habits, html[data-workspace="study"] .map { display: none; }
+html[data-workspace="explore"] .os-activity, html[data-workspace="explore"] .os-library, html[data-workspace="explore"] .next, html[data-workspace="explore"] .nudges, html[data-workspace="explore"] .projects, html[data-workspace="explore"] .timeline, html[data-workspace="explore"] .cover { display: none; }
+@media (max-width: 900px) {
+  body:has(.os-rail) { padding-left: 16px; padding-top: 105px; }
+  .os-rail { width: 100%; height: 86px; bottom: auto; flex-direction: row; align-items: center; padding: 10px 16px; z-index: 10; border-right: 0; border-bottom: 1px solid var(--line); }
+  .os-rail p, .os-rail-foot, .os-rail button small, .os-brand span { display: none; }
+  .os-rail button { padding: 12px; }
+  .os-heading { align-items: start; flex-direction: column; margin-top: 24px; }
+  .os-session { align-items: start; flex-direction: column; gap: 6px; }
+}

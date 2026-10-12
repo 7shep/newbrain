@@ -33,6 +33,7 @@ import build  # noqa: E402  (INDEX.md generator + frontmatter parser)
 from agents import Agents  # noqa: E402  (headless agent per capture, when agents/ exists)
 from sync import Sync  # noqa: E402  (git pull/commit/push for the phone app, when phone/ exists)
 import predictions  # noqa: E402  (how well Codex knows you: codex/predictions.md)
+import activity as cli_activity
 import stats  # noqa: E402  (usage stats from Codex transcripts)
 
 TOKEN = secrets.token_urlsafe(24)
@@ -445,7 +446,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         try:
             if url.path == "/api/state":
                 SYNC.pull()  # pick up phone changes; at most once a minute
-                return self.send(200, {**state(), "sync": {"on": SYNC.enabled(), "error": SYNC.error}})
+                return self.send(200, {**state(), "cli_activity": cli_activity.collect(CODEX_HOME), "sync": {"on": SYNC.enabled(), "error": SYNC.error}})
             if url.path == "/api/file":
                 return self.send(200, file_get(urllib.parse.parse_qs(url.query)))
             if url.path == "/api/stats":
