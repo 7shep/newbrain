@@ -433,7 +433,7 @@ function render() {
   const cards = [
     `<button class="card tile snap" data-go="next"><small>${nx ? "Next up · " + esc(new Date(nx.date + "T00:00").toLocaleDateString("en", { weekday: "short", month: "short", day: "numeric" })) : "Nothing scheduled"}</small>
       <div class="big">${dn === null ? "Clear" : dn === 0 ? "Today" : dn === 1 ? "Tmrw" : `${dn}<span> days</span>`}</div><p class="sub">${nx ? esc(nx.title) : "No upcoming items in now.md."}</p></button>`,
-    n.headline ? `<section class="card tile cover"><div class="snap"><small>ISSUE ${esc(view.issue)} · ${esc((n.updated || "").slice(5))}</small><h3>${esc(n.headline).replace(/\*([^*]+)\*/g, "<em>$1</em>")}</h3></div><div class="snap"><small>What we did</small>${n.dek ? `<p>${esc(n.dek)}</p>` : ""}</div></section>` : "",
+    n.headline ? `<section class="card tile cover"><div class="snap"><small>ISSUE ${esc(view.issue)} · <span class="cd">${coverIn()}</span></small><h3>${esc(n.headline).replace(/\*([^*]+)\*/g, "<em>$1</em>")}</h3></div><div class="snap"><small>What we did</small>${n.dek ? `<p>${esc(n.dek)}</p>` : ""}</div></section>` : "",
     `<button class="card tile stat snap" data-go="nudges"><small><i></i>Notes to self</small><b>${open.length}</b>${open[0] ? `<em>${esc(open[0].title)}</em>` : ""}</button>`,
     `<button class="card tile stat snap" data-go="ideas"><small><i></i>Ideas open</small><b>${view.ideas.length}</b>${view.ideas[0] ? `<em>${esc(view.ideas[0].replace(/^\d{4}-\d{2}-\d{2} · /, "").replace(/ \(project: [\w-]+\)$/, ""))}</em>` : ""}</button>`,
   ].filter(Boolean);
@@ -478,6 +478,12 @@ function knows(p) {
     <p style="margin:6px 0 10px;color:var(--muted);font-size:13.5px">${esc(v)}</p>
     ${p.entries.slice(0, 5).map(e => `<div class="idea"><small>${e.hit ? "✓ right" : "✗ wrong"} · ${esc(e.conf)}% · ${esc(e.kind)}</small><div class="t" style="margin-bottom:0">${esc(e.bet)}${e.hit ? "" : ` <span class="empty">→ ${esc(e.got)}</span>`}</div></div>`).join("")}`);
 }
+// The cover is rewritten at these hours (the notes repo's cover routine); show a countdown to the next one, like Spotify's daylist.
+const COVER_HOURS = [7, 13, 15, 17, 19];
+function coverIn() { const now = new Date(), next = new Date(now); const h = COVER_HOURS.find(h => h > now.getHours());
+  if (h === undefined) { next.setDate(next.getDate() + 1); next.setHours(COVER_HOURS[0], 0, 0, 0); } else next.setHours(h, 0, 0, 0);
+  const m = Math.max(1, Math.ceil((next - now) / 6e4)); return `new in ${m >= 60 ? Math.floor(m / 60) + "h " : ""}${m % 60}m`; }
+setInterval(() => document.querySelectorAll(".cover .cd").forEach(e => e.textContent = coverIn()), 30e3);
 let showAllIdeas = false, lastHtml = "", lastHero = "", introDone = false;
 // Light the dot for the card that fills the strip.
 function stripDots() { const st = $("strip"); if (!st) return; const x0 = st.getBoundingClientRect().left + 16;
