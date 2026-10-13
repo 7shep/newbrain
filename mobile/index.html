@@ -89,6 +89,9 @@ button { cursor: pointer; }
 .habit small { color: var(--dim); font: 500 11px var(--mono); }
 .sw { width: 44px; height: 26px; border-radius: 26px; background: var(--tile-3); border: 0; position: relative; flex: none; margin-top: 2px; }
 .sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--muted); transition: transform .5s var(--spring); }
+.secpick { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 18px; }
+.secpick .pill { background: transparent; color: var(--muted); transition: background-color .2s, color .2s, transform .18s var(--ease); } .secpick .pill:active { transform: scale(.96); }
+.secpick .pill.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .theme-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
 .sw.on { background: var(--mint); } .sw.on::after { transform: translateX(18px); background: var(--mint-ink); }
 .empty { color: var(--dim); font-size: 14px; }
@@ -302,6 +305,8 @@ button, .row, header[data-sec] { -webkit-touch-callout: none; }
   <form class="body" id="setForm">
     <div class="theme-row"><span>Dark mode</span><button class="sw" type="button" role="switch" id="darkSw" aria-label="Dark mode"></button></div>
     <div class="theme-row"><span>Soft look</span><button class="sw" type="button" role="switch" id="softSw" aria-label="Soft look"></button></div>
+    <label>Show on home</label>
+    <div class="secpick" id="secPick"></div>
     <p class="help">Brain on your phone reads your private notes repo on GitHub. Nothing is stored anywhere except this phone.</p>
     <label for="repo">Notes repo</label>
     <input id="repo" placeholder="your-name/notes" autocapitalize="off" autocorrect="off" spellcheck="false" required>
@@ -431,11 +436,11 @@ function render() {
   const nx = up[0], dn = nx ? daysFrom(nx.date) : null;
   // Top of home: a swipe strip: Up next, the cover story (one long card, where it opens), Notes to self, Ideas; then the action pills (Capture lives on the floating button).
   const cards = [
-    `<button class="card tile snap" data-go="next"><small>${nx ? "Next up · " + esc(new Date(nx.date + "T00:00").toLocaleDateString("en", { weekday: "short", month: "short", day: "numeric" })) : "Nothing scheduled"}</small>
+    !hidden.has("next") && `<button class="card tile snap" data-go="next"><small>${nx ? "Next up · " + esc(new Date(nx.date + "T00:00").toLocaleDateString("en", { weekday: "short", month: "short", day: "numeric" })) : "Nothing scheduled"}</small>
       <div class="big">${dn === null ? "Clear" : dn === 0 ? "Today" : dn === 1 ? "Tmrw" : `${dn}<span> days</span>`}</div><p class="sub">${nx ? esc(nx.title) : "No upcoming items in now.md."}</p></button>`,
     n.headline ? `<section class="card tile cover"><div class="snap"><small>ISSUE ${esc(view.issue)} · <span class="cd">${coverIn()}</span></small><h3>${esc(n.headline).replace(/\*([^*]+)\*/g, "<em>$1</em>")}</h3></div><div class="snap"><small>What we did</small>${n.dek ? `<p>${esc(n.dek)}</p>` : ""}</div></section>` : "",
-    `<button class="card tile stat snap" data-go="nudges"><small><i></i>Notes to self</small><b>${open.length}</b>${open[0] ? `<em>${esc(open[0].title)}</em>` : ""}</button>`,
-    `<button class="card tile stat snap" data-go="ideas"><small><i></i>Ideas open</small><b>${view.ideas.length}</b>${view.ideas[0] ? `<em>${esc(view.ideas[0].replace(/^\d{4}-\d{2}-\d{2} · /, "").replace(/ \(project: [\w-]+\)$/, ""))}</em>` : ""}</button>`,
+    !hidden.has("nudges") && `<button class="card tile stat snap" data-go="nudges"><small><i></i>Notes to self</small><b>${open.length}</b>${open[0] ? `<em>${esc(open[0].title)}</em>` : ""}</button>`,
+    !hidden.has("ideas") && `<button class="card tile stat snap" data-go="ideas"><small><i></i>Ideas open</small><b>${view.ideas.length}</b>${view.ideas[0] ? `<em>${esc(view.ideas[0].replace(/^\d{4}-\d{2}-\d{2} · /, "").replace(/ \(project: [\w-]+\)$/, ""))}</em>` : ""}</button>`,
   ].filter(Boolean);
   const heroHtml = `<section class="hero"><div class="strip" id="strip" aria-label="Updates, swipe for more">${cards.join("")}</div>
     <div class="dots" aria-hidden="true">${cards.map((_, i) => `<i${i ? "" : ' class="on"'}></i>`).join("")}</div>
@@ -492,8 +497,14 @@ function stripDots() { const st = $("strip"); if (!st) return; const x0 = st.get
   st.parentNode.querySelectorAll(".dots i").forEach((d, k) => d.classList.toggle("on", k === i)); }
 // A collapsible group. Which ones are folded is remembered on this phone.
 let folded = new Set(store.get("folded", []));
+// Sections shown on home, picked in Settings as choices. Hidden ones are remembered on this phone.
+const SECTIONS = [["next", "Up next"], ["nudges", "Notes to self"], ["projects", "Projects"], ["ideas", "Ideas"], ["habits", "How Claude adapts"], ["knows", "How well Claude knows you"]];
+let hidden = new Set(store.get("hidden", []));
+function drawSecPick() { $("secPick").innerHTML = SECTIONS.map(([k, t]) => `<button type="button" class="pill${hidden.has(k) ? "" : " on"}" aria-pressed="${!hidden.has(k)}" data-sec-pick="${k}">${esc(t)}</button>`).join(""); }
+document.addEventListener("click", e => { const b = e.target.closest("[data-sec-pick]"); if (!b) return; const k = b.dataset.secPick;
+  hidden.has(k) ? hidden.delete(k) : hidden.add(k); store.set("hidden", [...hidden]); tap(); drawSecPick(); lastHero = ""; render(); });
 const CHEV = `<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>`;
-const sec = (key, title, n, body) => `<section class="tile${folded.has(key) ? " collapsed" : ""}"><header data-sec="${key}" role="button" aria-expanded="${!folded.has(key)}"><h2>${esc(title)}</h2><span class="n">${esc(n)}</span>${CHEV}</header><div class="sb"><div>${body}</div></div></section>`;
+const sec = (key, title, n, body) => hidden.has(key) ? "" : `<section class="tile${folded.has(key) ? " collapsed" : ""}"><header data-sec="${key}" role="button" aria-expanded="${!folded.has(key)}"><h2>${esc(title)}</h2><span class="n">${esc(n)}</span>${CHEV}</header><div class="sb"><div>${body}</div></div></section>`;
 function fold(header) {
   const key = header.dataset.sec, tile = header.closest(".tile"), now = !folded.has(key);
   now ? folded.add(key) : folded.delete(key); store.set("folded", [...folded]);
@@ -777,7 +788,7 @@ $("capGo").onclick = () => {
     $("openCapture").animate([{ transform: "scale(1)" }, { transform: "scale(1.18)" }, { transform: "scale(1)" }], { duration: 420, easing: spring() });
   });
 };
-$("openSettings").onclick = () => { $("repo").value = cfg?.repo || ""; $("token").value = cfg?.token || ""; open("settings"); };
+$("openSettings").onclick = () => { $("repo").value = cfg?.repo || ""; $("token").value = cfg?.token || ""; drawSecPick(); open("settings"); };
 $("setForm").onsubmit = async e => {
   e.preventDefault();
   cfg = { repo: $("repo").value.trim().replace(/^https:\/\/github\.com\//, "").replace(/\/$/, ""), token: $("token").value.trim() };
