@@ -227,10 +227,8 @@ textarea:focus-visible, input:focus-visible { outline: 0; }
 .nudge, .idea { touch-action: pan-y; position: relative; }
 .nudge.swiping, .idea.swiping { transition: none; }
 .swipe-hint { position: absolute; top: 50%; transform: translateY(-50%); font: 700 12px var(--mono); letter-spacing: .06em; text-transform: uppercase; opacity: 0; pointer-events: none; }
-/* pull to refresh */
-#ptr { position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 6px); width: 34px; height: 34px; margin-left: -17px; border-radius: 50%; background: var(--tile); border: 1px solid var(--line);
-  display: grid; place-items: center; color: var(--amber); z-index: 15; opacity: 0; transform: translateY(-40px); pointer-events: none; }
-#ptr.spin svg { animation: spin .7s linear infinite; }
+/* no pull-down: no pull to refresh, and the page doesn't rubber-band at the top (the refresh button and reopening the app refresh) */
+html, body { overscroll-behavior-y: none; }
 button, .row, header[data-sec] { -webkit-touch-callout: none; }
 #hap { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .confetti { position: fixed; width: 7px; height: 10px; border-radius: 2px; pointer-events: none; z-index: 40; }
@@ -318,7 +316,6 @@ button, .row, header[data-sec] { -webkit-touch-callout: none; }
   </form>
 </section>
 <div class="toast" id="toast"></div>
-<div id="ptr" aria-hidden="true"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></div>
 <label id="hap" aria-hidden="true"><input type="checkbox" switch tabindex="-1"></label>
 
 <script>
@@ -511,7 +508,7 @@ function fold(header) {
   tile.classList.toggle("collapsed", now); header.setAttribute("aria-expanded", !now); tap();
 }
 
-/* ---------- feel: haptics, swipe cards, pull to refresh, swipe sheets down ---------- */
+/* ---------- feel: haptics, swipe cards, swipe sheets down ---------- */
 // Android vibrates; iOS 18+ Safari gives a light tick when a switch-style checkbox is toggled via its label.
 function tap() { try { if (navigator.vibrate) navigator.vibrate(8); else $("hap").click(); } catch {} }
 let sw = null;
@@ -543,23 +540,6 @@ $("main").addEventListener("touchend", () => {
     card.style.transform = ""; if (btn) btn.click();
   } else card.animate([{ transform: card.style.transform }, { transform: "none" }], { duration: 260, easing: "cubic-bezier(.16,1,.3,1)" }).onfinish = () => card.style.transform = "";
   if (Math.abs(dx) <= 90) card.style.transform = "";
-});
-let pull = null;
-addEventListener("touchstart", e => { if (scrollY <= 0 && !e.target.closest(".sheet") && cfg) pull = { y: e.touches[0].clientY, d: 0 }; }, { passive: true });
-addEventListener("touchmove", e => {
-  if (!pull) return;
-  pull.d = Math.max(0, e.touches[0].clientY - pull.y);
-  const p = $("ptr"), k = Math.min(pull.d / 80, 1);
-  p.style.opacity = k; p.style.transform = `translateY(${Math.min(pull.d * .5, 50) - 40}px) rotate(${pull.d * 3}deg)`;
-  if (pull.d > 80 && !pull.buzzed) { pull.buzzed = true; tap(); }
-}, { passive: true });
-addEventListener("touchend", async () => {
-  if (!pull) return;
-  const go = pull.d > 80, p = $("ptr"); pull = null;
-  if (!go) { p.style.opacity = 0; p.style.transform = ""; return; }
-  p.style.transform = "translateY(12px)"; p.classList.add("spin");
-  await refresh(true);
-  p.classList.remove("spin"); p.style.opacity = 0; p.style.transform = "";
 });
 document.querySelectorAll(".sheet > header").forEach(h => {
   let y0 = null, d = 0; const sheet = h.closest(".sheet");
