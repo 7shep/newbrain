@@ -456,6 +456,8 @@ function render() {
         <button class="pill" data-nudge="${esc(x.id)}" data-a="snooze" data-days="7">Next week</button><button class="pill" data-nudge="${esc(x.id)}" data-a="no">Drop</button></div></div>`; }).join("")
         : `<div class="empty">Nothing nagging. Enjoy it.</div>`}`)}
     ${sec("projects", "Projects", projects.length, `${projects.map(p => `<button class="row" data-open="${esc(p.path)}"><span class="st ${esc(p.meta.status)}"></span><div><div class="t">${esc(p.title)}</div><div class="s">${esc(p.meta.summary || p.tldr || "")}</div></div></button>`).join("")}`)}
+    ${sec("people", "People", (view.people || []).length, `${(view.people || []).map(p => `<button class="row" data-open="${esc(p.path)}"><div><div class="t">${esc(p.title)}</div><div class="s">${esc(p.meta.follow_up ? "Next: " + p.meta.follow_up : (p.meta.relation || p.tldr || ""))}</div></div></button>`).join("") || `<div class="empty">No people pages yet.</div>`}`)}
+    ${view.me?.exists ? sec("me", "Me", "", `${view.me.meta?.tagline ? `<div class="t">${esc(view.me.meta.tagline)}</div>` : ""}${(view.me.snapshot || []).map(x => `<div class="s" style="margin-top:8px">${esc(x)}</div>`).join("")}<div class="acts"><button class="pill yes" data-open="${esc(view.me.path)}">Open me.md</button></div>`) : ""}
     ${sec("ideas", "Ideas", view.ideas.length ? view.ideas.length + " open" : "", `${view.ideas.length ? view.ideas.slice(0, showAllIdeas ? 999 : 5).map(l => { const m = l.match(/^(\d{4}-\d{2}-\d{2}) · (.*?)(?: \(project: [\w-]+\))?$/);
         return `<div class="idea"><small>${esc(m ? m[1] : "")}</small><div class="t">${esc(m ? m[2] : l)}</div>
         <div class="acts"><button class="pill yes" data-idea="${esc(l)}" data-a="done">Done</button><button class="pill" data-idea="${esc(l)}" data-a="dismissed">Dismiss</button></div></div>`; }).join("")
@@ -493,7 +495,7 @@ function stripDots() { const st = $("strip"); if (!st) return; const x0 = st.get
 // A collapsible group. Which ones are folded is remembered on this phone.
 let folded = new Set(store.get("folded", []));
 // Sections shown on home, picked in Settings as choices. Hidden ones are remembered on this phone.
-const SECTIONS = [["next", "Up next"], ["nudges", "Notes to self"], ["projects", "Projects"], ["ideas", "Ideas"], ["habits", "How Claude adapts"], ["knows", "How well Claude knows you"]];
+const SECTIONS = [["next", "Up next"], ["nudges", "Notes to self"], ["projects", "Projects"], ["people", "People"], ["me", "Me"], ["ideas", "Ideas"], ["habits", "How Claude adapts"], ["knows", "How well Claude knows you"]];
 let hidden = new Set(store.get("hidden", []));
 function drawSecPick() { $("secPick").innerHTML = SECTIONS.map(([k, t]) => `<button type="button" class="pill${hidden.has(k) ? "" : " on"}" aria-pressed="${!hidden.has(k)}" data-sec-pick="${k}">${esc(t)}</button>`).join(""); }
 document.addEventListener("click", e => { const b = e.target.closest("[data-sec-pick]"); if (!b) return; const k = b.dataset.secPick;
