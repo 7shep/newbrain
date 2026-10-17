@@ -418,9 +418,18 @@ async function api(path, body, method) {
   if (!res.ok) { const e = new Error(data.error || "Something went wrong"); e.status = res.status; throw e; }
   return data;
 }
-let S = null;
+let S = null, lastState = "";
 async function load() {
-  try { S = await api("/api/state"); render(); }
+  try {
+    const next = await api("/api/state"), key = JSON.stringify(next);
+    if (key === lastState) return;  // the 30s poll and window focus usually find nothing new; don't redraw
+    lastState = key; S = next;
+    // Redrawing replaces whole tiles, so keep the page and the habit list where they were.
+    const y = scrollY, hs = document.querySelector(".habit-scroll")?.scrollTop || 0;
+    render();
+    const h = document.querySelector(".habit-scroll"); if (h) h.scrollTop = hs;
+    if (scrollY !== y) scrollTo(0, y);
+  }
   catch (e) { toast(e.status === 403 ? "Session expired — restart with `brain`" : "Can't reach Brain. Is it still running?"); }
 }
 
@@ -853,6 +862,7 @@ function renderHabits() {
   $("habits").innerHTML = `
     <form class="brainstorm" id="brainForm" autocomplete="off">
       <input id="brainTitle" placeholder="Brainstorm a habit for Claude… e.g. “Show me a preview before anything goes live”" value="${esc(typed)}">
+      <button class="pill" type="button" id="brainRandom" title="Suggest a random habit">Random</button>
       <button class="pill yes" type="submit">Propose</button>
       <small>It's saved as a proposal. Claude brings it up next session to shape it with you.</small>
     </form>
@@ -864,6 +874,22 @@ function renderHabits() {
     ${off.length ? `<button class="more" id="togglePast">${showPast ? "Hide past habits" : `Past habits (${off.length})`}</button>` : ""}`;
 }
 
+const HABIT_IDEAS = [
+  "Show me a preview before anything goes live",
+  "End every session with the one thing I should do next",
+  "Warn me when a deadline is under 48 hours away",
+  "Give me a time estimate before starting anything big",
+  "Quiz me on whatever I studied last session",
+  "Tell me when I'm overcommitting this week",
+  "Suggest a break after two hours of straight work",
+  "Flag anything that costs money before I agree to it",
+  "Remind me to reply to people I've left hanging",
+  "Turn every new deadline into a calendar event",
+  "Ask what I'm avoiding when nothing's getting done",
+  "Keep a running list of wins for my resume",
+  "Point out when an idea already exists before building it",
+  "Summarize long emails in one line before I open them",
+];
 let sessLimit = 6;
 function renderTimeline() {
   $("sessCount").textContent = `${S.sessions.length} sessions`;
@@ -1021,7 +1047,7 @@ function addPerson() {
 /* ---------- actions ---------- */
 let undo = null;
 document.addEventListener("click", async e => {
-  const t = e.target.closest("[data-copy],[data-open],[data-nact],[data-hset],[data-iact],[data-archive],[data-action],[data-link],[data-capture],[data-jump],#toggleProjects,#toggleIdeas,#toggleOutJobs,#togglePast,#moreSessions");
+  const t = e.target.closest("[data-copy],[data-open],[data-nact],[data-hset],[data-iact],[data-archive],[data-action],[data-link],[data-capture],[data-jump],#toggleProjects,#toggleIdeas,#toggleOutJobs,#togglePast,#brainRandom,#moreSessions");
   if (!t || e.target.closest("a[href]:not([data-link])")) return;
   if (t.dataset.copy !== undefined) {
     e.stopPropagation();
@@ -1082,6 +1108,11 @@ document.addEventListener("click", async e => {
   if (t.id === "toggleOutJobs") { showOutJobs = !showOutJobs; renderInternships(); return; }
   if (t.id === "toggleIdeas") { showAllIdeas = !showAllIdeas; renderIdeas(); return; }
   if (t.id === "togglePast") { showPast = !showPast; renderHabits(); return; }
+  if (t.id === "brainRandom") {
+    const have = S.habits.map(h => (h.title || "").toLowerCase()), box = $("brainTitle");
+    const pool = HABIT_IDEAS.filter(x => !have.includes(x.toLowerCase()) && x !== box.value);
+    box.value = pool[Math.floor(Math.random() * pool.length)] || ""; box.focus(); return;
+  }
   if (t.dataset.capture) { openPalette(t.dataset.capture); return; }
   if (t.dataset.jump) { openPalette("note", t.dataset.jump); return; }
   if (t.id === "toggleProjects") { showAllProjects = !showAllProjects; renderProjects(); return; }
