@@ -142,6 +142,7 @@ kbd { font: 500 11px var(--mono); border: 1px solid var(--line); border-radius: 
 .habit:first-of-type { border-top: 0; padding-top: 0; }
 .habit b { font-weight: 600; display: block; }
 .habit small { display: block; color: var(--dim); font-size: 12px; }
+.habit.stale { opacity: .55; }
 .habit.proposed { background: rgba(255,181,71,.07); border-radius: 12px; padding: 12px; margin-bottom: 6px; border: 1px solid rgba(255,181,71,.25); }
 .habit.proposed .who { color: var(--amber); }
 .habit.proposed + .habit { border-top: 0; }
@@ -823,12 +824,16 @@ function openPeople() {
 }
 
 let showPast = false;
+const STALE_DAYS = 21;
 function habitRow(h) {
   const brainstorm = /^brainstorm/.test(h.source || "");
   if (h.status === "proposed") return `<div class="habit proposed" data-habit="${esc(h.id)}"><div><b><span class="who">${brainstorm ? "You suggested · " : "Claude suggests · "}</span>${esc(h.title)}</b>
     <small>${brainstorm ? "Claude will talk this through with you next session." : esc(h.why || "")}</small></div>
     <div class="open"><button class="pill sm yes" data-hset="on">${brainstorm ? "Turn on now" : "Try it"}</button><button class="pill sm" data-hset="off">Nah</button></div></div>`;
-  return `<div class="habit ${h.status === "off" ? "off" : ""}" data-habit="${esc(h.id)}"><div><b>${esc(h.title)}</b><small>${esc(h.why || "")}</small></div>
+  // Freshness: the server sorts by days idle, so unused habits sink; past STALE_DAYS they fade, ready to clean up.
+  const stale = h.status !== "off" && h.idle >= STALE_DAYS;
+  const fresh = h.status === "off" ? "" : h.last_used ? (h.idle ? `used ${h.idle}d ago` : "used today") : stale ? `unused ${h.idle}d` : "";
+  return `<div class="habit ${h.status === "off" ? "off" : ""}${stale ? " stale" : ""}" data-habit="${esc(h.id)}"><div><b>${fresh ? `<i class="tagp">${stale ? "stale · " : ""}${fresh}</i>` : ""}${esc(h.title)}</b><small>${esc(h.why || "")}</small></div>
     <button class="sw ${h.status === "off" ? "off" : ""}" role="switch" aria-checked="${h.status !== "off"}" aria-label="${esc(h.title)}" data-hset="${h.status === "off" ? "on" : "off"}"></button></div>`;
 }
 const IT_GROUPS = [["applied", "Applied"], ["apply", "To apply"], ["check", "To check"], ["out", "Out"]];
@@ -1108,10 +1113,15 @@ document.addEventListener("click", async e => {
   if (t.id === "toggleOutJobs") { showOutJobs = !showOutJobs; renderInternships(); return; }
   if (t.id === "toggleIdeas") { showAllIdeas = !showAllIdeas; renderIdeas(); return; }
   if (t.id === "togglePast") { showPast = !showPast; renderHabits(); return; }
-  if (t.id === "brainRandom") {
-    const have = S.habits.map(h => (h.title || "").toLowerCase()), box = $("brainTitle");
-    const pool = HABIT_IDEAS.filter(x => !have.includes(x.toLowerCase()) && x !== box.value);
-    box.value = pool[Math.floor(Math.random() * pool.length)] || ""; box.focus(); return;
+  if (t.id === "brainRandom") {  // Claude writes a new one from your notes; the canned list is only the offline fallback
+    const box = $("brainTitle");
+    t.disabled = true; t.textContent = "Thinking…";
+    api("/api/habit-idea").then(r => r.idea).catch(() => {
+      const have = S.habits.map(h => (h.title || "").toLowerCase());
+      const pool = HABIT_IDEAS.filter(x => !have.includes(x.toLowerCase()) && x !== box.value);
+      return pool[Math.floor(Math.random() * pool.length)] || "";
+    }).then(idea => { const b = $("brainTitle"), btn = $("brainRandom"); if (b) { b.value = idea; b.focus(); } if (btn) { btn.disabled = false; btn.textContent = "Random"; } });
+    return;
   }
   if (t.dataset.capture) { openPalette(t.dataset.capture); return; }
   if (t.dataset.jump) { openPalette("note", t.dataset.jump); return; }

@@ -46,7 +46,7 @@ def main():
 def context():
     """The brain summary every session starts with. Also written into Codex's AGENTS.md by codex.py."""
     habits = blocks(read("claude/habits.md"))
-    on = [t for _, t, s, _src in habits if s == "on"]
+    on = ["%s %s" % (i, t) for i, t, s, _src in habits if s == "on"]
     proposed = [t for _, t, s, src in habits if s == "proposed" and not src.startswith("brainstorm")]
     brainstorm = [t for _, t, s, src in habits if s == "proposed" and src.startswith("brainstorm")]
     inbox = [l[2:] for l in read("inbox.md").splitlines() if l.startswith("- ")]
@@ -62,10 +62,12 @@ def context():
             "(deploy live? reply arrived? due date passed?), tick off what's done with evidence; "
             "(3) read all of %s's calendars for today plus deadlines in the next 3 days, then replace any old "
             "'## Today · …' section at the top of now.md's body with '## Today · %s' (a time-ordered plan: classes, "
-            "deadlines, suggested work blocks); (4) rebuild with .brain/build.py, commit and push ~/Notes; "
+            "deadlines, suggested work blocks), whose first bullet is '- To do today: a · b · c' listing only tasks to do today (the Claude Code today-band shows that line; delete an item from it when it's done); (4) rebuild with .brain/build.py, commit and push ~/Notes; "
             "(5) show %s the Today plan in a few lines, then handle their message." % (name, today, name))
     if on:
         lines.append("Habits %s has on (follow them): " % name + " | ".join(on))
+        lines.append("In the session note's frontmatter, list the habits you actually applied as `habits: [H-001, H-014]`"
+                     " — the app sorts unused ones down so %s can clean them up." % name)
     if proposed:
         lines.append("Proposed habits awaiting %s in the app (don't follow yet): " % name + " | ".join(proposed))
     if brainstorm:

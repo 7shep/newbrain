@@ -13,8 +13,10 @@ import glob
 import http.server
 import json
 import os
+import random
 import re
 import secrets
+import shutil
 import socketserver
 import subprocess
 import sys
@@ -231,7 +233,7 @@ def state():
     for n in nudges:  # a snooze that has run out is open again
         if n.get("status") == "snoozed" and n.get("snooze_until") and n["snooze_until"] <= t:
             n["status"] = "open"
-    habits = parse_blocks(read("claude/habits.md"))
+    habits = habit_freshness(parse_blocks(read("claude/habits.md")), sessions, t)
 
     now_meta, now_body = build.parse_frontmatter(read("now.md"))
     upcoming = upcoming_items(now_body, t)
@@ -300,6 +302,56 @@ IDEA_SECTIONS = {"done": "## Done", "dismissed": "## Dismissed"}
 
 
 VERDICTS = {"try": 0, "maybe": 1, "skip": 2}
+
+
+HABIT_TRACKING_SINCE = "2026-10-17"  # session notes list the habits used (`habits:`) from this day on
+
+
+def habit_freshness(habits, sessions, t):
+    """Each habit's last use (newest session note whose `habits:` lists it, or a manual `- used:` date) and how many
+    days it has sat idle since. Idle counts from tracking day at the earliest, so old habits don't all start stale.
+    Most recently used first, so the stale ones sink to the bottom for clean-up."""
+    last = {}
+    for s in sessions:
+        ids = s["meta"].get("habits") or []
+        for hid in ids if isinstance(ids, list) else re.findall(r"H-\d+", str(ids)):
+            last[hid] = max(last.get(hid, ""), str(s["meta"].get("date") or s["date"]))
+    day = datetime.date.fromisoformat
+    for h in habits:
+        used = max(last.get(h["id"], ""), h.get("used", ""))
+        h["last_used"] = used or None
+        start = max(used, h.get("since", ""), HABIT_TRACKING_SINCE)
+        try:
+            h["idle"] = max(0, (day(t) - day(start[:10])).days)
+        except ValueError:
+            h["idle"] = 0
+    return sorted(habits, key=lambda h: h["idle"])
+
+
+HABIT_AREAS = ["studying and exams", "internship applications", "networking and outreach", "running his club",
+               "sleep, health and breaks", "money and spending", "how Claude writes code for him", "his notes and memory",
+               "email and messages", "planning his week", "side projects", "how Claude talks to him",
+               "catching mistakes before they ship", "saving him time on repetitive chores"]  # one at random per idea, for variety
+
+
+def habit_idea():
+    """A fresh habit suggestion from Claude (Haiku, no tools), grounded in who Zac is, what's going on, and the
+    habits he already has, so it doesn't repeat one. ~5s."""
+    titles = [h["title"] for h in parse_blocks(read("claude/habits.md"))]
+    _, me = build.parse_frontmatter(read("me.md"))
+    _, now = build.parse_frontmatter(read("now.md"))
+    prompt = ("You suggest habits for Claude, an AI assistant that works with this person every day through Claude Code."
+              " A habit is a standing rule for how Claude behaves.\n\nAbout them:\n" + me[:2500] +
+              "\n\nWhat's going on now:\n" + now[:2500] +
+              "\n\nHabits Claude already has (don't repeat or rephrase any):\n- " + "\n- ".join(titles) +
+              "\n\nSuggest ONE new, specific, useful habit about " + random.choice(HABIT_AREAS) + ", written as the person"
+              " would ask for it, imperative, under 14 words. Reply with only the habit, no quotes.")
+    out = subprocess.run([shutil.which("claude") or "claude", "-p", "--model", "haiku", "--setting-sources", "",
+                          "--tools", ""], input=prompt, capture_output=True, text=True, timeout=60)
+    idea = (out.stdout.strip().splitlines() or [""])[-1].strip().strip('"')
+    if out.returncode or not idea:
+        raise RuntimeError("Claude didn't answer")
+    return {"idea": idea[:160]}
 
 
 def idea_rank(line):
@@ -492,6 +544,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return self.send(200, file_get(urllib.parse.parse_qs(url.query)))
             if url.path == "/api/stats":
                 return self.send(200, stats.collect(CLAUDE_PROJECTS, NOTES))
+            if url.path == "/api/habit-idea":
+                return self.send(200, habit_idea())
             if url.path == "/api/graph":
                 g = graph_get()
                 return self.send(200, g) if g else self.send(404, {"error": "No graph yet. Run graphify on your notes."})

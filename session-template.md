@@ -5,6 +5,7 @@ projects: [design-club]     # project slugs, see projects/*.md; [misc] if none f
 status: done                # done | partial | abandoned | info (question answered, nothing built)
 session: 1a2b3c4d           # first 8 chars of the Claude Code session id
 cwd: ~/Projects/design-club
+habits: [H-001, H-014]      # habits from claude/habits.md Claude actually applied; the app sinks unused ones
 ---
 
 # Short name of what we did
