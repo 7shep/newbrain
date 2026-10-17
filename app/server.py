@@ -250,7 +250,7 @@ def state():
         "me": {"meta": me_meta, "exists": bool(me_body.strip()), "path": "me.md",
                "snapshot": re.findall(r"^- (.+)$", me_body.split("## Goals")[0], re.M)[:5]},
         "nudges": nudges, "habits": habits, "projects": projects, "people": people,
-        "sessions": session_out[:60], "inbox": inbox, "ideas": ideas["open"][::-1], "ideas_closed": {"done": len(ideas["done"]), "dismissed": len(ideas["dismissed"])},
+        "sessions": session_out[:60], "inbox": inbox, "ideas": sorted(ideas["open"][::-1], key=idea_rank), "ideas_closed": {"done": len(ideas["done"]), "dismissed": len(ideas["dismissed"])},
         "notes": [slim(d) for d in docs if d["kind"] == "note" and not d["path"].startswith("people/")
                   and d["path"] not in ("me.md", "now.md", "nudges.md", "ideas.md", "inbox.md", "claude/habits.md")],
         "internships": internships(read("internships/tracker.md")),
@@ -297,6 +297,15 @@ def internships(text):
 
 # ---------------------------------------------------------------- ideas: open list, then "## Done" / "## Dismissed"
 IDEA_SECTIONS = {"done": "## Done", "dismissed": "## Dismissed"}
+
+
+VERDICTS = {"try": 0, "maybe": 1, "skip": 2}
+
+
+def idea_rank(line):
+    """Open ideas sort try, maybe, untagged, skip; newest first inside each."""
+    m = re.match(r"\d{4}-\d{2}-\d{2} · \[(\w+)\]", line)
+    return VERDICTS.get(m.group(1), 1.5) if m else 1.5
 
 
 def idea_sections(text):

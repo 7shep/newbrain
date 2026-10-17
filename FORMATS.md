@@ -95,7 +95,8 @@ updated: 2026-09-14
 
 ## `ideas.md`
 Open ideas are the bullets before any section. The app moves an idea to `## Done` or `## Dismissed`
-(appending `(done YYYY-MM-DD)`), and can restore it.
+(appending `(done YYYY-MM-DD)`), and can restore it. An optional verdict after the date, `[try]`, `[maybe]` or
+`[skip]`, sorts the open list: try, maybe, untagged, skip. Claude adds it when saving an idea.
 ```
 # Ideas
 - 2026-09-14 · Idea text — optional note (project: slug)
