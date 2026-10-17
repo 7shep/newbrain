@@ -830,7 +830,7 @@ function habitRow(h) {
   if (h.status === "proposed") return `<div class="habit proposed" data-habit="${esc(h.id)}"><div><b><span class="who">${brainstorm ? "You suggested · " : "Claude suggests · "}</span>${esc(h.title)}</b>
     <small>${brainstorm ? "Claude will talk this through with you next session." : esc(h.why || "")}</small></div>
     <div class="open"><button class="pill sm yes" data-hset="on">${brainstorm ? "Turn on now" : "Try it"}</button><button class="pill sm" data-hset="off">Nah</button></div></div>`;
-  // Freshness: the server sorts by days idle, so unused habits sink; past STALE_DAYS they fade, ready to clean up.
+  // Freshness: the server sorts stalest first; past STALE_DAYS they fade, ready to clean up.
   const stale = h.status !== "off" && h.idle >= STALE_DAYS;
   const fresh = h.status === "off" ? "" : h.last_used ? (h.idle ? `used ${h.idle}d ago` : "used today") : stale ? `unused ${h.idle}d` : "";
   return `<div class="habit ${h.status === "off" ? "off" : ""}${stale ? " stale" : ""}" data-habit="${esc(h.id)}"><div><b>${fresh ? `<i class="tagp">${stale ? "stale · " : ""}${fresh}</i>` : ""}${esc(h.title)}</b><small>${esc(h.why || "")}</small></div>

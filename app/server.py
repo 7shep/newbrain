@@ -304,13 +304,13 @@ IDEA_SECTIONS = {"done": "## Done", "dismissed": "## Dismissed"}
 VERDICTS = {"try": 0, "maybe": 1, "skip": 2}
 
 
-HABIT_TRACKING_SINCE = "2026-10-17"  # session notes list the habits used (`habits:`) from this day on
+HABIT_TRACKING_SINCE = "2026-10-01"  # session notes list the habits used (`habits:`) from here on (backfilled 2026-10-17)
 
 
 def habit_freshness(habits, sessions, t):
     """Each habit's last use (newest session note whose `habits:` lists it, or a manual `- used:` date) and how many
     days it has sat idle since. Idle counts from tracking day at the earliest, so old habits don't all start stale.
-    Most recently used first, so the stale ones sink to the bottom for clean-up."""
+    Stalest first, so the ones to clean up are on top."""
     last = {}
     for s in sessions:
         ids = s["meta"].get("habits") or []
@@ -325,7 +325,7 @@ def habit_freshness(habits, sessions, t):
             h["idle"] = max(0, (day(t) - day(start[:10])).days)
         except ValueError:
             h["idle"] = 0
-    return sorted(habits, key=lambda h: h["idle"])
+    return sorted(habits, key=lambda h: -h["idle"])
 
 
 HABIT_AREAS = ["studying and exams", "internship applications", "networking and outreach", "running his club",

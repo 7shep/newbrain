@@ -95,8 +95,8 @@ updated: 2026-09-14
 
 ## Habit freshness
 Session notes list the habits Claude applied (`habits: [H-001, H-014]` in the frontmatter). The app sorts habits by
-days since last use (or a manual `- used: YYYY-MM-DD` on the habit), counting from 2026-10-17 at the earliest, and
-fades ones idle 21+ days so they can be switched off.
+days since last use (or a manual `- used: YYYY-MM-DD` on the habit), counting from 2026-10-01 at the earliest, stalest
+first, and fades ones idle 21+ days so they can be switched off.
 
 ## `ideas.md`
 Open ideas are the bullets before any section. The app moves an idea to `## Done` or `## Dismissed`
