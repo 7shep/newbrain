@@ -84,6 +84,34 @@ argues against it first.**
 test-first for anything real), [graphify](https://github.com/safishamsi/graphify) (the Map), and the impeccable
 design plugin for UI work. Brain is the glue: it's where the habits, the specs and every session's outcome live.
 
+## Start from scratch (one prompt)
+
+New to Brain? Paste this into [Claude Code](https://claude.com/claude-code) and answer its questions. It does every
+step below for you and ends by giving you a link to open on your phone.
+
+```text
+Set up Brain (https://github.com/zacfink/brain) for me from scratch. Work through it step by step, tell me what
+each step is for in one line, and ask me before anything that touches my accounts.
+
+1. Clone https://github.com/zacfink/brain.git into ~/Notes/.brain (keep anything already in ~/Notes), link
+   ~/Notes/.brain/bin/brain onto my PATH, and read ~/Notes/.brain/README.md and FORMATS.md before going on.
+2. Interview me briefly: my name, what I do, my active projects, people I work with, anything due in the next two
+   weeks. Then write my first notes in the FORMATS.md shapes: me.md, now.md, one page per project, people pages,
+   nudges.md, ideas.md, inbox.md and claude/habits.md (two or three habits from what I told you, status "proposed").
+   If you can see my projects folder, calendar or email, use them to fill gaps, and say what you took from where.
+3. Connect yourself: add the SessionStart hook from the README to ~/.claude/settings.json (merge, don't overwrite),
+   and add the README's standing instructions to my CLAUDE.md. Then run python3 ~/Notes/.brain/build.py.
+4. Start the app with `brain` and check it opens at http://127.0.0.1:4747.
+5. Phone (ask me first): add ".brain/" to ~/Notes/.gitignore, create a PRIVATE GitHub repo "notes" with gh,
+   add docs/notes-workflow.yml as .github/workflows/brain.yml plus phone/queue/.gitkeep, commit and push, and wait
+   for the Action's first run to write phone/state.json.
+6. Walk me through making the phone key (README → On your phone, step 3); I paste it to you. Then give me my
+   one-tap install link: https://zacfink.github.io/brain/mobile/#c= followed by base64 of
+   {"repo":"<me>/notes","token":"<key>"}. Tell me to open it in Safari, tap Share → Add to Home Screen, and treat
+   the link like a password. Don't save the key anywhere.
+7. Finish with a short list: what's set up, what I should try first, and anything that didn't work.
+```
+
 ## Try it (30 seconds)
 
 ```bash
