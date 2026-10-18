@@ -310,6 +310,7 @@ button, .row, header[data-sec] { -webkit-touch-callout: none; }
     <input id="token" type="password" placeholder="github_pat_…" autocapitalize="off" autocorrect="off" spellcheck="false" required>
     <p class="help">Make one at <b>github.com → Settings → Developer settings → Fine-grained tokens</b>: only your notes repo, with <code>Contents: Read and write</code>. You can revoke it there anytime.</p>
     <button class="go" type="submit">Connect</button>
+    <button class="more" type="button" id="copyLink">Copy install link for another phone</button>
     <button class="more" type="button" id="signOut">Forget this key on this phone</button>
   </form>
 </section>
@@ -340,6 +341,11 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem("brain." + k); return v ? JSON.parse(v) : d; } catch { return d; } },
   set(k, v) { try { localStorage.setItem("brain." + k, JSON.stringify(v)); } catch {} },
 };
+// One-link install: …/mobile/#c=<base64 {repo, token}> connects without typing. In Safari the link stays in the
+// address bar so Add to Home Screen keeps it (the home-screen app has its own storage); the installed app strips it.
+const standalone = navigator.standalone || matchMedia("(display-mode: standalone)").matches;
+const linkCfg = (() => { try { const c = JSON.parse(atob(new URLSearchParams(location.hash.slice(1)).get("c"))); return c.repo && c.token ? c : null; } catch { return null; } })();
+if (linkCfg) { store.set("cfg", linkCfg); if (standalone) history.replaceState(null, "", location.pathname); }
 let cfg = store.get("cfg", null), S = store.get("state", null), outbox = store.get("outbox", []), error = null;
 const today = () => new Date().toLocaleDateString("en-CA");
 const daysFrom = d => Math.round((new Date(d + "T00:00") - new Date(today() + "T00:00")) / 864e5);
@@ -774,6 +780,12 @@ $("setForm").onsubmit = async e => {
   cfg = { repo: $("repo").value.trim().replace(/^https:\/\/github\.com\//, "").replace(/\/$/, ""), token: $("token").value.trim() };
   store.set("cfg", cfg); close("settings"); boot();
 };
+$("copyLink").onclick = async () => {
+  if (!cfg) return toast("Connect first");
+  const url = location.origin + location.pathname + "#c=" + btoa(JSON.stringify({ repo: cfg.repo, token: cfg.token }));
+  try { await navigator.clipboard.writeText(url); toast("Copied. It holds your key, so only send it to yourself"); }
+  catch { prompt("Your install link (it holds your key):", url); }
+};
 $("signOut").onclick = () => { try { localStorage.clear(); } catch {} cfg = null; S = null; outbox = []; location.reload(); };
 $("refresh").onclick = () => refresh(true);
 
@@ -869,6 +881,7 @@ function boot() {
   $("openCapture").hidden = $("mic").hidden = !cfg;
   if (!cfg) { $("main").innerHTML = `<section class="tile"><p>Connect your notes repo to get started.</p><button class="go" onclick="document.getElementById('openSettings').click()">Connect</button></section>`; return; }
   render(); refresh(); flush(); if (!G) loadGraph();
+  if (linkCfg && !standalone) setTimeout(() => toast("Connected. Now tap Share, then Add to Home Screen"), 600);
 }
 document.addEventListener("visibilitychange", () => { if (!document.hidden) { refresh(); flush(); } });
 addEventListener("online", flush);
