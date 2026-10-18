@@ -170,7 +170,7 @@ button.card { transition: transform .18s var(--ease), background-color .2s, colo
 .dots i.on { width: 18px; background: var(--amber); }
 .deck { --deck: #000; background: var(--deck); margin: 0 -16px calc(-1 * (env(safe-area-inset-bottom) + 96px)); padding: 18px 16px calc(env(safe-area-inset-bottom) + 110px);
   border-radius: 30px 30px 0 0; border-top: 1px solid var(--line); min-height: 60vh; }
-html[data-theme="light"] .deck, html[data-theme="soft"] .deck { --deck: #1d1d1f; border-top: 0; }
+html[data-theme="light"] .deck, html[data-theme="soft"] .deck { --deck: color-mix(in srgb, var(--ink) 6%, var(--bg)); }
 /* note reader */
 .md h1 { font: 800 30px/1.05 var(--display); margin: 0 0 12px; }
 .md h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .09em; color: var(--amber); margin: 26px 0 8px; }
