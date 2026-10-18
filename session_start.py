@@ -77,10 +77,35 @@ def context():
     if inbox:
         lines.append("Inbox has %d capture(s) from the app — file each into the right note, then delete it from inbox.md:" % len(inbox))
         lines += ["  - " + i for i in inbox[:15]]
+    ranked = ranked_nudges(read("nudges.md"), today)
+    if ranked:
+        lines.append("Open nudges, most overdue first (the top one is the biggest gap; raise it with %s early): " % name
+                     + " | ".join(ranked[:5]))
     cal = calibration()
     if cal:
         lines.append(cal)
     return "\n".join(lines)
+
+
+def ranked_nudges(text, today):
+    """Open nudges (and snoozes that have run out) ranked like drives: the further past due, the higher.
+    Undated ones go last."""
+    out = []
+    for m in re.finditer(r"^## (N-\d+) · (.+)\n((?:- [a-z_]+:.*\n?)*)", text, re.M):
+        f = dict(re.findall(r"^- ([a-z_]+):[ \t]*(.*)$", m.group(3), re.M))
+        snooze_over = f.get("status") == "snoozed" and f.get("snooze_until", "") and f["snooze_until"] <= today
+        if f.get("status") != "open" and not snooze_over:
+            continue
+        due = f.get("due", "")
+        try:
+            over = (datetime.date.fromisoformat(today) - datetime.date.fromisoformat(due)).days
+        except ValueError:
+            over, due = None, ""
+        label = "%s %s" % (m.group(1), m.group(2).strip())
+        if over is not None:
+            label += " (%s)" % ("%dd overdue" % over if over > 0 else "due today" if over == 0 else "due " + due)
+        out.append((over is None, -(over or 0), label))
+    return [label for *_, label in sorted(out)]
 
 
 def calibration():
