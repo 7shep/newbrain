@@ -62,7 +62,7 @@ ACTIONS = {
     "habit-new": server.act_habit_new,
 }
 # What the phone shows. Sessions and the note list stay on the Mac.
-KEEP = ("today", "issue", "streak", "now", "me", "people", "nudges", "habits", "projects", "ideas", "ideas_closed", "inbox", "agents", "predictions")
+KEEP = ("today", "issue", "streak", "now", "me", "people", "nudges", "habits", "projects", "ideas", "ideas_closed", "inbox", "agents", "predictions", "internships")
 
 
 def apply_queue():
@@ -92,6 +92,8 @@ def main():
         p.pop("resume", None)
         p.pop("folders", None)
     path = os.path.join(NOTES, "phone", "answers.json")
+    state["sessions"] = [{"path": x["path"], "title": x["title"], "date": x["meta"].get("date", ""), "tldr": x.get("tldr", "")}
+                         for x in full.get("sessions", [])[:30]]
     state["answers"] = json.load(open(path, encoding="utf-8")) if os.path.exists(path) else []
     state["built"] = datetime.datetime.now().isoformat(timespec="seconds")
     state["applied"], state["failed"] = applied, failed
