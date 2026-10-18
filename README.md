@@ -94,7 +94,8 @@ Set up Brain (https://github.com/zacfink/brain) for me from scratch. Work throug
 each step is for in one line, and ask me before anything that touches my accounts.
 
 1. Clone https://github.com/zacfink/brain.git into ~/Notes/.brain (keep anything already in ~/Notes), link
-   ~/Notes/.brain/bin/brain onto my PATH, and read ~/Notes/.brain/README.md and FORMATS.md before going on.
+   ~/Notes/.brain/bin/brain into ~/.local/bin (create it, and add it to my shell profile's PATH if it isn't
+   there), and read ~/Notes/.brain/README.md and FORMATS.md before going on.
 2. Interview me briefly: my name, what I do, my active projects, people I work with, anything due in the next two
    weeks. Then write my first notes in the FORMATS.md shapes: me.md, now.md, one page per project, people pages,
    nudges.md, ideas.md, inbox.md and claude/habits.md (two or three habits from what I told you, status "proposed").

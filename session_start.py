@@ -54,7 +54,8 @@ def context():
     home = NOTES.replace(os.path.expanduser("~"), "~", 1)
     lines = ["[Brain] %s is %s's brain: read %s/INDEX.md + the relevant project page before project work." % (home, name, home)]
     today = datetime.date.today().isoformat()
-    if "## Today · " + today not in read("now.md"):
+    now = read("now.md")
+    if "## Today · " in now and "## Today · " + today not in now:  # only for people who use the morning routine
         lines.append(
             "MORNING UPDATE NOT DONE YET TODAY — do it FIRST, before anything else the user asks: "
             "(1) file every inbox.md capture into its note and empty the inbox; "

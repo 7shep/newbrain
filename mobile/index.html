@@ -345,7 +345,7 @@ const store = {
 // One-link install: …/mobile/#c=<base64 {repo, token}> connects without typing. In Safari the link stays in the
 // address bar so Add to Home Screen keeps it (the home-screen app has its own storage); the installed app strips it.
 const standalone = navigator.standalone || matchMedia("(display-mode: standalone)").matches;
-const linkCfg = (() => { try { const c = JSON.parse(atob(new URLSearchParams(location.hash.slice(1)).get("c"))); return c.repo && c.token ? c : null; } catch { return null; } })();
+const linkCfg = (() => { try { const c = JSON.parse(atob(decodeURIComponent((location.hash.match(/^#c=([^&]+)/) || [])[1]))); return c.repo && c.token ? c : null; } catch { return null; } })();
 if (linkCfg) { store.set("cfg", linkCfg); if (standalone) history.replaceState(null, "", location.pathname); }
 let cfg = store.get("cfg", null), S = store.get("state", null), outbox = store.get("outbox", []), error = null;
 const today = () => new Date().toLocaleDateString("en-CA");
@@ -799,7 +799,7 @@ $("setForm").onsubmit = async e => {
 };
 $("copyLink").onclick = async () => {
   if (!cfg) return toast("Connect first");
-  const url = location.origin + location.pathname + "#c=" + btoa(JSON.stringify({ repo: cfg.repo, token: cfg.token }));
+  const url = location.origin + location.pathname + "#c=" + encodeURIComponent(btoa(JSON.stringify({ repo: cfg.repo, token: cfg.token })));
   try { await navigator.clipboard.writeText(url); toast("Copied. It holds your key, so only send it to yourself"); }
   catch { prompt("Your install link (it holds your key):", url); }
 };
