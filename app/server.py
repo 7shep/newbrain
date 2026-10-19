@@ -563,7 +563,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         action, rid = body.get("action"), str(body.get("id") or "")
         try:
             if action == "refresh":
-                snap = ROUTINES.refresh()
+                snap = ROUTINES.refresh(force=not body.get("ifStale"))
             elif action == "suggest":
                 snap = ROUTINES.suggest()
             else:
@@ -572,6 +572,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self.send(404, {"error": "That routine isn't in the list any more. Refreshing."})
         except ValueError as e:
             return self.send(400, {"error": str(e)})
+        except Exception as e:  # always answer: the tile shows the message
+            return self.send(500, {"error": str(e)})
         if SYNC.enabled() and snap:
             with LOCK:
                 SYNC.commit(["claude/routines.json"], "brain: routines")

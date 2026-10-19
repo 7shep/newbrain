@@ -93,7 +93,9 @@ class Routines:
         self.path = os.path.join(notes, SNAPSHOT)
         self.command = command or routine_command()
         self.suggest_cmd = suggest_command or globals()["suggest_command"]()
-        self.lock = threading.Lock()
+        self.busy = threading.Lock()   # one refresh at a time; a second caller gets the current snapshot
+        self.saving = threading.Lock()  # load-merge-save, so a slow call can't overwrite a newer change
+        self.failed_at = None           # in memory: back off after a failed refresh, even with no snapshot yet
 
     def load(self):
         try:
@@ -103,15 +105,24 @@ class Routines:
             return None
 
     def stale(self, minutes=10):
+        limit = datetime.timedelta(minutes=minutes)
+        if self.failed_at and datetime.datetime.now() - self.failed_at < limit:
+            return False
         snap = self.load()
         if not snap or not snap.get("checked"):
             return True
-        return datetime.datetime.now() - datetime.datetime.fromisoformat(snap["checked"]) > datetime.timedelta(minutes=minutes)
+        return datetime.datetime.now() - datetime.datetime.fromisoformat(snap["checked"]) > limit
 
-    def _save(self, snap):
-        os.makedirs(os.path.dirname(self.path), exist_ok=True)
-        _write_atomic(self.path, json.dumps(snap, ensure_ascii=False, indent=1))
-        return snap
+    def _merge(self, change):
+        """Re-read the snapshot after the slow claude call and apply only this call's fields to it."""
+        with self.saving:
+            snap = self.load()
+            if snap is None:
+                return None
+            change(snap)
+            os.makedirs(os.path.dirname(self.path), exist_ok=True)
+            _write_atomic(self.path, json.dumps(snap, ensure_ascii=False, indent=1))
+            return snap
 
     def _ask(self, command, prompt):
         """Run claude with the prompt on stdin; returns (reply dict, error text)."""
@@ -127,37 +138,54 @@ class Routines:
         except ValueError:
             return None, (p.stdout.strip() or p.stderr.strip() or "No reply.")[:300]
 
-    def refresh(self):
-        if not self.lock.acquire(blocking=False):
+    def refresh(self, force=True):
+        """force=False (page loads) does nothing while the snapshot is fresh or a failure is being backed off."""
+        if not force and not self.stale():
+            return self.load()
+        if not self.busy.acquire(blocking=False):
             return self.load()
         try:
-            snap = self.load() or {"routines": [], "suggestions": [], "suggested": ""}
             reply, error = self._ask(self.command, STATUS_PROMPT)
-            if reply is not None and isinstance(reply.get("routines"), list):
-                old = {r["id"]: r.get("why_pause", "") for r in snap.get("routines", [])}
-                snap["routines"] = [dict(_clean(x), why_pause=old.get(str(x.get("id")), "")) for x in reply["routines"]]
-                snap["checked"] = datetime.datetime.now().isoformat(timespec="seconds")
-            snap["error"] = error or ("" if reply is not None else "No reply.")
-            return self._save(snap)
+            items = reply.get("routines") if reply is not None else None
+            now = datetime.datetime.now().isoformat(timespec="seconds")
+            if not isinstance(items, list):
+                error = error or "Unexpected reply: %s" % json.dumps(reply)[:200]
+                self.failed_at = datetime.datetime.now()
+                # A failed check still counts as a check, so page loads don't keep spawning claude.
+                return self._merge(lambda snap: snap.update(error=error, checked=now)) or {"routines": [], "suggestions": [], "error": error}
+            self.failed_at = None
+            fresh = [_clean(x) for x in items if isinstance(x, dict)]
+
+            def apply(snap):
+                why = {r["id"]: r.get("why_pause", "") for r in snap.get("routines", [])}
+                snap.update(routines=[dict(r, why_pause=why.get(r["id"], "")) for r in fresh], checked=now, error="")
+            with self.saving:  # first snapshot: create it
+                if self.load() is None:
+                    os.makedirs(os.path.dirname(self.path), exist_ok=True)
+                    _write_atomic(self.path, json.dumps({"routines": [], "suggestions": [], "suggested": ""}))
+            return self._merge(apply)
         finally:
-            self.lock.release()
+            self.busy.release()
 
     def act(self, rid, action):
         if action not in ("run", "pause", "resume"):
             raise ValueError("unknown action: %s" % action)
-        snap = self.load() or {}
-        if rid not in {r["id"] for r in snap.get("routines", [])}:
+        if rid not in {r["id"] for r in (self.load() or {}).get("routines", [])}:
             raise KeyError(rid)
         body = "" if action == "run" else ", body {\"enabled\": %s}" % ("false" if action == "pause" else "true")
         reply, error = self._ask(self.command, ACT_PROMPT.format(action="run" if action == "run" else "update", rid=rid, body=body))
         if error or not (reply or {}).get("ok"):
-            return self._save(dict(snap, error=error or (reply or {}).get("error") or "That didn't work."))
+            msg = error or (reply or {}).get("error") or "That didn't work."
+            return self._merge(lambda snap: snap.update(error=msg))
+
         # It worked, so the snapshot already knows the result: no second claude call (that doubled the wait).
         # A run's last_run shows up on the next refresh.
-        for r in snap["routines"]:
-            if r["id"] == rid and action != "run":
-                r["enabled"] = action == "resume"
-        return self._save(dict(snap, error=""))
+        def apply(snap):
+            snap["error"] = ""
+            for r in snap.get("routines", []):
+                if r["id"] == rid and action != "run":
+                    r["enabled"] = action == "resume"
+        return self._merge(apply)
 
     def suggest(self, force=False):
         snap = self.load()
@@ -166,11 +194,15 @@ class Routines:
             return snap
         reply, error = self._ask(self.suggest_cmd, SUGGEST_PROMPT)
         if reply is None:
-            return self._save(dict(snap, error=error))
-        snap["suggestions"] = [{k: str(s.get(k, "")) for k in ("title", "schedule", "text")}
-                               for s in reply.get("suggestions", [])[:3] if isinstance(s, dict) and s.get("text")]
-        why = {str(p.get("id")): str(p.get("reason", "")) for p in reply.get("pause", []) if isinstance(p, dict)}
-        for r in snap.get("routines", []):
-            r["why_pause"] = why.get(r["id"], "")
-        snap["suggested"] = today
-        return self._save(snap)
+            return self._merge(lambda s: s.update(error=error))
+        sugs = reply.get("suggestions") if isinstance(reply.get("suggestions"), list) else []
+        pause = reply.get("pause") if isinstance(reply.get("pause"), list) else []
+        # The text goes into a RemoteTrigger-capable prompt when picked, so keep it short enough to read in full.
+        sugs = [{k: str(g.get(k, ""))[:200] for k in ("title", "schedule", "text")} for g in sugs[:3] if isinstance(g, dict) and g.get("text")]
+        why = {str(p.get("id")): str(p.get("reason", "")) for p in pause if isinstance(p, dict)}
+
+        def apply(s):
+            s.update(suggestions=sugs, suggested=today)
+            for r in s.get("routines", []):
+                r["why_pause"] = why.get(r["id"], "")
+        return self._merge(apply)

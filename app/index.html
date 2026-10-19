@@ -759,7 +759,7 @@ async function freshenRoutines() {
   routinesAsked = true;
   const R = S.routines, today = new Date().toLocaleDateString("en-CA");
   try {
-    if (!R || !R.checked || Date.now() - new Date(R.checked) > 600e3) { await api("/api/routines", { action: "refresh" }); await load(); }
+    if (!R || !R.checked || Date.now() - new Date(R.checked) > 600e3) { await api("/api/routines", { action: "refresh", ifStale: true }); await load(); }
     if (S.routines && S.routines.suggested !== today) { await api("/api/routines", { action: "suggest" }); await load(); }
   } catch (e) { /* the snapshot carries its own error line */ }
 }

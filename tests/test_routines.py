@@ -42,8 +42,46 @@ class RoutinesTest(unittest.TestCase):
         self.assertTrue(snap["error"])
 
     def test_missing_claude_sets_error(self):
+        Routines(self.notes, command=fake(ONE)).refresh()
         snap = Routines(self.notes, command=["/no/such/claude"]).refresh()
         self.assertIn("wasn't found", snap["error"])
+
+    def test_reply_without_a_routines_list_is_an_error(self):
+        Routines(self.notes, command=fake(ONE)).refresh()
+        snap = Routines(self.notes, command=fake('Error from tool: {"type": "auth_error"}')).refresh()
+        self.assertTrue(snap["error"])
+        self.assertEqual(snap["routines"][0]["id"], "t1")
+
+    def test_malformed_items_are_skipped_not_fatal(self):
+        r = Routines(self.notes, command=fake('{"routines": ["t1", {"id": "t2", "name": "B"}]}'),
+                     suggest_command=fake('{"suggestions": {"title": "x"}, "pause": "nope"}'))
+        self.assertEqual([x["id"] for x in r.refresh()["routines"]], ["t2"])
+        self.assertEqual(r.suggest()["suggestions"], [])
+
+    def test_failed_first_refresh_writes_nothing_and_backs_off(self):
+        r = Routines(self.notes, command=["/no/such/claude"])
+        self.assertIn("wasn't found", r.refresh()["error"])
+        self.assertIsNone(r.load())   # new users without claude don't get a broken tile
+        self.assertFalse(r.stale())   # and the next page load doesn't spawn claude again straight away
+
+    def test_refresh_if_stale_skips_claude_while_backing_off(self):
+        r = Routines(self.notes, command=["/no/such/claude"])
+        r.refresh()
+        r.command = fake(ONE)
+        self.assertIsNone(r.refresh(force=False))       # backing off: no call, still no snapshot
+        self.assertEqual(r.refresh()["routines"][0]["id"], "t1")  # the Refresh button forces it
+
+    def test_pause_during_a_slow_suggest_is_not_lost(self):
+        Routines(self.notes, command=fake(ONE)).refresh()
+        slow = Routines(self.notes, suggest_command=fake('{"suggestions":[{"title":"W","schedule":"S","text":"t"}],"pause":[]}', seconds=1))
+        t = threading.Thread(target=slow.suggest)
+        t.start()
+        time.sleep(0.3)
+        Routines(self.notes, command=fake('{"ok": true}')).act("t1", "pause")
+        t.join()
+        snap = slow.load()
+        self.assertFalse(snap["routines"][0]["enabled"])
+        self.assertEqual(snap["suggestions"][0]["title"], "W")
 
     def test_act_validates(self):
         r = Routines(self.notes, command=fake('{"routines":[{"id":"t1","name":"A"}]}'))
