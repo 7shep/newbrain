@@ -22,6 +22,7 @@ act on them.
 - **People & me:** your profile and contacts, one click away but out of the main view.
 - **On your phone:** a home-screen app with the cover, Up next, Notes to self, projects, ideas, habits and capture. It works with your laptop off, using a private GitHub repo as the backend. [Set it up →](#on-your-phone)
 - **Background agents:** anything you capture can start a headless Claude Code agent that files it or does it. [More →](#background-agents-optional)
+- **Routines:** your Claude Code routines (scheduled cloud agents) with their schedule and last run; run, pause or resume one from the Mac, see which look unnecessary, and pick from suggested new ones in Capture (Routine). The phone shows them read-only.
 - **Stats:** prompts sent, sessions, subagents, tool calls, tokens and storage, with 30-day charts, read straight from Claude Code's transcripts.
 - **How well Claude knows you:** Claude logs each bet it makes about what you'll want (a recommended option, a guess, a draft), and Brain scores its calibration.
 

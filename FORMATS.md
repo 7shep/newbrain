@@ -79,6 +79,16 @@ a score and a calibration chart (the score chip in the top bar).
 - 2026-09-27 · 60% · recommend · bet: Todos only · got: Everything · miss
 ```
 
+## `claude/routines.json` — your routines (written by Brain, don't edit)
+Brain asks Claude Code for your routines (when the app opens and the copy is over 10 minutes old) and keeps the
+answer here so the phone can show it. `why_pause` and `suggestions` come from a once-a-day pass over your notes.
+```json
+{"checked": "2026-10-19T13:54:50", "error": "", "suggested": "2026-10-19",
+ "routines": [{"id": "trig_…", "name": "Morning update", "schedule": "Daily 7am", "enabled": true,
+               "last_run": "2026-10-19 07:02", "ok": true, "next_run": "2026-10-20 07:00", "why_pause": ""}],
+ "suggestions": [{"title": "Sunday week plan", "schedule": "Sundays 6pm", "text": "Every Sunday at 6pm, plan my week"}]}
+```
+
 ## `now.md` — the cover story
 Claude rewrites after real work. Headline is punchy, magazine-style, true. `*word*` renders italic.
 ```
