@@ -44,6 +44,20 @@ def default_command(notes):
     return codex_command(notes)
 
 
+def _write_atomic(path, text):
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.write(text)
+    for attempt in range(20):  # Windows refuses the replace while a reader has the file open
+        try:
+            os.replace(tmp, path)
+            return
+        except PermissionError:
+            if attempt == 19:
+                raise
+            time.sleep(0.05)
+
+
 def now():
     return datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 
@@ -69,17 +83,7 @@ class Agents:
         body = "---\n%s---\n\n## Input\n%s\n" % (head, text)
         if report:
             body += "\n## Report\n%s\n" % report
-        tmp = path + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as f:
-            f.write(body)
-        for attempt in range(20):  # Windows refuses the replace while a reader (recent()) has the file open
-            try:
-                os.replace(tmp, path)
-                return
-            except PermissionError:
-                if attempt == 19:
-                    raise
-                time.sleep(0.05)
+        _write_atomic(path, body)
 
     def _read(self, path):
         with open(path, encoding="utf-8", errors="replace") as f:
@@ -176,14 +180,20 @@ class Agents:
         meta = {"status": "running", "type": kind, "runner": self.runner,
                 "queued": self._read(path)[0].get("queued", now()), "started": now()}
         self._write(path, meta, text)
+        command, prompt = self.command, self.prompt.format(kind=kind, text=text)
+        if kind == "routine":
+            prompt += ("\nThis is a routine proposal. Describe its schedule and self-contained prompt for "
+                       "the user to create in Codex Automations. Do not create or enable an automation.")
         try:
-            p = subprocess.run(self.command, input=self.prompt.format(kind=kind, text=text), cwd=self.notes,
+            p = subprocess.run(command, input=prompt, cwd=self.notes,
                                capture_output=True, encoding="utf-8", errors="replace", timeout=self.timeout)
             status = "done" if p.returncode == 0 else "failed"
             report = (p.stdout.strip() or p.stderr.strip() or "(no output)")
         except subprocess.TimeoutExpired:
             status, report = "failed", "Stopped after %d minutes." % (self.timeout // 60)
         except FileNotFoundError:
-            status, report = "failed", "The %s command wasn't found." % os.path.basename(self.command[0])
+            status, report = "failed", "The %s command wasn't found." % os.path.basename(command[0])
+        except RuntimeError as e:
+            status, report = "failed", str(e)
         meta.update(status=status, finished=now())
         self._write(path, meta, text, report[:2000])

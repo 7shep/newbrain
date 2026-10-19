@@ -56,8 +56,11 @@ class CalibrationLineTest(unittest.TestCase):
 
     def test_morning_update_asked_until_today_section_exists(self):
         import datetime
-        self.assertIn("MORNING UPDATE", self.run_hook([]))
+        self.assertIn("MORNING UPDATE", self.run_hook([], now="## Today · 2000-01-01\n"))
         self.assertNotIn("MORNING UPDATE", self.run_hook([], now="## Today · %s\n" % datetime.date.today()))
+
+    def test_no_morning_update_for_someone_who_never_used_it(self):
+        self.assertNotIn("MORNING UPDATE", self.run_hook([]))  # a fresh setup's first session isn't hijacked
 
     def test_too_few_bets_says_nothing(self):
         self.assertNotIn("Calibration", self.run_hook(["- 2026-09-27 · 70% · draft · bet: a · got: b · miss"] * 4))

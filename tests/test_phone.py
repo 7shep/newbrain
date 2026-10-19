@@ -169,7 +169,10 @@ class ApplyQueueTest(unittest.TestCase):
         self.assertIn("Plant tracker sends a weekly photo collage of growth (done", read(notes, "ideas.md"))
         self.assertEqual(next(h for h in state["habits"] if h["id"] == "H-002")["status"], "off")
         self.assertIn("Ask before long builds", read(notes, "codex/habits.md"))
-        self.assertNotIn("sessions", state)  # the phone only gets what it shows
+        self.assertIn("sessions", state)
+        self.assertIn("people", state)
+        self.assertIn("routines", state)
+        self.assertTrue(all(set(s) == {"path", "title", "date", "tldr"} for s in state["sessions"]))
 
     def test_captures_are_parked_for_the_mac_not_run(self):
         notes = notes_copy()

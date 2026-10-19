@@ -26,6 +26,7 @@ act on them.
 - **Background agents:** opt-in captures start a read-only Codex agent that proposes note changes or task steps in a report. [More →](#background-agents-optional)
 - **Stats:** prompts sent, sessions, subagents, tool calls, tokens and storage, with 30-day charts, read from Codex's session transcripts.
 - **How well Codex knows you:** Codex logs each bet it makes about what you'll want (a recommended option, a guess, a draft), and Brain scores its calibration.
+- **Routines:** local Codex automations appear on desktop and phone. Capture → Routine asks the read-only Codex agent for a proposal; create, run, pause and resume automations in the Codex app.
 
 Everything is plain markdown on your machine. The app is a few small Python files plus one HTML file, uses only the
 standard library, has no build step, and runs on macOS, Windows and Linux.
@@ -85,6 +86,35 @@ argues against it first.**
 **What I build on:** [Superpowers](https://github.com/obra/superpowers) (brainstorm, then spec, then plan, then
 test-first for anything real), [graphify](https://github.com/safishamsi/graphify) (the Map), and the impeccable
 design plugin for UI work. Brain is the glue: it's where the habits, the specs and every session's outcome live.
+
+## Start from scratch (one prompt)
+
+New to Brain? Paste this into [Codex](https://developers.openai.com/codex/) and answer its questions. It does every
+step below for you and ends by giving you a link to open on your phone.
+
+```text
+Set up Brain (https://github.com/7shep/newbrain) for me from scratch. Work through it step by step, tell me what
+each step is for in one line, and ask me before anything that touches my accounts.
+
+1. Clone https://github.com/7shep/newbrain.git into ~/Notes/.brain (keep anything already in ~/Notes), link
+   ~/Notes/.brain/bin/brain into ~/.local/bin (create it, and add it to my shell profile's PATH if it isn't
+   there), and read ~/Notes/.brain/README.md and FORMATS.md before going on.
+2. Interview me briefly: my name, what I do, my active projects, people I work with, anything due in the next two
+   weeks. Then write my first notes in the FORMATS.md shapes: me.md, now.md, one page per project, people pages,
+   nudges.md, ideas.md, inbox.md and codex/habits.md (two or three habits from what I told you, status "proposed").
+   If you can see my projects folder, calendar or email, use them to fill gaps, and say what you took from where.
+3. Connect yourself: follow Connect Codex below, preserving existing instructions and hooks.
+   Then run python3 ~/Notes/.brain/build.py.
+4. Start the app with `brain` and check it opens at http://127.0.0.1:4747.
+5. Phone (ask me first): add ".brain/" to ~/Notes/.gitignore, create a PRIVATE GitHub repo "notes" with gh,
+   add docs/notes-workflow.yml as .github/workflows/brain.yml plus phone/queue/.gitkeep, commit and push, and wait
+   for the Action's first run to write phone/state.json.
+6. Walk me through making the phone key (README → On your phone, step 3); I paste it to you. Then give me my
+   one-tap install link: https://7shep.github.io/newbrain/mobile/#c= followed by base64 of
+   {"repo":"<me>/notes","token":"<key>"}. Tell me to open it in Safari, tap Share → Add to Home Screen, and treat
+   the link like a password. Don't save the key anywhere.
+7. Finish with a short list: what's set up, what I should try first, and anything that didn't work.
+```
 
 ## Try it (30 seconds)
 
@@ -283,3 +313,13 @@ buttons read session ids from `~/.codex/projects`.
 Notes and editor previews typeset LaTeX using bundled KaTeX 0.16.22, including local fonts. Use `$x^2$` or `\(x^2\)` for inline math, and `$$...$$` or `\[...\]` for display equations. Display expressions can span multiple lines and include environments such as `aligned`, `pmatrix`, and `cases`. Code spans and fenced code blocks show their source literally. Unsupported TeX appears in red without interrupting the note.
 
 Run the math regression checks with `node tests/test_math.cjs`; run the Python suite with `py -m unittest discover -s tests`.
+
+### Routines connector
+
+Brain reads automation names, schedules and active status from
+`$CODEX_HOME/automations/*/automation.toml` (default `~/.codex`). It caches the display
+in `codex/routines.json` so the phone can read it after notes sync. Run history and
+schedule controls stay in the Codex app; Brain does not edit automation files.
+Routine captures produce proposals under the existing read-only background agent permissions.
+The upstream Claude connector remains in `app/routines.py`; this fork uses
+`app/codex_routines.py`. No Claude installation is needed.

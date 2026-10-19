@@ -46,7 +46,7 @@ def main():
 def context():
     """The brain summary every session starts with. Also written into Codex's AGENTS.md by brain_codex.py."""
     habits = blocks(read("codex/habits.md"))
-    on = [t for _, t, s, _src in habits if s == "on"]
+    on = ["%s %s" % (i, t) for i, t, s, _src in habits if s == "on"]
     proposed = [t for _, t, s, src in habits if s == "proposed" and not src.startswith("brainstorm")]
     brainstorm = [t for _, t, s, src in habits if s == "proposed" and src.startswith("brainstorm")]
     inbox = [l[2:] for l in read("inbox.md").splitlines() if l.startswith("- ")]
@@ -54,7 +54,8 @@ def context():
     home = NOTES.replace(os.path.expanduser("~"), "~", 1).replace("\\", "/")
     lines = ["[Brain] %s is %s's brain: read %s/INDEX.md + the relevant project page before project work." % (home, name, home)]
     today = datetime.date.today().isoformat()
-    if "## Today · " + today not in read("now.md"):
+    now = read("now.md")
+    if "## Today · " in now and "## Today · " + today not in now:  # only for people who use the morning routine
         lines.append(
             "MORNING UPDATE not recorded for today. When it fits the user's request, review inbox captures, "
             "Upcoming and active project threads; verify completion before marking anything done. "
@@ -64,6 +65,8 @@ def context():
             "Handle the user's current request first." % (today, home))
     if on:
         lines.append("Habits %s has on (follow them): " % name + " | ".join(on))
+        lines.append("In the session note's frontmatter, list the habits you actually applied as `habits: [H-001, H-014]`"
+                     " — the app sorts unused ones down so %s can clean them up." % name)
     if proposed:
         lines.append("Proposed habits awaiting %s in the app (don't follow yet): " % name + " | ".join(proposed))
     if brainstorm:
@@ -72,10 +75,35 @@ def context():
     if inbox:
         lines.append("Inbox has %d capture(s) from the app — file each into the right note, then delete it from inbox.md:" % len(inbox))
         lines += ["  - " + i for i in inbox[:15]]
+    ranked = ranked_nudges(read("nudges.md"), today)
+    if ranked:
+        lines.append("Open nudges, most overdue first (the top one is the biggest gap; raise it with %s early): " % name
+                     + " | ".join(ranked[:5]))
     cal = calibration()
     if cal:
         lines.append(cal)
     return "\n".join(lines)
+
+
+def ranked_nudges(text, today):
+    """Open nudges (and snoozes that have run out) ranked like drives: the further past due, the higher.
+    Undated ones go last."""
+    out = []
+    for m in re.finditer(r"^## (N-\d+) · (.+)\n((?:- [a-z_]+:.*\n?)*)", text, re.M):
+        f = dict(re.findall(r"^- ([a-z_]+):[ \t]*(.*)$", m.group(3), re.M))
+        snooze_over = f.get("status") == "snoozed" and f.get("snooze_until", "") and f["snooze_until"] <= today
+        if f.get("status") != "open" and not snooze_over:
+            continue
+        due = f.get("due", "")
+        try:
+            over = (datetime.date.fromisoformat(today) - datetime.date.fromisoformat(due)).days
+        except ValueError:
+            over, due = None, ""
+        label = "%s %s" % (m.group(1), m.group(2).strip())
+        if over is not None:
+            label += " (%s)" % ("%dd overdue" % over if over > 0 else "due today" if over == 0 else "due " + due)
+        out.append((over is None, -(over or 0), label))
+    return [label for *_, label in sorted(out)]
 
 
 def calibration():

@@ -64,18 +64,20 @@ button { cursor: pointer; }
 .next small { font: 500 11px var(--mono); color: var(--dim); display: block; }
 .next .t { font-weight: 600; }
 .next .d { color: var(--muted); font-size: 13.5px; }
-.nudge { background: var(--tile-2); border-radius: 14px; padding: 12px; margin-bottom: 8px; }
-.nudge h4 { margin: 0 0 4px; font-size: 15px; }
+.nudge, .job { background: var(--tile-2); border-radius: 14px; padding: 12px; margin-bottom: 8px; }
+.nudge h4, .job h4 { margin: 0 0 4px; font-size: 15px; }
 .due { font: 500 11px var(--mono); color: var(--rose); margin-left: 6px; }
-.nudge p { margin: 0 0 10px; color: var(--muted); font-size: 13.5px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.nudge p.full { display: block; }
+.nudge p, .job p { margin: 0 0 10px; color: var(--muted); font-size: 13.5px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.nudge p.full, .job p.full { display: block; }
+.job p { margin: 4px 0 0; white-space: pre-line; } .idea small.clamp { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; } a.pill { color: inherit; text-decoration: none; display: inline-block; } .job small { font: 500 11px var(--mono); color: var(--dim); }
 .acts { display: flex; flex-wrap: wrap; gap: 6px; }
-.pill { border: 1px solid var(--tile-3); background: var(--tile-3); border-radius: 999px; padding: 7px 10px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.pill { border: 1px solid transparent; background: color-mix(in srgb, var(--ink) 9%, transparent); border-radius: 999px; padding: 7px 10px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
 .pill.yes { background: var(--mint); color: var(--mint-ink); border-color: var(--mint); }
 .row { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-top: 1px solid var(--line); width: 100%; background: none; border-left: 0; border-right: 0; border-bottom: 0; text-align: left; }
 .row:first-of-type { border-top: 0; }
 .row .st { width: 8px; height: 8px; border-radius: 50%; background: var(--mint); flex: none; }
 .row .st.paused { background: var(--amber); } .row .st.abandoned, .row .st.done { background: var(--dim); }
+.row .st.bad { background: var(--rose); } .row .st.off, .row .st.never { background: var(--dim); }
 .row .t { font-weight: 600; } .row .s { color: var(--muted); font-size: 13px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 .row > div { min-width: 0; flex: 1; }
 .idea { padding: 10px 0; border-top: 1px solid var(--line); }
@@ -89,6 +91,9 @@ button { cursor: pointer; }
 .habit small { color: var(--dim); font: 500 11px var(--mono); }
 .sw { width: 44px; height: 26px; border-radius: 26px; background: var(--tile-3); border: 0; position: relative; flex: none; margin-top: 2px; }
 .sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--muted); transition: transform .5s var(--spring); }
+.secpick { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 18px; }
+.secpick .pill { background: transparent; color: var(--muted); transition: background-color .2s, color .2s, transform .18s var(--ease); } .secpick .pill:active { transform: scale(.96); }
+.secpick .pill.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .theme-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
 .sw.on { background: var(--mint); } .sw.on::after { transform: translateX(18px); background: var(--mint-ink); }
 .empty { color: var(--dim); font-size: 14px; }
@@ -145,9 +150,29 @@ input { width: 100%; background: var(--tile); border: 1px solid var(--line); bor
 .stat:last-child small i { background: var(--lilac); }
 .stat b { display: block; font: 700 28px/1 var(--sans); letter-spacing: -.03em; margin-top: 12px; }
 .stat em { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-top: 6px; font: 500 12.5px/1.35 var(--sans); color: var(--muted); }
+/* update strip: cards side by side, swipe between them; one fills the view, the next peeks in (native scroll-snap, no JS drag) */
+.strip { container-type: inline-size; display: flex; gap: 10px; margin: 0 -18px; padding: 0 16px; scroll-padding: 0 16px;
+  overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.strip::-webkit-scrollbar { display: none; }
+.strip > .card { flex: 0 0 calc(100cqw - 24px); }
+.card { scroll-snap-align: start; scroll-snap-stop: always; min-width: 0; min-height: 168px; margin: 0; display: flex; flex-direction: column; text-align: left; }
+.card.tile { margin: 0; border-radius: 18px; padding: 16px; } .card > small:not(:has(i)) { font: 500 12px var(--mono); color: var(--muted); }
+button.card { transition: transform .18s var(--ease), background-color .2s, color .2s; } button.card:active { transform: scale(.985); }
+.card .big { margin-top: auto; }
+.card.stat b { font-size: 54px; letter-spacing: -.04em; margin-top: auto; }
+.snap { scroll-snap-align: start; scroll-snap-stop: always; }
+/* cover: one long card, headline on the left, what we did just to its right; swipe stops at the start, then at the end */
+.strip > .card.cover { flex: 0 0 auto; flex-direction: row; padding: 0; scroll-snap-align: none; }
+.card.cover > div { width: calc(100cqw - 24px); padding: 16px; display: flex; flex-direction: column; }
+.card.cover > div + div { width: calc(70cqw); padding-left: 0; scroll-snap-align: end; }
+.card.cover h3 { font-size: 25px; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+.card.cover p { font-size: 15px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 8; -webkit-box-orient: vertical; overflow: hidden; }
+.dots { display: flex; justify-content: center; gap: 6px; margin: 10px 0 14px; }
+.dots i { width: 6px; height: 6px; border-radius: 999px; background: var(--tile-3); transition: width .35s var(--spring), background-color .2s; }
+.dots i.on { width: 18px; background: var(--amber); }
 .deck { --deck: #000; background: var(--deck); margin: 0 -16px calc(-1 * (env(safe-area-inset-bottom) + 96px)); padding: 18px 16px calc(env(safe-area-inset-bottom) + 110px);
   border-radius: 30px 30px 0 0; border-top: 1px solid var(--line); min-height: 60vh; }
-html[data-theme="light"] .deck, html[data-theme="soft"] .deck { --deck: #1d1d1f; border-top: 0; }
+html[data-theme="light"] .deck, html[data-theme="soft"] .deck { --deck: color-mix(in srgb, var(--ink) 6%, var(--bg)); }
 /* note reader */
 .md h1 { font: 800 30px/1.05 var(--display); margin: 0 0 12px; }
 .md h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .09em; color: var(--amber); margin: 26px 0 8px; }
@@ -170,7 +195,7 @@ html[data-theme="light"] .deck, html[data-theme="soft"] .deck { --deck: #1d1d1f;
 #main.intro > .tile:nth-child(2) { animation-delay: .07s; } #main.intro > .tile:nth-child(3) { animation-delay: .14s; }
 #main.intro > .tile:nth-child(4) { animation-delay: .21s; } #main.intro > .tile:nth-child(5) { animation-delay: .28s; }
 #main.intro > .tile:nth-child(6) { animation-delay: .35s; }
-#main.intro .cover h3 { animation: rise .8s var(--ease) .15s backwards; }
+.hero.intro .card { animation: rise .7s var(--ease) backwards; } .hero.intro .card:nth-child(2) { animation-delay: .06s; } .hero.intro .card:nth-child(n+3) { animation-delay: .12s; }
 @keyframes rise { from { opacity: 0; transform: translateY(18px) scale(.97); } }
 .pill, .ib, .go, .fab, .types button, .row, .more { transition: transform .18s var(--ease), background-color .2s, color .2s; }
 .pill:active, .ib:active, .go:not(:disabled):active, .types button:active, .more:active { transform: scale(.92); }
@@ -204,10 +229,6 @@ textarea:focus-visible, input:focus-visible { outline: 0; }
 .nudge, .idea { touch-action: pan-y; position: relative; }
 .nudge.swiping, .idea.swiping { transition: none; }
 .swipe-hint { position: absolute; top: 50%; transform: translateY(-50%); font: 700 12px var(--mono); letter-spacing: .06em; text-transform: uppercase; opacity: 0; pointer-events: none; }
-/* pull to refresh */
-#ptr { position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 6px); width: 34px; height: 34px; margin-left: -17px; border-radius: 50%; background: var(--tile); border: 1px solid var(--line);
-  display: grid; place-items: center; color: var(--amber); z-index: 15; opacity: 0; transform: translateY(-40px); pointer-events: none; }
-#ptr.spin svg { animation: spin .7s linear infinite; }
 button, .row, header[data-sec] { -webkit-touch-callout: none; }
 #hap { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .confetti { position: fixed; width: 7px; height: 10px; border-radius: 2px; pointer-events: none; z-index: 40; }
@@ -234,8 +255,8 @@ button, .row, header[data-sec] { -webkit-touch-callout: none; }
 .recent .r small { flex: none; font: 500 10.5px var(--mono); color: var(--dim); text-transform: uppercase; }
 .fly { position: fixed; z-index: 45; pointer-events: none; max-width: 70vw; padding: 10px 14px; border-radius: 14px; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (prefers-reduced-motion: reduce) { #capture.on .types button, #capture.on textarea, #capture.on .go, #capture.on .help, #capture.on .spark, #capture .go.ready, .recent .r { animation: none; } }
-@media (prefers-reduced-motion: reduce) { .dot.pending, .dot.ok, #main.intro > .tile, #main.intro .cover h3, .fab, .mic, .mic.hot, .pop p.wait, .ib.spin .i, .types button[aria-pressed="true"] { animation: none; }
-  .mic, .pop, .sheet, .toast, .sw::after, .pill, .ib, .go, .fab, .types button, .row, .more { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .dot.pending, .dot.ok, #main.intro > .tile, .fab, .mic, .mic.hot, .pop p.wait, .ib.spin .i, .types button[aria-pressed="true"] { animation: none; }
+  .mic, .pop, .sheet, .toast, .sw::after, .pill, .ib, .go, .fab, .types button, .row, .more, .stat, button.card, .dots i { transition: none; } .hero.intro .card { animation: none; } }
 
 </style>
 <link rel="stylesheet" href="../app/theme.css">
@@ -282,6 +303,8 @@ button, .row, header[data-sec] { -webkit-touch-callout: none; }
   <form class="body" id="setForm">
     <div class="theme-row"><span>Dark mode</span><button class="sw" type="button" role="switch" id="darkSw" aria-label="Dark mode"></button></div>
     <div class="theme-row"><span>Soft look</span><button class="sw" type="button" role="switch" id="softSw" aria-label="Soft look"></button></div>
+    <label>Show on home</label>
+    <div class="secpick" id="secPick"></div>
     <p class="help">Brain on your phone reads your private notes repo on GitHub. Nothing is stored anywhere except this phone.</p>
     <label for="repo">Notes repo</label>
     <input id="repo" placeholder="your-name/notes" autocapitalize="off" autocorrect="off" spellcheck="false" required>
@@ -289,11 +312,11 @@ button, .row, header[data-sec] { -webkit-touch-callout: none; }
     <input id="token" type="password" placeholder="github_pat_…" autocapitalize="off" autocorrect="off" spellcheck="false" required>
     <p class="help">Make one at <b>github.com → Settings → Developer settings → Fine-grained tokens</b>: only your notes repo, with <code>Contents: Read and write</code>. You can revoke it there anytime.</p>
     <button class="go" type="submit">Connect</button>
+    <button class="more" type="button" id="copyLink">Copy install link for another phone</button>
     <button class="more" type="button" id="signOut">Forget this key on this phone</button>
   </form>
 </section>
 <div class="toast" id="toast"></div>
-<div id="ptr" aria-hidden="true"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></div>
 <label id="hap" aria-hidden="true"><input type="checkbox" switch tabindex="-1"></label>
 
 <script>
@@ -320,6 +343,11 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem("brain." + k); return v ? JSON.parse(v) : d; } catch { return d; } },
   set(k, v) { try { localStorage.setItem("brain." + k, JSON.stringify(v)); } catch {} },
 };
+// One-link install: …/mobile/#c=<base64 {repo, token}> connects without typing. In Safari the link stays in the
+// address bar so Add to Home Screen keeps it (the home-screen app has its own storage); the installed app strips it.
+const standalone = navigator.standalone || matchMedia("(display-mode: standalone)").matches;
+const linkCfg = (() => { try { const c = JSON.parse(atob(decodeURIComponent((location.hash.match(/^#c=([^&]+)/) || [])[1]))); return c.repo && c.token ? c : null; } catch { return null; } })();
+if (linkCfg) { store.set("cfg", linkCfg); if (standalone) history.replaceState(null, "", location.pathname); }
 let cfg = store.get("cfg", null), S = store.get("state", null), outbox = store.get("outbox", []), error = null;
 const today = () => new Date().toLocaleDateString("en-CA");
 const daysFrom = d => Math.round((new Date(d + "T00:00") - new Date(today() + "T00:00")) / 864e5);
@@ -409,14 +437,25 @@ function render() {
   const projects = view.projects.filter(p => !p.archived && ["active", "paused"].includes(p.meta.status));
   const habits = view.habits;
   const nx = up[0], dn = nx ? daysFrom(nx.date) : null;
-  $("hero").innerHTML = `<section class="hero">
-    <small>${nx ? "Next up · " + esc(new Date(nx.date + "T00:00").toLocaleDateString("en", { weekday: "short", month: "short", day: "numeric" })) : "Nothing scheduled"}</small>
-    <div class="big">${dn === null ? "Clear" : dn === 0 ? "Today" : dn === 1 ? "Tmrw" : `${dn}<span> days</span>`}</div>
-    <p class="sub">${nx ? esc(nx.title) : "No upcoming items in now.md."}</p>
-    <div class="acts"><button class="pill solid" data-go="capture">+ Capture</button><button class="pill" data-go="next">Agenda</button><button class="pill" data-go="projects">Projects</button><button class="pill" data-go="map">Map</button></div>
-    <div class="stats"><button class="stat" data-go="nudges"><small><i></i>Notes to self</small><b>${open.length}</b>${open[0] ? `<em>${esc(open[0].title)}</em>` : ""}</button><button class="stat" data-go="ideas"><small><i></i>Ideas open</small><b>${view.ideas.length}</b>${view.ideas[0] ? `<em>${esc(view.ideas[0].replace(/^\d{4}-\d{2}-\d{2} · /, "").replace(/ \(project: [\w-]+\)$/, ""))}</em>` : ""}</button></div></section>`;
+  // Top of home: a swipe strip: Up next, the cover story (one long card, where it opens), Notes to self, Ideas; then the action pills (Capture lives on the floating button).
+  const cards = [
+    !hidden.has("next") && `<button class="card tile snap" data-go="next"><small>${nx ? "Next up · " + esc(new Date(nx.date + "T00:00").toLocaleDateString("en", { weekday: "short", month: "short", day: "numeric" })) : "Nothing scheduled"}</small>
+      <div class="big">${dn === null ? "Clear" : dn === 0 ? "Today" : dn === 1 ? "Tmrw" : `${dn}<span> days</span>`}</div><p class="sub">${nx ? esc(nx.title) : "No upcoming items in now.md."}</p></button>`,
+    n.headline ? `<section class="card tile cover"><div class="snap"><small>ISSUE ${esc(view.issue)} · <span class="cd">${coverIn()}</span></small><h3>${esc(n.headline).replace(/\*([^*]+)\*/g, "<em>$1</em>")}</h3></div><div class="snap"><small>What we did</small>${n.dek ? `<p>${esc(n.dek)}</p>` : ""}</div></section>` : "",
+    !hidden.has("nudges") && `<button class="card tile stat snap" data-go="nudges"><small><i></i>Notes to self</small><b>${open.length}</b>${open[0] ? `<em>${esc(open[0].title)}</em>` : ""}</button>`,
+    !hidden.has("ideas") && `<button class="card tile stat snap" data-go="ideas"><small><i></i>Ideas open</small><b>${view.ideas.length}</b>${view.ideas[0] ? `<em>${esc(view.ideas[0].replace(/^\d{4}-\d{2}-\d{2} · /, "").replace(/ \(project: [\w-]+\)$/, ""))}</em>` : ""}</button>`,
+  ].filter(Boolean);
+  const heroHtml = `<section class="hero"><div class="strip" id="strip" aria-label="Updates, swipe for more">${cards.join("")}</div>
+    <div class="dots" aria-hidden="true">${cards.map((_, i) => `<i${i ? "" : ' class="on"'}></i>`).join("")}</div>
+    <div class="acts"><button class="pill" data-go="next">Agenda</button><button class="pill" data-go="projects">Projects</button><button class="pill" data-go="map">Map</button></div></section>`;
+  if (heroHtml !== lastHero) { // rebuild only on change, so a refresh doesn't snap the strip back to the first card
+    const x = $("strip")?.scrollLeft ?? null;
+    $("hero").innerHTML = lastHero = heroHtml; const st = $("strip"), cv = st.querySelector(".cover");
+    st.scrollLeft = x ?? (cv ? cv.getBoundingClientRect().left - st.getBoundingClientRect().left - 16 : 0); stripDots(); // first open lands on the cover
+    $("strip").addEventListener("scroll", stripDots, { passive: true });
+    if (!lastHtml) { const hs = $("hero").firstChild; hs.classList.add("intro"); setTimeout(() => hs.classList.remove("intro"), 1100); }
+  }
   const html = `
-    ${n.headline ? `<section class="tile cover"><small>ISSUE ${esc(view.issue)} · ${esc((n.updated || "").slice(5))}</small><h3>${esc(n.headline).replace(/\*([^*]+)\*/g, "<em>$1</em>")}</h3>${n.dek ? `<p>${esc(n.dek)}</p>` : ""}</section>` : ""}
     ${sec("next", "Up next", "", `${up.length > 1 ? up.slice(1).map(u => { const dd = daysFrom(u.date); return `<div class="next"><div><b>${esc(u.date.slice(8))}</b><small>${dd === 0 ? "today" : dd === 1 ? "tmrw" : esc(new Date(u.date + "T00:00").toLocaleDateString("en", { weekday: "short" }))}${u.time ? " " + esc(u.time) : ""}</small></div>
         <div><div class="t">${esc(u.title)}</div>${u.detail ? `<div class="d">${esc(u.detail)}</div>` : ""}</div></div>`; }).join("") : `<div class="empty">Nothing else coming up.</div>`}`)}
     ${sec("nudges", "Notes to self", open.length ? open.length + " open" : "", `${open.length ? open.map(x => { const dd = x.due ? daysFrom(x.due) : null; const due = dd === null ? "" : dd < 0 ? `${-dd}d overdue` : dd === 0 ? "today" : `in ${dd}d`;
@@ -425,6 +464,11 @@ function render() {
         <button class="pill" data-nudge="${esc(x.id)}" data-a="snooze" data-days="7">Next week</button><button class="pill" data-nudge="${esc(x.id)}" data-a="no">Drop</button></div></div>`; }).join("")
         : `<div class="empty">Nothing nagging. Enjoy it.</div>`}`)}
     ${sec("projects", "Projects", projects.length, `${projects.map(p => `<button class="row" data-open="${esc(p.path)}"><span class="st ${esc(p.meta.status)}"></span><div><div class="t">${esc(p.title)}</div><div class="s">${esc(p.meta.summary || p.tldr || "")}</div></div></button>`).join("")}`)}
+    ${internSec(view.internships)}
+    ${sec("people", "People", (view.people || []).length, `${(view.people || []).map(p => `<button class="row" data-open="${esc(p.path)}"><div><div class="t">${esc(p.title)}</div><div class="s">${esc(p.meta.follow_up ? "Next: " + p.meta.follow_up : (p.meta.relation || p.tldr || ""))}</div></div></button>`).join("") || `<div class="empty">No people pages yet.</div>`}`)}
+    ${view.me?.exists ? sec("me", "Me", "", `${view.me.meta?.tagline ? `<div class="t">${esc(view.me.meta.tagline)}</div>` : ""}${(view.me.snapshot || []).map(x => `<div class="s" style="margin-top:8px">${esc(x)}</div>`).join("")}<div class="acts"><button class="pill yes" data-open="${esc(view.me.path)}">Open me.md</button></div>`) : ""}
+    ${(view.agents || []).length ? sec("agents", "Agents", view.agents.length, view.agents.slice(0, 6).map(a => `<div class="job"><small>${esc(a.status)} · ${esc((a.finished || a.queued || "").slice(5))}</small><h4>${esc(a.text)}</h4>${a.report ? `<p data-expand>${esc(a.report)}</p>` : ""}</div>`).join("")) : ""}
+    ${routinesSec(view.routines)}
     ${sec("ideas", "Ideas", view.ideas.length ? view.ideas.length + " open" : "", `${view.ideas.length ? view.ideas.slice(0, showAllIdeas ? 999 : 5).map(l => { const m = l.match(/^(\d{4}-\d{2}-\d{2}) · (.*?)(?: \(project: [\w-]+\))?$/);
         return `<div class="idea"><small>${esc(m ? m[1] : "")}</small><div class="t">${esc(m ? m[2] : l)}</div>
         <div class="acts"><button class="pill yes" data-idea="${esc(l)}" data-a="done">Done</button><button class="pill" data-idea="${esc(l)}" data-a="dismissed">Dismiss</button></div></div>`; }).join("")
@@ -432,11 +476,35 @@ function render() {
         : `<div class="empty">No open ideas.</div>`}`)}
     ${sec("habits", "How Codex adapts to you", habits.filter(x => x.status === "on").length + " on", `${habits.map(x => `<div class="habit"><div><div class="t">${esc(x.title)}</div><small>${x.status === "proposed" ? "proposed · waiting on you" : esc(x.status)}</small></div>
         <button class="sw ${x.status === "on" ? "on" : ""}" role="switch" aria-checked="${x.status === "on"}" aria-label="${esc(x.title)}" data-habit="${esc(x.id)}"></button></div>`).join("")}`)}
-    ${knows(view.predictions)}`;
+    ${knows(view.predictions)}
+    ${(view.sessions || []).length ? sec("sessions", "Everything we've done", view.sessions.length, view.sessions.slice(0, showAllSessions ? 999 : 8).map(x => `<button class="row" data-open="${esc(x.path)}"><div><div class="t">${esc(x.title)}</div><div class="s">${esc(x.date)} · ${esc(x.tldr || "")}</div></div></button>`).join("")
+        + (view.sessions.length > 8 ? `<button class="more" id="allSessions">${showAllSessions ? "Show fewer" : `Show all ${view.sessions.length}`}</button>` : "")) : ""}`;
   // Only rebuild when something changed, so the entrance animation doesn't replay on every refresh.
   if (html === lastHtml) return;
   const main = $("main"); main.innerHTML = lastHtml = html;
   if (!introDone) { introDone = true; main.classList.add("intro"); setTimeout(() => main.classList.remove("intro"), 1300); }
+}
+// Routines: read-only status from codex/routines.json (the Mac refreshes it; run/pause live on the Mac).
+function routinesSec(R) {
+  if (!R || !R.routines.length) return "";
+  const rows = [...R.routines].sort((a, b) => b.enabled - a.enabled);
+  return sec("routines", "Routines", rows.filter(r => r.enabled).length + " running", rows.map(r => {
+    const st = !r.enabled ? "off" : r.ok === false ? "bad" : r.ok == null ? "never" : "";
+    const ran = r.last_run ? "ran " + r.last_run.slice(5) + (r.ok === false ? " · failed" : "") : r.read_only ? "Run history in Codex" : "hasn't run";
+    return `<div class="row"><span class="st ${st}"></span><div><div class="t">${esc(r.name)}</div><div class="s">${esc(r.enabled ? r.schedule + " · " + ran : "paused")}</div></div></div>`; }).join("")
+    + (R.error ? `<div class="empty">Couldn't reach your routines: ${esc(R.error)}</div>` : ""));
+}
+// Internships: what to apply to (with its deadline and link) above what's already applied; "out" rows stay on the Mac.
+function internSec(list) {
+  const rows = (list || []).filter(r => r.group !== "out"), order = { apply: 0, check: 1, applied: 2 };
+  if (!rows.length) return "";
+  rows.sort((a, b) => order[a.group] - order[b.group] || String(a.deadline).localeCompare(String(b.deadline)));
+  return sec("intern", "Internships", rows.filter(r => r.group === "applied").length + " applied", rows.slice(0, showAllIntern ? 999 : 6).map(r => {
+    const dd = /^\d{4}-\d{2}-\d{2}$/.test(r.deadline) ? daysFrom(r.deadline) : null;
+    const due = r.group === "applied" || dd === null ? "" : dd < 0 ? "closed" : dd === 0 ? "due today" : `due in ${dd}d`;
+    return `<div class="idea"><small class="clamp">${esc(r.status)}</small><div class="t">${esc(r.company)}${r.role ? " · " + esc(r.role) : ""}${due ? `<span class="due">${due}</span>` : ""}</div>
+      ${r.term ? `<div class="s" style="color:var(--muted);font-size:13px">${esc(r.term)}</div>` : ""}${r.link && r.group !== "applied" ? `<div class="acts"><a class="pill" href="${esc(r.link)}" target="_blank" rel="noopener">Open posting</a></div>` : ""}</div>`; }).join("")
+    + (rows.length > 6 ? `<button class="more" id="allIntern">${showAllIntern ? "Show fewer" : `Show all ${rows.length}`}</button>` : ""));
 }
 // How well Codex knows you: score + verdict + latest bets (desktop has the full chart).
 function knows(p) {
@@ -447,18 +515,35 @@ function knows(p) {
     <p style="margin:6px 0 10px;color:var(--muted);font-size:13.5px">${esc(v)}</p>
     ${p.entries.slice(0, 5).map(e => `<div class="idea"><small>${e.hit ? "✓ right" : "✗ wrong"} · ${esc(e.conf)}% · ${esc(e.kind)}</small><div class="t" style="margin-bottom:0">${esc(e.bet)}${e.hit ? "" : ` <span class="empty">→ ${esc(e.got)}</span>`}</div></div>`).join("")}`);
 }
-let showAllIdeas = false, lastHtml = "", introDone = false;
+// The cover is rewritten at these hours (the notes repo's cover routine); show a countdown to the next one, like Spotify's daylist.
+const COVER_HOURS = [7, 13, 15, 17, 19];
+function coverIn() { const now = new Date(), next = new Date(now); const h = COVER_HOURS.find(h => h > now.getHours());
+  if (h === undefined) { next.setDate(next.getDate() + 1); next.setHours(COVER_HOURS[0], 0, 0, 0); } else next.setHours(h, 0, 0, 0);
+  const m = Math.max(1, Math.ceil((next - now) / 6e4)); return `new in ${m >= 60 ? Math.floor(m / 60) + "h " : ""}${m % 60}m`; }
+setInterval(() => document.querySelectorAll(".cover .cd").forEach(e => e.textContent = coverIn()), 30e3);
+let showAllIntern = false, showAllSessions = false, showAllIdeas = false, lastHtml = "", lastHero = "", introDone = false;
+// Light the dot for the card that fills the strip.
+function stripDots() { const st = $("strip"); if (!st) return; const x0 = st.getBoundingClientRect().left + 16;
+  let best = null, bd = Infinity; st.querySelectorAll(".snap").forEach(el => { const d = Math.abs(el.getBoundingClientRect().left - x0); if (d < bd) { bd = d; best = el; } });
+  const i = [...st.children].indexOf(best?.closest(".card"));
+  st.parentNode.querySelectorAll(".dots i").forEach((d, k) => d.classList.toggle("on", k === i)); }
 // A collapsible group. Which ones are folded is remembered on this phone.
 let folded = new Set(store.get("folded", []));
+// Sections shown on home, picked in Settings as choices. Hidden ones are remembered on this phone.
+const SECTIONS = [["next", "Up next"], ["nudges", "Notes to self"], ["projects", "Projects"], ["people", "People"], ["me", "Me"], ["ideas", "Ideas"], ["habits", "How Codex adapts"], ["knows", "How well Codex knows you"], ["intern", "Internships"], ["agents", "Agents"], ["routines", "Routines"], ["sessions", "Everything we've done"]];
+let hidden = new Set(store.get("hidden", []));
+function drawSecPick() { $("secPick").innerHTML = SECTIONS.map(([k, t]) => `<button type="button" class="pill${hidden.has(k) ? "" : " on"}" aria-pressed="${!hidden.has(k)}" data-sec-pick="${k}">${esc(t)}</button>`).join(""); }
+document.addEventListener("click", e => { const b = e.target.closest("[data-sec-pick]"); if (!b) return; const k = b.dataset.secPick;
+  hidden.has(k) ? hidden.delete(k) : hidden.add(k); store.set("hidden", [...hidden]); tap(); drawSecPick(); lastHero = ""; render(); });
 const CHEV = `<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>`;
-const sec = (key, title, n, body) => `<section class="tile${folded.has(key) ? " collapsed" : ""}"><header data-sec="${key}" role="button" aria-expanded="${!folded.has(key)}"><h2>${esc(title)}</h2><span class="n">${esc(n)}</span>${CHEV}</header><div class="sb"><div>${body}</div></div></section>`;
+const sec = (key, title, n, body) => hidden.has(key) ? "" : `<section class="tile${folded.has(key) ? " collapsed" : ""}"><header data-sec="${key}" role="button" aria-expanded="${!folded.has(key)}"><h2>${esc(title)}</h2><span class="n">${esc(n)}</span>${CHEV}</header><div class="sb"><div>${body}</div></div></section>`;
 function fold(header) {
   const key = header.dataset.sec, tile = header.closest(".tile"), now = !folded.has(key);
   now ? folded.add(key) : folded.delete(key); store.set("folded", [...folded]);
   tile.classList.toggle("collapsed", now); header.setAttribute("aria-expanded", !now); tap();
 }
 
-/* ---------- feel: haptics, swipe cards, pull to refresh, swipe sheets down ---------- */
+/* ---------- feel: haptics, swipe cards, swipe sheets down ---------- */
 // Android vibrates; iOS 18+ Safari gives a light tick when a switch-style checkbox is toggled via its label.
 function tap() { try { if (navigator.vibrate) navigator.vibrate(8); else $("hap").click(); } catch {} }
 let sw = null;
@@ -491,28 +576,34 @@ $("main").addEventListener("touchend", () => {
   } else card.animate([{ transform: card.style.transform }, { transform: "none" }], { duration: 260, easing: "cubic-bezier(.16,1,.3,1)" }).onfinish = () => card.style.transform = "";
   if (Math.abs(dx) <= 90) card.style.transform = "";
 });
-let pull = null;
-addEventListener("touchstart", e => { if (scrollY <= 0 && !e.target.closest(".sheet") && cfg) pull = { y: e.touches[0].clientY, d: 0 }; }, { passive: true });
-addEventListener("touchmove", e => {
-  if (!pull) return;
-  pull.d = Math.max(0, e.touches[0].clientY - pull.y);
-  const p = $("ptr"), k = Math.min(pull.d / 80, 1);
-  p.style.opacity = k; p.style.transform = `translateY(${Math.min(pull.d * .5, 50) - 40}px) rotate(${pull.d * 3}deg)`;
-  if (pull.d > 80 && !pull.buzzed) { pull.buzzed = true; tap(); }
-}, { passive: true });
-addEventListener("touchend", async () => {
-  if (!pull) return;
-  const go = pull.d > 80, p = $("ptr"); pull = null;
-  if (!go) { p.style.opacity = 0; p.style.transform = ""; return; }
-  p.style.transform = "translateY(12px)"; p.classList.add("spin");
-  await refresh(true);
-  p.classList.remove("spin"); p.style.opacity = 0; p.style.transform = "";
-});
 document.querySelectorAll(".sheet > header").forEach(h => {
   let y0 = null, d = 0; const sheet = h.closest(".sheet");
   h.addEventListener("touchstart", e => { y0 = e.touches[0].clientY; d = 0; sheet.style.transition = "none"; }, { passive: true });
   h.addEventListener("touchmove", e => { if (y0 == null) return; d = Math.max(0, e.touches[0].clientY - y0); sheet.style.transform = `translateY(${d}px)`; }, { passive: true });
   h.addEventListener("touchend", () => { sheet.style.transition = ""; sheet.style.transform = ""; if (d > 110) { tap(); close(sheet.id); } y0 = null; });
+});
+// Back: swipe in from the left edge to close the open sheet, like iOS back (a home-screen app has no browser back gesture).
+let edge = null;
+addEventListener("touchstart", e => {
+  const t = e.touches[0], open = [...document.querySelectorAll(".sheet.on")].pop();
+  if (open && t.clientX < 28) edge = { sheet: open, x: t.clientX, y: t.clientY, dx: 0, t: Date.now(), on: false };
+}, { passive: true });
+addEventListener("touchmove", e => {
+  if (!edge) return;
+  const dx = e.touches[0].clientX - edge.x, dy = e.touches[0].clientY - edge.y;
+  if (!edge.on) { if (Math.abs(dy) > 10 && Math.abs(dy) > dx) { edge = null; return; } if (dx < 10) return; edge.on = true; edge.sheet.style.transition = "none"; }
+  edge.dx = Math.max(0, dx); edge.sheet.style.transform = `translateX(${edge.dx}px)`;
+  if (edge.dx > innerWidth / 3 && !edge.buzzed) { edge.buzzed = true; tap(); }
+}, { passive: true });
+addEventListener("touchend", () => {
+  if (!edge) return;
+  const { sheet, dx, t, on } = edge; edge = null;
+  if (!on) return;
+  sheet.style.transition = "";
+  if (dx > innerWidth / 3 || (dx > 50 && dx / (Date.now() - t) > .5)) {
+    sheet.style.transform = "translateX(100%)";
+    setTimeout(() => { sheet.style.transition = "none"; close(sheet.id); sheet.style.transform = ""; sheet.offsetHeight; sheet.style.transition = ""; }, calm() ? 0 : 300);
+  } else sheet.style.transform = "";
 });
 
 /* ---------- animations ---------- */
@@ -649,13 +740,14 @@ async function openDoc(path) {
 function open(id) { $(id).classList.add("on"); }
 function close(id) { $(id).classList.remove("on"); }
 document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => close(b.closest(".sheet").id));
-const TYPES = [["note", "Note"], ["idea", "Idea"], ["todo", "Todo"], ["person", "Person"], ["habit", "Habit for Codex"]];
+const TYPES = [["note", "Note"], ["idea", "Idea"], ["todo", "Todo"], ["person", "Person"], ["habit", "Habit for Codex"], ["routine", "Routine"]];
 // per type: prompt, icon paths, and the rotating "Try:" sparks under the form
 const CAP = {
   note: ["What's on your mind?", '<path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h5"/>', ["something you noticed today", "a line from class worth keeping", "what's stuck in your head"]],
   idea: ["What's the idea?", '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>', ["a feature for Brain", "a weekend project", "something you'd build if you had a week"]],
   todo: ["What needs doing?", '<path d="M4 12l5 5L20 6"/>', ["the thing you keep forgetting", "an email you owe someone", "what's due this week"]],
   person: ["Who'd you meet, and what's worth remembering?", '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>', ["someone new from today", "what a friend just told you", "who to follow up with"]],
+  routine: ["What should run on a schedule?", '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', ["every Sunday at 6pm, plan my week", "weekday mornings, list who's waiting on a reply", "Fridays, sum up what changed in my internships"]],
   habit: ["What should Codex start doing?", '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/>', ["something Codex got wrong today", "how you want replies to sound", "a rule Codex should always follow"]],
 };
 let capType = "note", sparkI = 0, sparkT = null;
@@ -681,7 +773,13 @@ function spark() {
   if (calm() || !el.innerHTML) return set();
   el.style.opacity = 0; setTimeout(set, 250);
 }
-function drawRecent() {  // last few inbox captures, newest first ("date · kind · text")
+function drawRecent() {  // last few inbox captures, newest first ("date · kind · text"); for Routine, the suggestions
+  const sugs = S?.routines?.suggestions || [];
+  if (capType === "routine") {
+    $("capRecent").innerHTML = (sugs.length ? "<h4>Suggested for you</h4>" + sugs.map((g, i) => `<button type="button" class="r" data-sug="${i}" style="animation-delay:${.34 + i * .06}s;text-align:left;width:100%;background:none;border:0;color:inherit;font:inherit;padding:0"><small>${esc(g.schedule)}</small><span>${esc(g.title)}</span></button>`).join("") : "")
+      + `<p class="spark">Proposed when your computer is on. Review in Agents and create in Codex Automations.</p>`;
+    return;
+  }
   const items = (S?.inbox || []).slice(-3).reverse().map(l => l.split(" · "));
   $("capRecent").innerHTML = items.length ? "<h4>Recently captured</h4>" + items.map(([, k, ...t], i) =>
     `<div class="r" style="animation-delay:${.34 + i * .06}s"><small>${esc(t.length ? k : "")}</small><span>${esc(t.length ? t.join(" · ") : k)}</span></div>`).join("") : "";
@@ -695,7 +793,8 @@ function fly(text) {  // the saved text shrinks down into the + button
   return f.animate([{ transform: "none" }, { transform: `translate(${dx * .4}px, ${dy * .3}px) scale(.85) rotate(-4deg)`, offset: .45 },
     { transform: `translate(${dx}px, ${dy}px) scale(.12)`, opacity: .3 }], { duration: 650, easing: "cubic-bezier(.55,0,.75,.2)" }).finished.then(() => f.remove());
 }
-$("types").onclick = e => { const b = e.target.closest("[data-type]"); if (b && b.dataset.type !== capType) setType(b.dataset.type, true); };
+$("types").onclick = e => { const b = e.target.closest("[data-type]"); if (b && b.dataset.type !== capType) { setType(b.dataset.type, true); drawRecent(); } };
+$("capRecent").onclick = e => { const b = e.target.closest("[data-sug]"); if (!b) return; $("capText").value = S.routines.suggestions[+b.dataset.sug].text; $("capGo").classList.add("ready"); };
 $("capText").oninput = () => $("capGo").classList.toggle("ready", !!$("capText").value.trim());
 $("openCapture").onclick = () => {
   drawTypes(); open("capture"); setTimeout(() => $("capText").focus(), 350);
@@ -712,22 +811,30 @@ $("capGo").onclick = () => {
     $("openCapture").animate([{ transform: "scale(1)" }, { transform: "scale(1.18)" }, { transform: "scale(1)" }], { duration: 420, easing: spring() });
   });
 };
-$("openSettings").onclick = () => { $("repo").value = cfg?.repo || ""; $("token").value = cfg?.token || ""; open("settings"); };
+$("openSettings").onclick = () => { $("repo").value = cfg?.repo || ""; $("token").value = cfg?.token || ""; drawSecPick(); open("settings"); };
 $("setForm").onsubmit = async e => {
   e.preventDefault();
   cfg = { repo: $("repo").value.trim().replace(/^https:\/\/github\.com\//, "").replace(/\/$/, ""), token: $("token").value.trim() };
   store.set("cfg", cfg); close("settings"); boot();
+};
+$("copyLink").onclick = async () => {
+  if (!cfg) return toast("Connect first");
+  const url = location.origin + location.pathname + "#c=" + encodeURIComponent(btoa(JSON.stringify({ repo: cfg.repo, token: cfg.token })));
+  try { await navigator.clipboard.writeText(url); toast("Copied. It holds your key, so only send it to yourself"); }
+  catch { prompt("Your install link (it holds your key):", url); }
 };
 $("signOut").onclick = () => { try { localStorage.clear(); } catch {} cfg = null; S = null; outbox = []; location.reload(); };
 $("refresh").onclick = () => refresh(true);
 
 document.addEventListener("click", e => {
   const hd = e.target.closest("header[data-sec]"); if (hd) return fold(hd);
-  const t = e.target.closest("[data-nudge],[data-idea],[data-habit],[data-open],[data-link],[data-expand],#allIdeas");
+  const t = e.target.closest("[data-nudge],[data-idea],[data-habit],[data-open],[data-link],[data-expand],#allIdeas,#allSessions,#allIntern");
   if (!t) return;
   if (t.dataset.nudge || t.dataset.idea || t.dataset.habit) tap();
   if (t.dataset.expand !== undefined) return t.classList.toggle("full");
   if (t.id === "allIdeas") { showAllIdeas = !showAllIdeas; return render(); }
+  if (t.id === "allIntern") { showAllIntern = !showAllIntern; return render(); }
+  if (t.id === "allSessions") { showAllSessions = !showAllSessions; return render(); }
   if (t.dataset.nudge || t.dataset.idea) {
     const card = t.closest(".nudge, .idea"); if (card.dataset.leaving) return; card.dataset.leaving = "1";
     const done = t.dataset.a === "done"; if (done) confetti(t);
@@ -813,6 +920,7 @@ function boot() {
   $("openCapture").hidden = $("mic").hidden = !cfg;
   if (!cfg) { $("main").innerHTML = `<section class="tile"><p>Connect your notes repo to get started.</p><button class="go" onclick="document.getElementById('openSettings').click()">Connect</button></section>`; return; }
   render(); refresh(); flush(); if (!G) loadGraph();
+  if (linkCfg && !standalone) setTimeout(() => toast("Connected. Now tap Share, then Add to Home Screen"), 600);
 }
 document.addEventListener("visibilitychange", () => { if (!document.hidden) { refresh(); flush(); } });
 addEventListener("online", flush);

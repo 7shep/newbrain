@@ -13,8 +13,10 @@ import http.server
 import json
 import mimetypes
 import os
+import random
 import re
 import secrets
+import shutil
 import socketserver
 import subprocess
 import sys
@@ -30,7 +32,8 @@ NOTES = os.path.abspath(os.path.expanduser(os.environ.get("BRAIN_NOTES") or os.p
 os.environ["BRAIN_NOTES"] = NOTES
 sys.path.insert(0, BRAIN)
 import build  # noqa: E402  (INDEX.md generator + frontmatter parser)
-from agents import Agents  # noqa: E402  (headless agent per capture, when agents/ exists)
+from agents import Agents, codex_command  # noqa: E402  (headless agent per capture, when agents/ exists)
+from codex_routines import Routines  # noqa: E402  (Codex automations snapshot)
 from sync import Sync  # noqa: E402  (git pull/commit/push for the phone app, when phone/ exists)
 import predictions  # noqa: E402  (how well Codex knows you: codex/predictions.md)
 import stats  # noqa: E402  (usage stats from Codex transcripts)
@@ -39,6 +42,7 @@ TOKEN = secrets.token_urlsafe(24)
 CODEX_HOME = os.path.abspath(os.path.expanduser(os.environ.get("CODEX_HOME") or "~/.codex"))
 LOCK = threading.Lock()
 AGENTS = Agents(NOTES)
+ROUTINES = Routines(NOTES)
 SYNC = Sync(NOTES, on_pulled=AGENTS.drain_pending)
 TOUCHED = set()  # notes files written since the last sync commit
 
@@ -233,7 +237,7 @@ def state():
     for n in nudges:  # a snooze that has run out is open again
         if n.get("status") == "snoozed" and n.get("snooze_until") and n["snooze_until"] <= t:
             n["status"] = "open"
-    habits = parse_blocks(read("codex/habits.md"))
+    habits = habit_freshness(parse_blocks(read("codex/habits.md")), sessions, t)
 
     now_meta, now_body = build.parse_frontmatter(read("now.md"))
     upcoming = upcoming_items(now_body, t)
@@ -252,11 +256,12 @@ def state():
         "me": {"meta": me_meta, "exists": bool(me_body.strip()), "path": "me.md",
                "snapshot": re.findall(r"^- (.+)$", me_body.split("## Goals")[0], re.M)[:5]},
         "nudges": nudges, "habits": habits, "projects": projects, "people": people,
-        "sessions": session_out[:60], "inbox": inbox, "ideas": ideas["open"][::-1], "ideas_closed": {"done": len(ideas["done"]), "dismissed": len(ideas["dismissed"])},
+        "sessions": session_out[:60], "inbox": inbox, "ideas": sorted(ideas["open"][::-1], key=idea_rank), "ideas_closed": {"done": len(ideas["done"]), "dismissed": len(ideas["dismissed"])},
         "notes": [slim(d) for d in docs if d["kind"] == "note" and not d["path"].startswith("people/")
                   and d["path"] not in ("me.md", "now.md", "nudges.md", "ideas.md", "inbox.md", "codex/habits.md")],
         "internships": internships(read("internships/tracker.md")),
         "agents": AGENTS.recent(),
+        "routines": ROUTINES.load(),
         "predictions": predictions.stats(predictions.parse(read("codex/predictions.md"))),
         "has": {k: k in by_path for k in ("me.md", "now.md")},
     }
@@ -299,6 +304,66 @@ def internships(text):
 
 # ---------------------------------------------------------------- ideas: open list, then "## Done" / "## Dismissed"
 IDEA_SECTIONS = {"done": "## Done", "dismissed": "## Dismissed"}
+
+
+VERDICTS = {"try": 0, "maybe": 1, "skip": 2}
+
+
+HABIT_TRACKING_SINCE = "2026-10-01"  # session notes list the habits used (`habits:`) from here on (backfilled 2026-10-17)
+
+
+def habit_freshness(habits, sessions, t):
+    """Each habit's last use (newest session note whose `habits:` lists it, or a manual `- used:` date) and how many
+    days it has sat idle since. Idle counts from tracking day at the earliest, so old habits don't all start stale.
+    Stalest first, so the ones to clean up are on top."""
+    last = {}
+    for s in sessions:
+        ids = s["meta"].get("habits") or []
+        for hid in ids if isinstance(ids, list) else re.findall(r"H-\d+", str(ids)):
+            last[hid] = max(last.get(hid, ""), str(s["meta"].get("date") or s["date"]))
+    day = datetime.date.fromisoformat
+    for h in habits:
+        used = max(last.get(h["id"], ""), h.get("used", ""))
+        h["last_used"] = used or None
+        start = max(used, h.get("since", ""), HABIT_TRACKING_SINCE)
+        try:
+            h["idle"] = max(0, (day(t) - day(start[:10])).days)
+        except ValueError:
+            h["idle"] = 0
+    return sorted(habits, key=lambda h: -h["idle"])
+
+
+HABIT_AREAS = ["studying and exams", "internship applications", "networking and outreach", "running his club",
+               "sleep, health and breaks", "money and spending", "how Codex writes code for him", "his notes and memory",
+               "email and messages", "planning his week", "side projects", "how Codex talks to him",
+               "catching mistakes before they ship", "saving him time on repetitive chores"]  # one at random per idea, for variety
+
+
+def habit_idea():
+    """A fresh habit suggestion from Codex (Haiku, no tools), grounded in who the person is, what's going on, and the
+    habits he already has, so it doesn't repeat one. ~5s."""
+    titles = [h["title"] for h in parse_blocks(read("codex/habits.md"))]
+    _, me = build.parse_frontmatter(read("me.md"))
+    _, now = build.parse_frontmatter(read("now.md"))
+    prompt = ("You suggest habits for Codex, an AI assistant that works with this person every day through Codex."
+              " A habit is a standing rule for how Codex behaves.\n\nAbout them:\n" + me[:2500] +
+              "\n\nWhat's going on now:\n" + now[:2500] +
+              "\n\nHabits Codex already has (don't repeat or rephrase any):\n- " + "\n- ".join(titles) +
+              "\n\nSuggest ONE new, specific, useful habit about " + random.choice(HABIT_AREAS) + ", written as the person"
+              " would ask for it, imperative, under 14 words. Reply with only the habit, no quotes.")
+    command = codex_command(NOTES)
+    command[-1:-1] = ["--disable", "shell_tool"]
+    out = subprocess.run(command, input=prompt, cwd=NOTES, capture_output=True, text=True, timeout=60)
+    idea = (out.stdout.strip().splitlines() or [""])[-1].strip().strip('"')
+    if out.returncode or not idea:
+        raise RuntimeError("Codex didn't answer")
+    return {"idea": idea[:160]}
+
+
+def idea_rank(line):
+    """Open ideas sort try, maybe, untagged, skip; newest first inside each."""
+    m = re.match(r"\d{4}-\d{2}-\d{2} · \[(\w+)\]", line)
+    return VERDICTS.get(m.group(1), 1.5) if m else 1.5
 
 
 def idea_sections(text):
@@ -396,13 +461,14 @@ def act_habit(body):
 
 
 def act_capture(body):
-    kind = body.get("kind") if body.get("kind") in ("note", "idea", "todo", "person") else "note"
+    kind = body.get("kind") if body.get("kind") in ("note", "idea", "todo", "person", "routine") else "note"
     text = " ".join(str(body.get("text") or "").split())[:2000]
     if not text:
         raise ValueError("empty")
-    current = read("inbox.md") or "# Inbox\n"
-    stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-    write("inbox.md", current.rstrip("\n") + "\n- %s · %s · %s\n" % (stamp, kind, text))
+    if kind != "routine" or not AGENTS.enabled():  # keep proposals in the inbox when background agents are off
+        current = read("inbox.md") or "# Inbox\n"
+        stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+        write("inbox.md", current.rstrip("\n") + "\n- %s · %s · %s\n" % (stamp, kind, text))
     AGENTS.submit(kind, text)
 
 
@@ -493,6 +559,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return self.send(200, file_get(urllib.parse.parse_qs(url.query)))
             if url.path == "/api/stats":
                 return self.send(200, stats.collect(CODEX_HOME, NOTES))
+            if url.path == "/api/habit-idea":
+                return self.send(200, habit_idea())
             if url.path == "/api/graph":
                 g = graph_get()
                 return self.send(200, g) if g else self.send(404, {"error": "No graph yet. Run graphify on your notes."})
@@ -502,12 +570,34 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self.send(500, {"error": str(e)})
         self.send(404, {"error": "not found"})
 
+    def routines(self, body):
+        action, rid = body.get("action"), str(body.get("id") or "")
+        try:
+            if action == "refresh":
+                snap = ROUTINES.refresh(force=not body.get("ifStale"))
+            elif action == "suggest":
+                snap = ROUTINES.suggest()
+            else:
+                snap = ROUTINES.act(rid, action)
+        except KeyError:
+            return self.send(404, {"error": "That routine isn't in the list any more. Refreshing."})
+        except ValueError as e:
+            return self.send(400, {"error": str(e)})
+        except Exception as e:  # always answer: the tile shows the message
+            return self.send(500, {"error": str(e)})
+        if SYNC.enabled() and snap:
+            with LOCK:
+                SYNC.commit(["codex/routines.json"], "brain: routines")
+        return self.send(200, {"routines": snap})
+
     def do_POST(self):
         if not self.authed():
             return self.send(403, {"error": "forbidden"})
         routes = {"/api/nudge": act_nudge, "/api/habit": act_habit, "/api/capture": act_capture,
                   "/api/idea": act_idea, "/api/project": act_project, "/api/habit-new": act_habit_new}
         path = urllib.parse.urlparse(self.path).path
+        if path == "/api/routines":  # outside LOCK: suggestions can call Codex
+            return self.routines(self.body())
         try:
             with LOCK:
                 if path == "/api/file":

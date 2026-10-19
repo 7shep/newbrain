@@ -1,7 +1,6 @@
 {
   "name": "Brain",
   "short_name": "Brain",
-  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0c0d0f",

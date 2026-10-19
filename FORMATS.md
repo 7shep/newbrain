@@ -79,6 +79,17 @@ a score and a calibration chart (the score chip in the top bar).
 - 2026-09-27 · 60% · recommend · bet: Todos only · got: Everything · miss
 ```
 
+## `codex/routines.json` — your routines (written by Brain, don't edit)
+Brain reads local Codex automation metadata when its cached copy is over 10 minutes old.
+The phone reads this snapshot after notes sync. Suggestions come from a once-a-day read-only
+Codex pass over the notes. Schedule controls and run history remain in the Codex app.
+```json
+{"provider": "codex", "read_only": true, "checked": "2026-10-19T13:54:50", "error": "", "suggested": "2026-10-19",
+ "routines": [{"id": "daily-review", "name": "Morning update", "schedule": "FREQ=DAILY;BYHOUR=7",
+               "enabled": true, "last_run": "", "ok": null, "next_run": "", "why_pause": "", "read_only": true}],
+ "suggestions": [{"title": "Sunday week plan", "schedule": "Sundays 6pm", "text": "Every Sunday at 6pm, plan my week"}]}
+```
+
 ## `now.md` — the cover story
 Codex rewrites after real work. Headline is punchy, magazine-style, true. `*word*` renders italic.
 ```
@@ -93,9 +104,15 @@ updated: 2026-09-14
 - 2026-09-21 · Sponsorship deck due · Send to Priya
 ```
 
+## Habit freshness
+Session notes list the habits Codex applied (`habits: [H-001, H-014]` in the frontmatter). The app sorts habits by
+days since last use (or a manual `- used: YYYY-MM-DD` on the habit), counting from 2026-10-01 at the earliest, stalest
+first, and fades ones idle 21+ days so they can be switched off.
+
 ## `ideas.md`
 Open ideas are the bullets before any section. The app moves an idea to `## Done` or `## Dismissed`
-(appending `(done YYYY-MM-DD)`), and can restore it.
+(appending `(done YYYY-MM-DD)`), and can restore it. An optional verdict after the date, `[try]`, `[maybe]` or
+`[skip]`, sorts the open list: try, maybe, untagged, skip. Codex adds it when saving an idea.
 ```
 # Ideas
 - 2026-09-14 · Idea text — optional note (project: slug)
@@ -113,7 +130,7 @@ The app appends; Codex files each line into the right note at the start of the n
 # Inbox
 - 2026-09-14 19:02 · idea · text
 ```
-Kinds: `note`, `idea`, `todo`, `person`.
+Kinds: `note`, `idea`, `todo`, `person`, `routine`. Routine captures produce an Agents proposal when enabled; otherwise they stay in the inbox for the next interactive session.
 
 ## `projects/<slug>.md` and `sessions/YYYY-MM-DD-<slug>.md`
 Project pages: frontmatter `name, status (active|paused|done|abandoned), updated, paths: [...], links: [...], summary`,
