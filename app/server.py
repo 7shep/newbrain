@@ -33,6 +33,7 @@ os.environ["BRAIN_NOTES"] = NOTES
 sys.path.insert(0, BRAIN)
 import build  # noqa: E402  (INDEX.md generator + frontmatter parser)
 from agents import Agents  # noqa: E402  (headless agent per capture, when agents/ exists)
+from routines import Routines  # noqa: E402  (Claude Code routines, cached in claude/routines.json)
 from sync import Sync  # noqa: E402  (git pull/commit/push for the phone app, when phone/ exists)
 import codex  # noqa: E402  (Codex adapter: brain block in ~/.codex/AGENTS.md)
 import predictions  # noqa: E402  (how well Claude knows you: claude/predictions.md)
@@ -42,6 +43,7 @@ TOKEN = secrets.token_urlsafe(24)
 CLAUDE_PROJECTS = os.path.expanduser("~/.claude/projects")
 LOCK = threading.Lock()
 AGENTS = Agents(NOTES)
+ROUTINES = Routines(NOTES)
 SYNC = Sync(NOTES, on_pulled=AGENTS.drain_pending)
 TOUCHED = set()  # notes files written since the last sync commit
 
@@ -257,6 +259,7 @@ def state():
                   and d["path"] not in ("me.md", "now.md", "nudges.md", "ideas.md", "inbox.md", "claude/habits.md")],
         "internships": internships(read("internships/tracker.md")),
         "agents": AGENTS.recent(),
+        "routines": ROUTINES.load(),
         "predictions": predictions.stats(predictions.parse(read("claude/predictions.md"))),
         "has": {k: k in by_path for k in ("me.md", "now.md")},
     }
@@ -455,13 +458,14 @@ def act_habit(body):
 
 
 def act_capture(body):
-    kind = body.get("kind") if body.get("kind") in ("note", "idea", "todo", "person") else "note"
+    kind = body.get("kind") if body.get("kind") in ("note", "idea", "todo", "person", "routine") else "note"
     text = " ".join(str(body.get("text") or "").split())[:2000]
     if not text:
         raise ValueError("empty")
-    current = read("inbox.md") or "# Inbox\n"
-    stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-    write("inbox.md", current.rstrip("\n") + "\n- %s · %s · %s\n" % (stamp, kind, text))
+    if kind != "routine":  # a routine request isn't a thought to file: the agent sets it up, and its report is the record
+        current = read("inbox.md") or "# Inbox\n"
+        stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+        write("inbox.md", current.rstrip("\n") + "\n- %s · %s · %s\n" % (stamp, kind, text))
     AGENTS.submit(kind, text)
 
 
@@ -555,12 +559,32 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self.send(500, {"error": str(e)})
         self.send(404, {"error": "not found"})
 
+    def routines(self, body):
+        action, rid = body.get("action"), str(body.get("id") or "")
+        try:
+            if action == "refresh":
+                snap = ROUTINES.refresh()
+            elif action == "suggest":
+                snap = ROUTINES.suggest()
+            else:
+                snap = ROUTINES.act(rid, action)
+        except KeyError:
+            return self.send(404, {"error": "That routine isn't in the list any more. Refreshing."})
+        except ValueError as e:
+            return self.send(400, {"error": str(e)})
+        if SYNC.enabled() and snap:
+            with LOCK:
+                SYNC.commit(["claude/routines.json"], "brain: routines")
+        return self.send(200, {"routines": snap})
+
     def do_POST(self):
         if not self.authed():
             return self.send(403, {"error": "forbidden"})
         routes = {"/api/nudge": act_nudge, "/api/habit": act_habit, "/api/capture": act_capture,
                   "/api/idea": act_idea, "/api/project": act_project, "/api/habit-new": act_habit_new}
         path = urllib.parse.urlparse(self.path).path
+        if path == "/api/routines":  # slow (a claude call), so outside LOCK
+            return self.routines(self.body())
         try:
             with LOCK:
                 if path == "/api/file":

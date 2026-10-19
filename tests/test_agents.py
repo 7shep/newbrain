@@ -13,6 +13,10 @@ FAKE = [sys.executable, "-c",
         "import sys,time; sys.stdin.reconfigure(encoding='utf-8'); p=sys.stdin.read(); time.sleep(3 if 'sleep' in p else 0.05); "
         "sys.exit(2) if 'boom' in p else print('did: ' + p.split(': ',1)[1].splitlines()[0])"]
 
+# Stands in for the routine command: proves which command and prompt a job got.
+FAKE_ROUTINE = [sys.executable, "-c",
+                "import sys; sys.stdin.reconfigure(encoding='utf-8'); p=sys.stdin.read(); print('routine: ' + p.splitlines()[0])"]
+
 
 def wait(agents, n, timeout=5):
     end = time.time() + timeout
@@ -93,6 +97,17 @@ class AgentsTest(unittest.TestCase):
         run = a.recent()[0]
         self.assertEqual(run["status"], "failed")
         self.assertIn("restarted", run["report"])
+
+    def test_routine_kind_uses_its_own_command_and_prompt(self):
+        a = Agents(self.notes, command=FAKE, routine_command=FAKE_ROUTINE)
+        a.submit("routine", "every sunday plan my week")
+        report = wait(a, 1)[0]["report"]
+        self.assertIn("routine: Set up a Claude Code routine for this request: every sunday plan my week", report)
+
+    def test_other_kinds_never_get_the_routine_command(self):
+        a = Agents(self.notes, command=FAKE, routine_command=FAKE_ROUTINE)
+        a.submit("todo", "buy milk")
+        self.assertNotIn("routine:", wait(a, 1)[0]["report"])
 
 
 if __name__ == "__main__":

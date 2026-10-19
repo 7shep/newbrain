@@ -96,6 +96,19 @@ class ApplyQueueTest(unittest.TestCase):
         self.assertEqual(set(state["sessions"][0]), {"path", "title", "date", "tldr"})  # the phone only gets what it shows
         self.assertNotIn("notes", state)
 
+    def test_routines_snapshot_and_routine_captures_reach_the_phone(self):
+        notes = notes_copy()
+        with open(os.path.join(notes, "claude", "routines.json"), "w") as f:
+            json.dump({"checked": "2026-10-19T10:00:00", "routines": [{"id": "t1", "name": "Daily"}], "suggestions": []}, f)
+        queue(notes, "1", "capture", {"kind": "routine", "text": "Every Sunday, plan my week"})
+        state = self.run_phone(notes)
+        self.assertEqual(state["routines"]["routines"][0]["id"], "t1")
+        self.assertEqual(state["failed"], [])
+        pending = os.listdir(os.path.join(notes, "agents", "pending"))
+        with open(os.path.join(notes, "agents", "pending", pending[0])) as f:
+            self.assertEqual(json.load(f)["kind"], "routine")
+        self.assertNotIn("plan my week", read(notes, "inbox.md"))  # not a thought to file: the morning routine would redo it
+
     def test_captures_are_parked_for_the_mac_not_run(self):
         notes = notes_copy()
         queue(notes, "1", "capture", {"kind": "idea", "text": "Parked idea"})

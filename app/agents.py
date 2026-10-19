@@ -79,8 +79,9 @@ def now():
 
 
 class Agents:
-    def __init__(self, notes, command=None, timeout=TIMEOUT):
+    def __init__(self, notes, command=None, timeout=TIMEOUT, routine_command=None):
         self.notes = notes
+        self.routine_command = routine_command  # None: routines.create_command(), built when a routine job runs
         self.dir = os.path.join(notes, "agents")
         self.command = command or default_command(notes)
         self.timeout = timeout
@@ -193,14 +194,23 @@ class Agents:
     def run(self, path, kind, text):
         meta = {"status": "running", "type": kind, "queued": self._read(path)[0].get("queued", now()), "started": now()}
         self._write(path, meta, text)
+        command, prompt = self.command, PROMPT.format(kind=kind, text=text)
+        if kind == "routine":  # its own prompt, and RemoteTrigger is the only tool; other kinds never get it
+            import routines  # here, not at the top: routines imports this module
+            command = self.routine_command or routines.create_command()
+            prompt = routines.CREATE_PROMPT.format(text=text)
         try:
-            p = subprocess.run(self.command, input=PROMPT.format(kind=kind, text=text), cwd=self.notes,
+            if kind == "routine" and not self.routine_command and os.environ.get("BRAIN_AGENT", "").lower() == "codex":
+                raise RuntimeError("Routines need Claude Code.")
+            p = subprocess.run(command, input=prompt, cwd=self.notes,
                                capture_output=True, encoding="utf-8", errors="replace", timeout=self.timeout)
             status = "done" if p.returncode == 0 else "failed"
             report = (p.stdout.strip() or p.stderr.strip() or "(no output)")
         except subprocess.TimeoutExpired:
             status, report = "failed", "Stopped after %d minutes." % (self.timeout // 60)
         except FileNotFoundError:
-            status, report = "failed", "The %s command wasn't found." % os.path.basename(self.command[0])
+            status, report = "failed", "The %s command wasn't found." % os.path.basename(command[0])
+        except RuntimeError as e:
+            status, report = "failed", str(e)
         meta.update(status=status, finished=now())
         self._write(path, meta, text, report[:2000])
