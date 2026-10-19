@@ -150,10 +150,14 @@ class Routines:
             raise KeyError(rid)
         body = "" if action == "run" else ", body {\"enabled\": %s}" % ("false" if action == "pause" else "true")
         reply, error = self._ask(self.command, ACT_PROMPT.format(action="run" if action == "run" else "update", rid=rid, body=body))
-        snap = self.refresh() or snap
         if error or not (reply or {}).get("ok"):
-            snap = self._save(dict(snap, error=error or (reply or {}).get("error") or "That didn't work."))
-        return snap
+            return self._save(dict(snap, error=error or (reply or {}).get("error") or "That didn't work."))
+        # It worked, so the snapshot already knows the result: no second claude call (that doubled the wait).
+        # A run's last_run shows up on the next refresh.
+        for r in snap["routines"]:
+            if r["id"] == rid and action != "run":
+                r["enabled"] = action == "resume"
+        return self._save(dict(snap, error=""))
 
     def suggest(self, force=False):
         snap = self.load()

@@ -233,6 +233,16 @@ a.it-row:hover { background: var(--tile-2); }
 .run.open .txt { white-space: normal; }
 @keyframes pulse { 50% { opacity: .35; } }
 @media (prefers-reduced-motion: reduce) { .run.running .st { animation: none; } }
+.routines { grid-column: span 12; }
+.rt { display: grid; grid-template-columns: 12px 1fr auto; gap: 2px 10px; align-items: center; padding: 9px 0; border-top: 1px solid var(--line); }
+.rt:first-child { border-top: 0; }
+.rt .st { width: 8px; height: 8px; border-radius: 50%; background: var(--mint); }
+.rt.bad .st { background: var(--rose); }
+.rt.never .st, .rt.paused .st { background: var(--dim); }
+.rt .meta { grid-column: 2; font: 500 12px var(--mono); color: var(--dim); }
+.rt .acts { grid-row: 1 / span 2; grid-column: 3; display: flex; gap: 6px; }
+.rt .why { grid-column: 2 / -1; color: var(--muted); font-size: 13px; }
+.rt-err { color: var(--muted); font-size: 13px; padding: 4px 0 8px; }
 .idea-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .idea-card { background: var(--tile-2); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 8px; min-height: 132px; transition: opacity .4s var(--ease), transform .5s var(--spring); }
 .idea-card small { font: 500 11px var(--mono); color: var(--dim); display: flex; gap: 8px; justify-content: space-between; }
@@ -339,6 +349,7 @@ a.it-row:hover { background: var(--tile-2); }
   <section class="tile projects"><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h6l2 2h10v10H3z"/></svg><h2>Projects</h2><span class="n" id="projCount"></span></header><div id="projects"></div></section>
   <section class="tile intern"><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M3 13h18"/></svg><h2>Internships</h2><span class="n" id="internCount"></span><button class="add" data-open="internships/tracker.md">Open tracker</button></header><div class="it" id="intern"></div></section>
   <section class="tile agents" id="agentsTile" hidden><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 3v4M9 12h.01M15 12h.01M9 16h6"/></svg><h2>Agents</h2><span class="n" id="agentCount"></span></header><div id="agents"></div></section>
+  <section class="tile routines" id="routinesTile" hidden><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2M3 4l3 3M21 4l-3 3"/></svg><h2>Routines</h2><span class="n" id="routineCount"></span><button class="add" data-ract="refresh">Refresh</button></header><div id="routines"></div></section>
   <section class="tile ideas"><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z"/></svg><h2>Ideas</h2><span class="n" id="ideaCount"></span><button class="add" data-capture="idea">+ Idea</button></header><div id="ideas"></div></section>
   <section class="tile habits"><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 5.8H20l-4.9 3.6 1.9 5.8L12 14.6l-5 3.6 1.9-5.8L4 8.8h6.1z"/></svg><h2>How Claude adapts to you</h2><span class="n" id="habitCount"></span></header><div id="habits"></div></section>
   <section class="tile map" id="mapTile" hidden><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="7" r="2"/><circle cx="12" cy="18" r="2"/><circle cx="12" cy="10" r="2.5"/><path d="M7 6.5l2.8 2.2M17.1 7.6l-2.8 1.6M12 12.5V16"/></svg><h2>Map of everything</h2><input class="map-search" id="mapSearch" list="mapPhrases" placeholder="Search the map…" autocomplete="off" aria-label="Search the map"><datalist id="mapPhrases"></datalist><span class="n" id="mapCount"></span></header>
@@ -366,8 +377,8 @@ a.it-row:hover { background: var(--tile-2); }
 <div class="palette" id="palette" role="dialog" aria-label="Capture or jump">
   <input id="pInput" placeholder="What's on your mind?" autocomplete="off">
   <div class="kinds" id="kinds">
-    <button class="kind on" data-kind="note">Note</button><button class="kind" data-kind="idea">Idea</button><button class="kind" data-kind="todo">To-do</button><button class="kind" data-kind="person">Person</button>
-    <small>Claude files it next session</small>
+    <button class="kind on" data-kind="note">Note</button><button class="kind" data-kind="idea">Idea</button><button class="kind" data-kind="todo">To-do</button><button class="kind" data-kind="person">Person</button><button class="kind" data-kind="routine">Routine</button>
+    <small id="kindHint">Claude files it next session</small>
   </div>
   <div class="results" id="pResults"></div>
   <footer><span><kbd>↵</kbd>capture</span><span><kbd>↑↓</kbd>jump to a page</span><span><kbd>tab</kbd>change type</span><span><kbd>esc</kbd>close</span></footer>
@@ -625,7 +636,7 @@ async function initMap() {
 function render() {
   const [hi] = greeting();
   $("greet").innerHTML = `${esc(hi)} <span>· ${esc(new Date().toLocaleDateString("en", { weekday: "long" }))}</span>`;
-  renderCover(); renderNext(); renderNudges(); renderProjects(); renderInternships(); renderIdeas(); renderHabits(); renderTimeline(); renderAgents(); renderKnows();
+  renderCover(); renderNext(); renderNudges(); renderProjects(); renderInternships(); renderIdeas(); renderHabits(); renderTimeline(); renderAgents(); renderKnows(); renderRoutines();
   if (doc?.panel) openPeople();
 }
 
@@ -718,6 +729,51 @@ document.addEventListener("click", e => {
   const f = row.dataset.run;
   openRuns.has(f) ? openRuns.delete(f) : openRuns.add(f);
   row.classList.toggle("open");
+});
+
+/* ---------- routines (claude/routines.json, refreshed through Claude Code) ---------- */
+let showPaused = false, routinesAsked = false;
+function routineRow(r) {
+  const cls = !r.enabled ? "paused" : r.ok === false ? "bad" : r.ok == null ? "never" : "";
+  const ran = r.last_run ? `ran ${r.last_run.slice(5)} ${r.ok === false ? "✗" : "✓"}` : "hasn't run yet";
+  const acts = r.enabled
+    ? `<button class="pill sm" data-ract="run" data-rid="${esc(r.id)}">Run now</button><button class="pill sm ghost" data-ract="pause" data-rid="${esc(r.id)}">Pause</button>`
+    : `<button class="pill sm" data-ract="resume" data-rid="${esc(r.id)}">Resume</button>`;
+  return `<div class="rt ${cls}"><span class="st"></span><b>${esc(r.name)}</b><span class="acts">${acts}</span>
+    <span class="meta">${esc(r.schedule)} · ${esc(ran)}</span>${r.enabled && r.why_pause ? `<span class="why">Looks unnecessary: ${esc(r.why_pause)}</span>` : ""}</div>`;
+}
+function renderRoutines() {
+  const R = S.routines;
+  $("routinesTile").hidden = !R;
+  if (!R) return;
+  const on = R.routines.filter(r => r.enabled), off = R.routines.filter(r => !r.enabled);
+  $("routineCount").textContent = `${on.length} running`;
+  $("routines").innerHTML = (R.error ? `<div class="rt-err">Couldn't reach your routines: ${esc(R.error)}</div>` : "")
+    + (on.length ? on.map(routineRow).join("") : `<div class="empty">No routines running. Capture one with ⌘K → Routine.</div>`)
+    + (off.length ? `<button class="more" id="togglePaused">${showPaused ? "Hide paused" : `Paused (${off.length})`}</button>` + (showPaused ? off.map(routineRow).join("") : "") : "");
+}
+// The snapshot is cached in the notes; ask Claude Code for a fresh one when it's over 10 minutes old,
+// and for suggestions once a day. Once per page load: each ask is a Claude call.
+async function freshenRoutines() {
+  if (routinesAsked || !S) return;
+  routinesAsked = true;
+  const R = S.routines, today = new Date().toLocaleDateString("en-CA");
+  try {
+    if (!R || !R.checked || Date.now() - new Date(R.checked) > 600e3) { await api("/api/routines", { action: "refresh" }); await load(); }
+    if (S.routines && S.routines.suggested !== today) { await api("/api/routines", { action: "suggest" }); await load(); }
+  } catch (e) { /* the snapshot carries its own error line */ }
+}
+document.addEventListener("click", async e => {
+  if (e.target.closest("#togglePaused")) { showPaused = !showPaused; return renderRoutines(); }
+  const b = e.target.closest("[data-ract]");
+  if (!b) return;
+  const action = b.dataset.ract, name = (S.routines?.routines.find(r => r.id === b.dataset.rid) || {}).name || "";
+  b.disabled = true; b.textContent = "…";
+  try {
+    await api("/api/routines", { action, id: b.dataset.rid });
+    toast({ run: `Started ${name}.`, pause: `Paused ${name}.`, resume: `Resumed ${name}.`, refresh: "Routines refreshed." }[action]);
+  } catch (err) { toast(err.message); }
+  lastState = ""; load();
 });
 
 /* ---------- how well Claude knows you (claude/predictions.md) ---------- */
@@ -1152,7 +1208,8 @@ function openPalette(k = "note", q = "") {
   kind = k; sel = q ? 0 : -1;
   document.querySelectorAll(".kind").forEach(b => b.classList.toggle("on", b.dataset.kind === kind));
   $("pInput").value = q; $("palette").classList.add("on"); $("pScrim").classList.add("on");
-  $("pInput").placeholder = { note: "What's on your mind?", idea: "What if…", todo: "Something to do", person: "Who, and what about them?" }[kind];
+  $("pInput").placeholder = { note: "What's on your mind?", idea: "What if…", todo: "Something to do", person: "Who, and what about them?", routine: "e.g. Every Sunday at 6pm, plan my week" }[kind];
+  $("kindHint").textContent = kind === "routine" ? "Set up paused. Resume it in Routines." : "Claude files it next session";
   search(); setTimeout(() => $("pInput").focus(), 30);
 }
 function closePalette() { $("palette").classList.remove("on"); $("pScrim").classList.remove("on"); }
@@ -1172,21 +1229,27 @@ function search() {
   const q = $("pInput").value.trim().toLowerCase();
   results = q ? pages().filter(p => (p.title + " " + p.path).toLowerCase().includes(q)).slice(0, 8) : [];
   if (sel >= results.length) sel = results.length - 1;
-  $("pResults").innerHTML = results.map((r, k) => `<div class="res ${k === sel ? "sel" : ""}" data-k="${k}">${I.note}<b>${esc(r.title)}</b><span>${esc(r.kind)}</span></div>`).join("");
+  const sugs = q ? [] : (S?.routines?.suggestions || []);
+  $("pResults").innerHTML = results.map((r, k) => `<div class="res ${k === sel ? "sel" : ""}" data-k="${k}">${I.note}<b>${esc(r.title)}</b><span>${esc(r.kind)}</span></div>`).join("")
+    + sugs.map((g, k) => `<div class="res" data-sug="${k}">${I.flame}<b>${esc(g.title)}</b><span>suggested routine · ${esc(g.schedule)}</span></div>`).join("");
 }
 $("pInput").addEventListener("input", () => { sel = -1; search(); });
-$("pResults").addEventListener("click", e => { const r = e.target.closest(".res"); if (r) { closePalette(); openDoc(results[+r.dataset.k].path); } });
+$("pResults").addEventListener("click", e => {
+  const r = e.target.closest(".res"); if (!r) return;
+  if (r.dataset.sug) return openPalette("routine", S.routines.suggestions[+r.dataset.sug].text);
+  closePalette(); openDoc(results[+r.dataset.k].path);
+});
 $("kinds").addEventListener("click", e => { const b = e.target.closest(".kind"); if (b) openPalette(b.dataset.kind, $("pInput").value); });
 $("pScrim").onclick = closePalette;
 $("pInput").addEventListener("keydown", async e => {
   if (e.key === "ArrowDown") { e.preventDefault(); sel = Math.min(sel + 1, results.length - 1); search(); }
   else if (e.key === "ArrowUp") { e.preventDefault(); sel = Math.max(sel - 1, -1); search(); }
-  else if (e.key === "Tab") { e.preventDefault(); const ks = ["note", "idea", "todo", "person"]; openPalette(ks[(ks.indexOf(kind) + (e.shiftKey ? 3 : 1)) % 4], $("pInput").value); }
+  else if (e.key === "Tab") { e.preventDefault(); const ks = ["note", "idea", "todo", "person", "routine"]; openPalette(ks[(ks.indexOf(kind) + (e.shiftKey ? ks.length - 1 : 1)) % ks.length], $("pInput").value); }
   else if (e.key === "Enter") {
     e.preventDefault();
     if (sel >= 0 && results[sel]) { closePalette(); return openDoc(results[sel].path); }
     const text = $("pInput").value.trim(); if (!text) return;
-    try { await api("/api/capture", { kind, text }); closePalette(); celebrate($("openPalette"), 14); toast(pick(CAPTURE)); load(); }
+    try { await api("/api/capture", { kind, text }); closePalette(); celebrate($("openPalette"), 14); toast(kind === "routine" ? "Setting it up, paused. The agents chip shows when it's done." : pick(CAPTURE)); load(); }
     catch (err) { toast(err.message); }
   }
 });
@@ -1224,7 +1287,7 @@ function celebrate(el, n = 22) {
 }
 
 /* ---------- boot ---------- */
-load().then(() => { const h = decodeURIComponent(location.hash.slice(1)); if (h === "people") openPeople(); else if (h.endsWith(".md")) openDoc(h); initMap(); });
+load().then(() => { freshenRoutines(); const h = decodeURIComponent(location.hash.slice(1)); if (h === "people") openPeople(); else if (h.endsWith(".md")) openDoc(h); initMap(); });
 const idle = () => !doc && !/INPUT|TEXTAREA/.test(document.activeElement?.tagName || "");
 setInterval(() => { if (!document.hidden && idle()) load(); }, 30000);
 addEventListener("focus", () => { if (idle()) load(); });

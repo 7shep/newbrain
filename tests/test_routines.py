@@ -53,6 +53,20 @@ class RoutinesTest(unittest.TestCase):
         with self.assertRaises(KeyError):
             r.act("gone", "run")
 
+    def test_pause_and_resume_update_the_snapshot_without_a_second_call(self):
+        Routines(self.notes, command=fake(ONE)).refresh()
+        r = Routines(self.notes, command=fake('{"ok": true}'))  # a refresh with this reply would fail
+        self.assertFalse(r.act("t1", "pause")["routines"][0]["enabled"])
+        snap = r.act("t1", "resume")
+        self.assertTrue(snap["routines"][0]["enabled"])
+        self.assertEqual(snap["error"], "")
+
+    def test_failed_action_reports_and_keeps_state(self):
+        Routines(self.notes, command=fake(ONE)).refresh()
+        snap = Routines(self.notes, command=fake('{"ok": false, "error": "nope"}')).act("t1", "pause")
+        self.assertTrue(snap["routines"][0]["enabled"])
+        self.assertEqual(snap["error"], "nope")
+
     def test_suggest_once_a_day_and_flags(self):
         r = Routines(self.notes, command=fake('{"routines":[{"id":"t1","name":"A"}]}'),
                      suggest_command=fake('{"suggestions":[{"title":"Week plan","schedule":"Sun 6pm","text":"Every Sunday 6pm, plan my week"}],"pause":[{"id":"t1","reason":"replaced"}]}'))
