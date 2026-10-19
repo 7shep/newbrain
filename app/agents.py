@@ -60,6 +60,20 @@ def default_command(notes):
     return codex_command(notes) if os.environ.get("BRAIN_AGENT", "").lower() == "codex" else claude_command(notes)
 
 
+def _write_atomic(path, text):
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.write(text)
+    for attempt in range(20):  # Windows refuses the replace while a reader has the file open
+        try:
+            os.replace(tmp, path)
+            return
+        except PermissionError:
+            if attempt == 19:
+                raise
+            time.sleep(0.05)
+
+
 def now():
     return datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 
@@ -83,17 +97,7 @@ class Agents:
         body = "---\n%s---\n\n## Input\n%s\n" % (head, text)
         if report:
             body += "\n## Report\n%s\n" % report
-        tmp = path + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as f:
-            f.write(body)
-        for attempt in range(20):  # Windows refuses the replace while a reader (recent()) has the file open
-            try:
-                os.replace(tmp, path)
-                return
-            except PermissionError:
-                if attempt == 19:
-                    raise
-                time.sleep(0.05)
+        _write_atomic(path, body)
 
     def _read(self, path):
         with open(path, encoding="utf-8", errors="replace") as f:
