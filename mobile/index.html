@@ -77,6 +77,7 @@ button { cursor: pointer; }
 .row:first-of-type { border-top: 0; }
 .row .st { width: 8px; height: 8px; border-radius: 50%; background: var(--mint); flex: none; }
 .row .st.paused { background: var(--amber); } .row .st.abandoned, .row .st.done { background: var(--dim); }
+.row .st.bad { background: var(--rose); } .row .st.off, .row .st.never { background: var(--dim); }
 .row .t { font-weight: 600; } .row .s { color: var(--muted); font-size: 13px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 .row > div { min-width: 0; flex: 1; }
 .idea { padding: 10px 0; border-top: 1px solid var(--line); }
@@ -467,6 +468,7 @@ function render() {
     ${sec("people", "People", (view.people || []).length, `${(view.people || []).map(p => `<button class="row" data-open="${esc(p.path)}"><div><div class="t">${esc(p.title)}</div><div class="s">${esc(p.meta.follow_up ? "Next: " + p.meta.follow_up : (p.meta.relation || p.tldr || ""))}</div></div></button>`).join("") || `<div class="empty">No people pages yet.</div>`}`)}
     ${view.me?.exists ? sec("me", "Me", "", `${view.me.meta?.tagline ? `<div class="t">${esc(view.me.meta.tagline)}</div>` : ""}${(view.me.snapshot || []).map(x => `<div class="s" style="margin-top:8px">${esc(x)}</div>`).join("")}<div class="acts"><button class="pill yes" data-open="${esc(view.me.path)}">Open me.md</button></div>`) : ""}
     ${(view.agents || []).length ? sec("agents", "Agents", view.agents.length, view.agents.slice(0, 6).map(a => `<div class="job"><small>${esc(a.status)} · ${esc((a.finished || a.queued || "").slice(5))}</small><h4>${esc(a.text)}</h4>${a.report ? `<p data-expand>${esc(a.report)}</p>` : ""}</div>`).join("")) : ""}
+    ${routinesSec(view.routines)}
     ${sec("ideas", "Ideas", view.ideas.length ? view.ideas.length + " open" : "", `${view.ideas.length ? view.ideas.slice(0, showAllIdeas ? 999 : 5).map(l => { const m = l.match(/^(\d{4}-\d{2}-\d{2}) · (.*?)(?: \(project: [\w-]+\))?$/);
         return `<div class="idea"><small>${esc(m ? m[1] : "")}</small><div class="t">${esc(m ? m[2] : l)}</div>
         <div class="acts"><button class="pill yes" data-idea="${esc(l)}" data-a="done">Done</button><button class="pill" data-idea="${esc(l)}" data-a="dismissed">Dismiss</button></div></div>`; }).join("")
@@ -481,6 +483,16 @@ function render() {
   if (html === lastHtml) return;
   const main = $("main"); main.innerHTML = lastHtml = html;
   if (!introDone) { introDone = true; main.classList.add("intro"); setTimeout(() => main.classList.remove("intro"), 1300); }
+}
+// Routines: read-only status from claude/routines.json (the Mac refreshes it; run/pause live on the Mac).
+function routinesSec(R) {
+  if (!R || !R.routines.length) return "";
+  const rows = [...R.routines].sort((a, b) => b.enabled - a.enabled);
+  return sec("routines", "Routines", rows.filter(r => r.enabled).length + " running", rows.map(r => {
+    const st = !r.enabled ? "off" : r.ok === false ? "bad" : r.ok == null ? "never" : "";
+    const ran = r.last_run ? "ran " + r.last_run.slice(5) + (r.ok === false ? " · failed" : "") : "hasn't run";
+    return `<div class="row"><span class="st ${st}"></span><div><div class="t">${esc(r.name)}</div><div class="s">${esc(r.enabled ? r.schedule + " · " + ran : "paused")}</div></div></div>`; }).join("")
+    + (R.error ? `<div class="empty">Couldn't reach your routines: ${esc(R.error)}</div>` : ""));
 }
 // Internships: what to apply to (with its deadline and link) above what's already applied; "out" rows stay on the Mac.
 function internSec(list) {
@@ -518,7 +530,7 @@ function stripDots() { const st = $("strip"); if (!st) return; const x0 = st.get
 // A collapsible group. Which ones are folded is remembered on this phone.
 let folded = new Set(store.get("folded", []));
 // Sections shown on home, picked in Settings as choices. Hidden ones are remembered on this phone.
-const SECTIONS = [["next", "Up next"], ["nudges", "Notes to self"], ["projects", "Projects"], ["people", "People"], ["me", "Me"], ["ideas", "Ideas"], ["habits", "How Claude adapts"], ["knows", "How well Claude knows you"], ["intern", "Internships"], ["agents", "Agents"], ["sessions", "Everything we've done"]];
+const SECTIONS = [["next", "Up next"], ["nudges", "Notes to self"], ["projects", "Projects"], ["people", "People"], ["me", "Me"], ["ideas", "Ideas"], ["habits", "How Claude adapts"], ["knows", "How well Claude knows you"], ["intern", "Internships"], ["agents", "Agents"], ["routines", "Routines"], ["sessions", "Everything we've done"]];
 let hidden = new Set(store.get("hidden", []));
 function drawSecPick() { $("secPick").innerHTML = SECTIONS.map(([k, t]) => `<button type="button" class="pill${hidden.has(k) ? "" : " on"}" aria-pressed="${!hidden.has(k)}" data-sec-pick="${k}">${esc(t)}</button>`).join(""); }
 document.addEventListener("click", e => { const b = e.target.closest("[data-sec-pick]"); if (!b) return; const k = b.dataset.secPick;
@@ -728,13 +740,14 @@ async function openDoc(path) {
 function open(id) { $(id).classList.add("on"); }
 function close(id) { $(id).classList.remove("on"); }
 document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => close(b.closest(".sheet").id));
-const TYPES = [["note", "Note"], ["idea", "Idea"], ["todo", "Todo"], ["person", "Person"], ["habit", "Habit for Claude"]];
+const TYPES = [["note", "Note"], ["idea", "Idea"], ["todo", "Todo"], ["person", "Person"], ["habit", "Habit for Claude"], ["routine", "Routine"]];
 // per type: prompt, icon paths, and the rotating "Try:" sparks under the form
 const CAP = {
   note: ["What's on your mind?", '<path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h5"/>', ["something you noticed today", "a line from class worth keeping", "what's stuck in your head"]],
   idea: ["What's the idea?", '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>', ["a feature for Brain", "a weekend project", "something you'd build if you had a week"]],
   todo: ["What needs doing?", '<path d="M4 12l5 5L20 6"/>', ["the thing you keep forgetting", "an email you owe someone", "what's due this week"]],
   person: ["Who'd you meet, and what's worth remembering?", '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>', ["someone new from today", "what a friend just told you", "who to follow up with"]],
+  routine: ["What should run on a schedule?", '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', ["every Sunday at 6pm, plan my week", "weekday mornings, list who's waiting on a reply", "Fridays, sum up what changed in my internships"]],
   habit: ["What should Claude start doing?", '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/>', ["something Claude got wrong today", "how you want replies to sound", "a rule Claude should always follow"]],
 };
 let capType = "note", sparkI = 0, sparkT = null;
@@ -760,7 +773,13 @@ function spark() {
   if (calm() || !el.innerHTML) return set();
   el.style.opacity = 0; setTimeout(set, 250);
 }
-function drawRecent() {  // last few inbox captures, newest first ("date · kind · text")
+function drawRecent() {  // last few inbox captures, newest first ("date · kind · text"); for Routine, the suggestions
+  const sugs = S?.routines?.suggestions || [];
+  if (capType === "routine") {
+    $("capRecent").innerHTML = (sugs.length ? "<h4>Suggested for you</h4>" + sugs.map((g, i) => `<button type="button" class="r" data-sug="${i}" style="animation-delay:${.34 + i * .06}s;text-align:left;width:100%;background:none;border:0;color:inherit;font:inherit;padding:0"><small>${esc(g.schedule)}</small><span>${esc(g.title)}</span></button>`).join("") : "")
+      + `<p class="spark">Set up when your Mac is on, and created paused.</p>`;
+    return;
+  }
   const items = (S?.inbox || []).slice(-3).reverse().map(l => l.split(" · "));
   $("capRecent").innerHTML = items.length ? "<h4>Recently captured</h4>" + items.map(([, k, ...t], i) =>
     `<div class="r" style="animation-delay:${.34 + i * .06}s"><small>${esc(t.length ? k : "")}</small><span>${esc(t.length ? t.join(" · ") : k)}</span></div>`).join("") : "";
@@ -774,7 +793,8 @@ function fly(text) {  // the saved text shrinks down into the + button
   return f.animate([{ transform: "none" }, { transform: `translate(${dx * .4}px, ${dy * .3}px) scale(.85) rotate(-4deg)`, offset: .45 },
     { transform: `translate(${dx}px, ${dy}px) scale(.12)`, opacity: .3 }], { duration: 650, easing: "cubic-bezier(.55,0,.75,.2)" }).finished.then(() => f.remove());
 }
-$("types").onclick = e => { const b = e.target.closest("[data-type]"); if (b && b.dataset.type !== capType) setType(b.dataset.type, true); };
+$("types").onclick = e => { const b = e.target.closest("[data-type]"); if (b && b.dataset.type !== capType) { setType(b.dataset.type, true); drawRecent(); } };
+$("capRecent").onclick = e => { const b = e.target.closest("[data-sug]"); if (!b) return; $("capText").value = S.routines.suggestions[+b.dataset.sug].text; $("capGo").classList.add("ready"); };
 $("capText").oninput = () => $("capGo").classList.toggle("ready", !!$("capText").value.trim());
 $("openCapture").onclick = () => {
   drawTypes(); open("capture"); setTimeout(() => $("capText").focus(), 350);
