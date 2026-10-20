@@ -67,11 +67,11 @@ for (const theme of themes) {
   console.log("  max scroll", await evalJs("document.documentElement.scrollHeight-innerHeight"));
   // Act 2: open and close a tile (it grows from its spot), then Settings (theme picker inside)
   const close = `(document.getElementById("pageDone") || document.querySelector("#page [data-close]")).click()`;
-  await evalJs(`scrollTo(0,0);__mark.push(["open",performance.now()]);document.querySelectorAll("#board .bt .bt-part")[1].click()`); await sleep(900);
+  await evalJs(`scrollTo(0,0);__mark.push(["open",performance.now()]);document.querySelectorAll("#board .bt .bt-part, #board .pt")[1].click()`); await sleep(900);
   await evalJs(`__mark.push(["close",performance.now()]);${close}`); await sleep(900);
   if (PHONE) { await evalJs(`__mark.push(["settings",performance.now()]);document.getElementById("openSettings").click()`); await sleep(900);
     await evalJs(`document.querySelector("#settings [data-close]").click()`); }
-  else { await evalJs(`__mark.push(["settings",performance.now()]);document.getElementById("settingsBtn").click()`); await sleep(900); await evalJs(close); }
+  else { await evalJs(`__mark.push(["settings",performance.now()]);document.getElementById("settingsBtn").click()`); await sleep(900); await evalJs(`document.getElementById("setClose").click()`); }
   await sleep(700);
   // Act 3: re-flow (the cover length changes, every piece glides to its new spot)
   await evalJs(`__mark.push(["reflow",performance.now()]);document.querySelector('${PHONE ? "[data-lay=cover][data-v=long]" : "#segCover [data-v=long]"}').click()`); await sleep(1000);

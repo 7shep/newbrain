@@ -263,17 +263,42 @@ button, .row, header[data-sec] { -webkit-touch-callout: none; }
 .tpick .modes { display: flex; flex-wrap: wrap; gap: 6px; }
 .tpick .modes .pill.on { background: var(--accent); color: var(--accent-ink); }
 
-/* adaptive tiles (docs/superpowers/specs/2026-10-19-adaptive-tiles-design.md): home is a board of shaped pieces from app/tiles.js;
-   a tapped piece grows into a full-screen page holding its section from the feed above. Settings → Layout → Scroll brings the feed back. */
-#board { display: none; grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); grid-auto-rows: 28px; gap: 14px; transition: opacity .45s var(--ease); }
+/* adaptive tiles (docs/superpowers/specs/2026-10-19-adaptive-tiles-design.md): home is the Next card, the cover headline, four counts,
+   then the sections from app/tiles.js in two columns ("Mix A": the most urgent one full width, then pairs with a wide one every third row).
+   A tapped tile grows into a full-screen page holding its section from the feed below. Settings → Layout → Scroll brings the feed back. */
+#top { display: none; } body.tiles #top { display: block; }
+#board { display: none; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; transition: opacity .45s var(--ease); }
 body.tiles #board { display: grid; } body.tiles #hero, body.tiles .deck { display: none; }
-body.pg { overflow: hidden; } body.pg #board { opacity: .35; }
+body.pg { overflow: hidden; } body.pg #board, body.pg #top { opacity: .35; } #top { transition: opacity .45s var(--ease); }
+.date { display: none; flex: none; font: 600 13px var(--sans); color: var(--muted); white-space: nowrap; } body.tiles .date { display: block; }
+body.tiles .bar { gap: 8px; } body.tiles .bar .ib { width: 32px; height: 32px; border-color: transparent; background: none; }
+body.tiles .bar .dot { margin-left: -2px; }
+.nx { display: block; width: 100%; text-align: left; margin: 0; padding: 14px 16px 15px; border-radius: 20px; transition: transform .18s var(--ease); }
+.nx:active { transform: scale(.985); }
+.nx small { font: 600 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; opacity: .8; }
+.nx b { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font: 800 24px/1.1 var(--display); letter-spacing: -.01em; margin: 4px 0 6px; }
+.nx > span { display: block; font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.hl { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 14px 2px 12px; font: 700 18px/1.25 var(--display); text-wrap: balance; cursor: pointer; }
+.hl em { font-weight: 600; }
+.sts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-bottom: 12px; }
+.sts button { min-width: 0; text-align: left; margin: 0; padding: 8px 9px; border-radius: 13px; font-size: 11.5px; color: var(--muted); transition: transform .18s var(--ease); }
+.sts button:active { transform: scale(.94); }
+.sts b { display: block; font: 800 20px/1.1 var(--display); color: var(--ink); }
+.pt { min-width: 0; height: 100px; margin: 0; padding: 11px 13px; text-align: left; display: flex; flex-direction: column; border-radius: 18px;
+  opacity: 0; transform: translateY(16px) scale(.96); transition: opacity .5s var(--ease), transform .6s var(--ease); }
+.pt.in { opacity: 1; transform: none; } .pt.in:active { transform: scale(.97); transition-duration: .18s; }
+.pt.wide { grid-column: span 2; }
+.pt.hot { background: color-mix(in srgb, var(--accent) 12%, var(--tile)); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+.pt small { font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pt b { font: 800 30px/1.1 var(--display); margin-top: auto; font-variant-numeric: tabular-nums; }
+.pt span { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pt.clear b { color: var(--good); }
 ::view-transition-old(*), ::view-transition-new(*) { object-fit: none; overflow: clip; height: 100%; }
 .bar { position: relative; } .bar h1 { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-body.tiles .bar h1 { font-size: 19px; }
+body.tiles .bar h1 { font-size: 19px; flex: none; }
 .island { display: none; flex: none; align-items: center; gap: 7px; height: 30px; width: var(--iw, 90px); max-width: 44vw; padding: 0 11px; border: 0; border-radius: 15px;
   background: var(--ink); color: var(--bg); font: 600 12px var(--sans); white-space: nowrap; overflow: hidden; transition: width .6s var(--spring), transform .18s var(--ease); }
-body.tiles .island { display: flex; } .island:active { transform: scale(.94); }
+body.tiles .island { display: flex; flex-shrink: 1; min-width: 0; max-width: 30vw; } .island:active { transform: scale(.94); }
 .island i { width: 7px; height: 7px; border-radius: 50%; background: var(--good); flex: none; }
 .island.work i { background: var(--accent); animation: pulse 1s ease-in-out infinite; }
 .island span { overflow: hidden; text-overflow: ellipsis; }
@@ -299,7 +324,8 @@ body.tiles .fab { width: 56px; padding: 0; justify-content: center; font-size: 0
 #page.cover > header { border-color: color-mix(in srgb, var(--cover-ink) 20%, transparent); } #page.cover > header small { color: inherit; opacity: .7; }
 #page.cover .side { margin: 14px 0 0; font-size: 14px; opacity: .85; } #page.cover .acts { margin-top: 18px; }
 #page.cover .pill { background: var(--cover-ink); color: var(--cover-solid); }
-@media (prefers-reduced-motion: reduce) { #page, #page > header, #pageStrip, #pageUi, #board, .island, .ilist { transition: none; } .island.work i { animation: none; } }
+@media (prefers-reduced-motion: reduce) { #page, #page > header, #pageStrip, #pageUi, #board, #top, .island, .ilist, .nx, .sts button { transition: none; } .island.work i { animation: none; }
+  .pt { opacity: 1; transform: none; transition: none; } }
 
 </style>
 <link rel="stylesheet" href="../app/theme.css">
@@ -309,13 +335,14 @@ body.tiles .fab { width: 56px; padding: 0; justify-content: center; font-size: 0
 </head>
 <body>
 <div class="bar">
-  <h1 id="greet">Brain</h1><button class="island" id="island" aria-label="Agent runs" aria-haspopup="true"><i></i><span id="itxt"></span></button><span class="sp"></span>
-  <span class="dot" id="syncDot" title="Sync status"></span>
+  <h1 id="greet">Brain</h1><span class="dot" id="syncDot" title="Sync status"></span><button class="island" id="island" aria-label="Agent runs" aria-haspopup="true"><i></i><span id="itxt"></span></button><span class="sp"></span>
+  <span class="date" id="dateNow"></span>
   <button class="ib" id="refresh" aria-label="Refresh"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></button>
   <button class="ib" id="openSettings" aria-label="Settings"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 15.1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   <div class="ilist" id="ilist" role="menu"></div>
 </div>
 <div id="banner"></div>
+<div id="top"></div>
 <div id="board" aria-label="Home"></div>
 <div id="hero"></div>
 <div class="deck">
@@ -504,8 +531,8 @@ function render() {
   const up = (n.upcoming || []).filter(u => u.date >= t).slice(0, 6);
   const open = view.nudges.filter(x => x.status === "open" || (x.status === "snoozed" && x.snooze_until && x.snooze_until <= t));
   const late = open.filter(x => x.due && daysFrom(x.due) < 0).length, nToday = up.filter(u => daysFrom(u.date) === 0).length;
-  $("greet").innerHTML = tiles ? `Brain <span>· ${new Date().toLocaleDateString("en", { weekday: "long", month: "long", day: "numeric" })}${late ? ` · ${late} overdue` : ""}${nToday ? ` · ${nToday} today` : ""}</span>`
-    : `${h < 12 ? "Morning" : h < 18 ? "Afternoon" : "Evening"}${name ? ", " + esc(name) : ""} <span>· ${new Date().toLocaleDateString("en", { weekday: "short" })}</span>`;
+  $("dateNow").textContent = new Date().toLocaleDateString("en", { weekday: "short", month: "short", day: "numeric" });
+  $("greet").innerHTML = tiles ? "Brain" : `${h < 12 ? "Morning" : h < 18 ? "Afternoon" : "Evening"}${name ? ", " + esc(name) : ""} <span>· ${new Date().toLocaleDateString("en", { weekday: "short" })}</span>`;
   const projects = view.projects.filter(p => !p.archived && ["active", "paused"].includes(p.meta.status));
   const habits = view.habits;
   const nx = up[0], dn = nx ? daysFrom(nx.date) : null;
@@ -557,40 +584,61 @@ function render() {
     if (!introDone && !tiles) { introDone = true; main.classList.add("intro"); setTimeout(() => main.classList.remove("intro"), 1300); }
     if (pageKey) fillPage();
   }
-  if (tiles) board(view);
+  if (tiles) board(view, late, nToday);
 }
 
-/* ---------- adaptive tiles: app/tiles.js scores and shapes the board; a tapped piece grows into its section ---------- */
-const BT = window.BrainTiles, SEC_OF = { next: "next", people: "people", intern: "intern", nudges: "nudges", agents: "agents", routines: "routines", projects: "projects", ideas: "ideas", streak: "sessions", habits: "habits" };
-let layout = store.get("layout", "tiles"), coverLen = store.get("cover", "medium"), blocks = null, solvedFor = "", lastBoard = "", reflow = true, pageKey = null, ITEMS = {}, hiddenAt = Date.now();
+/* ---------- adaptive tiles: app/tiles.js scores the sections; home lays them out two to a row and a tapped one grows into its section ---------- */
+const BT = window.BrainTiles, SEC_OF = { next: "next", people: "people", intern: "intern", nudges: "nudges", agents: "agents", routines: "routines", projects: "projects", ideas: "ideas", streak: "sessions", habits: "habits", knows: "knows" };
+let layout = store.get("layout", "tiles"), coverLen = store.get("cover", "medium"), order = null, lastBoard = "", reflow = true, pageKey = null, pageFrom = null, ITEMS = {}, hiddenAt = Date.now(), NEXT = null;
 const tilesOn = () => layout === "tiles" && !!BT && !!S;
-// Pieces only move on load, his own actions, a manual refresh or coming back after 10+ min; other refreshes just update what they say.
-function board(view) {
-  if (pageKey) return;  // re-flow after the open piece has shrunk back
-  const B = $("board"), w = B.clientWidth, cols = BT.colsFor(w), gap = BT.GAP, cw = (w - (cols - 1) * gap) / cols, g = view.graph;
-  const list = BT.items(view, { today: today(), graphSummary: g && { ...g, legend: g.legend || g.clusters } }).filter(it => !hidden.has(SEC_OF[it.key]));
-  ITEMS = Object.fromEntries(list.map(it => [it.key, it]));
-  const sig = [cols, Math.round(cw), coverLen, list.map(it => it.key)].join("|"), moved = reflow || sig !== solvedFor;
-  if (moved) { blocks = BT.solve(list, cols, cw, { cover: coverLen }); solvedFor = sig; reflow = false; }
-  const html = blocks.map(b => { const r = BT.renderBlock(ITEMS[b.key], b, { cw, rh: BT.ROW, gap, cover: coverLen, radius: document.documentElement.dataset.family === "swiss" ? 0 : 20 });  // Swiss is square everywhere
-    return `<div class="bt" data-k="${b.key}" style="grid-column:${r.x0 + 1} / span ${r.c};grid-row:${r.y0 + 1} / span ${r.r};view-transition-name:bt-${b.key}">${r.html}</div>`; }).join("");
-  if (html === lastBoard) return;
-  const go = () => { B.style.setProperty("--cols", cols); B.innerHTML = lastBoard = html; BT.fit(B); B.querySelectorAll("[data-mini]").forEach(miniMap); };
-  moved && lastBoard && document.startViewTransition && !calm() ? document.startViewTransition(go) : go();
+// Top of home: the next thing ahead with a live countdown, the cover headline (tap for the cover), four counts.
+function home(view, late, nToday) {
+  const nx = NEXT = hidden.has("next") ? null : BT.nextUp(view), n = view.now || {}, num = (id, v, l, k) => `<button class="tile" data-k="${k}"><b data-n="${v}" data-id="${id}">${esc(v)}</b>${l}</button>`;
+  const dn = nx && daysFrom(nx.date), day = nx && (dn === 0 ? "Today" : dn === 1 ? "Tmrw" : new Date(nx.date + "T00:00").toLocaleDateString("en", { weekday: "short", month: dn > 6 ? "short" : undefined, day: dn > 6 ? "numeric" : undefined }));
+  $("top").innerHTML = (hidden.has("next") ? "" : `<button class="tile cover nx" data-k="${nx ? nx.key : "next"}"><small>Next</small><b>${nx ? esc(nx.title) : "Nothing coming up"}</b>`
+      + `<span>${nx ? esc([day + (nx.time ? " " + nx.time : ""), nx.detail].filter(Boolean).join(" · ")) + (nx.to ? ` · in <span class="tick">${BT.countdown(nx.to - Date.now())}</span>` : "") : "Clear for now"}</span></button>`)
+    + (n.headline ? `<h2 class="hl" data-k="cover">${esc(n.headline).replace(/\*([^*]+)\*/g, "<em>$1</em>")}</h2>` : "")
+    + `<div class="sts">${num("late", late, "overdue", "nudges")}${num("today", nToday, "today", "next")}${num("agents", (view.agents || []).length, "agents", "agents")}${num("proj", ITEMS.projects?.count ?? 0, "projects", "projects")}</div>`;
+  countUp($("top"));
 }
-document.fonts?.ready.then(() => BT.fit($("board")));  // re-fit rows once the web fonts are in
-const MAPC = ["--accent", "--good", "--info", "--bad", "--muted", "--extra"];  // same order as tiles.js's legend dots
-function miniMap(cv) {  // a sketch of the map: one dot cloud per top cluster, sized by its count (the phone has no layout to draw)
-  const L = ITEMS.map?.legend || [], r = cv.getBoundingClientRect(), d = devicePixelRatio, x = cv.getContext("2d"), cs = getComputedStyle(document.documentElement);
-  cv.width = r.width * d; cv.height = r.height * d; x.scale(d, d);
-  const tot = L.reduce((s, l) => s + l[1], 0) || 1; let seed = 7; const rnd = () => (seed = seed * 16807 % 2147483647) / 2147483647;
-  L.forEach(([, c], i) => { const cx = .2 + .3 * (i % 3), cy = i < 3 ? .28 : .72; x.fillStyle = cs.getPropertyValue(MAPC[i % 6]);
-    for (let k = Math.max(3, Math.round(c / tot * 140)); k--;) { const a = rnd() * 6.28, q = rnd() ** .6; x.beginPath(); x.arc((cx + Math.cos(a) * q * .13) * r.width, (cy + Math.sin(a) * q * .2) * r.height, 1.8, 0, 6.3); x.fill(); } });
+setInterval(() => {  // the countdown ticks; when it runs out, the next thing takes its place
+  const el = document.querySelector(".nx .tick"); if (!el || !NEXT?.to) return;
+  NEXT.to - Date.now() > 0 ? el.textContent = BT.countdown(NEXT.to - Date.now()) : render();
+}, 1000);
+// Numbers count up from what they last showed (0 the first time).
+const shown = {};
+function countUp(root) {
+  for (const b of root.querySelectorAll("[data-n]")) {
+    const to = +b.dataset.n, id = b.dataset.id, from = shown[id] ?? 0; shown[id] = to;
+    if (from === to || !Number.isFinite(to) || calm()) continue;
+    const t0 = performance.now(), step = t => { const k = Math.min(1, (t - t0) / 700); b.textContent = Math.round(from + (to - from) * (1 - (1 - k) ** 3)); if (k < 1 && b.isConnected) requestAnimationFrame(step); };
+    b.textContent = from; requestAnimationFrame(step);
+  }
+}
+// Tiles ease in as they scroll into view, once each.
+const seen = new Set(), io = "IntersectionObserver" in window && new IntersectionObserver(es => es.forEach(e => {
+  if (e.isIntersecting) { e.target.classList.add("in"); seen.add(e.target.dataset.k); io.unobserve(e.target); } }), { rootMargin: "0px 0px -6% 0px" });
+// Mix A: the most urgent section full width, then even pairs with a wide one every third row (a lone last one goes wide too).
+// Pieces only move on load, his own actions, a manual refresh or coming back after 10+ min; other refreshes just update what they say.
+function board(view, late, nToday) {
+  if (pageKey) return;  // re-flow after the open piece has shrunk back
+  const B = $("board"), g = view.graph;
+  ITEMS = Object.fromEntries(BT.items(view, { today: today(), graphSummary: g && { ...g, legend: g.legend || g.clusters } }).map(it => [it.key, it]));
+  home(view, late, nToday);
+  const keys = Object.keys(ITEMS).filter(k => k !== "cover" && !hidden.has(SEC_OF[k])), moved = reflow || !order || order.length !== keys.length || !order.every(k => keys.includes(k));
+  if (moved) { order = keys; reflow = false; }
+  const cells = []; for (let i = 0, r = 0; i < order.length; r++) cells.push(...(!r || r % 3 === 2 || i === order.length - 1 ? [[order[i++], 1]] : [[order[i++]], [order[i++]]]));
+  const html = cells.map(([k, wide], i) => { const it = ITEMS[k], n = typeof it.count === "number";
+    return `<button class="pt tile${wide ? " wide" : ""}${i ? "" : " hot"}${it.cleared ? " clear" : ""}" data-k="${k}" style="view-transition-name:pt-${k}"><small>${esc(it.title)}</small>`
+      + `<b${n && !it.cleared ? ` data-n="${it.count}" data-id="t-${k}"` : ""}>${it.cleared ? "✓" : esc(it.count)}</b><span>${esc(it.cleared ? "All clear" : it.spot ? it.spot.filter(Boolean).join(" · ") : it.summary || it.why)}</span></button>`; }).join("");
+  if (html === lastBoard) return;
+  const go = () => { B.innerHTML = lastBoard = html; countUp(B); B.querySelectorAll(".pt").forEach(t => seen.has(t.dataset.k) || !io ? t.classList.add("in") : io.observe(t)); };
+  moved && lastBoard && document.startViewTransition && !calm() ? document.startViewTransition(go) : go();
 }
 const P = $("page"), box = r => { for (const [k, v] of [["--l", r.left], ["--t", r.top], ["--w", r.width], ["--h", r.height]]) P.style.setProperty(k, v + "px"); };
 function openPage(key, el) {
   const it = ITEMS[key]; if (!it || pageKey) return;
-  pageKey = key; $("pageT").textContent = it.title; $("pageM").textContent = it.cleared ? "all clear" : it.why;
+  pageKey = key; pageFrom = el; $("pageT").textContent = it.title; $("pageM").textContent = it.cleared ? "all clear" : it.why;
   P.classList.toggle("cover", key === "cover"); $("pageStrip").innerHTML = BT.strip(it); fillPage(); $("pageUi").scrollTop = 0;
   P.style.transition = "none"; box(el.getBoundingClientRect()); P.offsetWidth; P.style.transition = "";
   P.classList.add("on"); document.body.classList.add("pg");
@@ -598,7 +646,7 @@ function openPage(key, el) {
 }
 function closePage() {
   if (!pageKey) return;
-  const el = $("board").querySelector(`[data-k="${pageKey}"]`); if (el) box(el.getBoundingClientRect());
+  const el = pageFrom?.isConnected ? pageFrom : $("board").querySelector(`[data-k="${pageKey}"]`); if (el) box(el.getBoundingClientRect());
   P.classList.remove("on"); document.body.classList.remove("pg"); pageKey = null;
   setTimeout(() => { if (pageKey) return; document.querySelector(".deck").append($("mapTile")); $("mapTile").hidden = !G; $("pageUi").innerHTML = ""; lastHtml = ""; render(); }, calm() ? 0 : 520);
 }
@@ -613,10 +661,7 @@ function fillPage() {
     ${hv.side.map(x => `<p class="side">${esc(x)}</p>`).join("")}<div class="acts">${hv.acts.filter(a => /\.md$/.test(a.arg)).map(a => `<button class="pill" data-open="${esc(a.arg)}">${esc(a.label)}</button>`).join("")}</div>`
     : it.rows?.length ? it.rows.map(r => `<div class="row"><div><div class="t">${esc(r[0])}</div><div class="s">${esc(r[1])}</div></div></div>`).join("") : `<p class="empty">✓ All clear</p>`;
 }
-$("board").addEventListener("click", e => {
-  const b = e.target.closest(".bt"), a = e.target.closest(".bt-btn")?.dataset.arg; if (!b) return;
-  tap(); /\.md$/.test(a || "") ? openDoc(a) : openPage(b.dataset.k, b);
-});
+for (const id of ["board", "top"]) $(id).addEventListener("click", e => { const b = e.target.closest("[data-k]"); if (b) { tap(); openPage(b.dataset.k, b); } });
 addEventListener("keydown", e => { if (e.key === "Escape") closePage(); });
 addEventListener("resize", () => { if (tilesOn() && !pageKey) render(); });
 document.addEventListener("brain-theme", () => { if (tilesOn() && !pageKey) { lastBoard = ""; render(); } });  // new fonts, corners and map colours

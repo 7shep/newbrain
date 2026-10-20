@@ -103,3 +103,28 @@ test("renderPart escapes text and shows lists, buttons, clear", () => {
   const rb = T.renderBlock(by.people, blk, { cw: 110, rh: 28, gap: 14 });
   assert.match(rb.html, /<svg class="bt-outline"/); assert.ok(rb.c >= 1 && rb.r >= 1);
 });
+
+test("nextUp picks the soonest thing still ahead; countdown formats it", () => {
+  const S = { now: { upcoming: [{ date: "2026-10-20", title: "Post due" }, { date: "2026-10-20", title: "18:30 Call Sam", time: null },
+    { date: "2026-10-21", title: "10:30 Quiz 2", detail: "Ellis" }, { date: "2026-10-19", title: "Gone" }] },
+    nudges: [{ status: "open", due: "2026-10-18", title: "Late" }, { status: "open", due: "2026-10-22", title: "Book room" }] };
+  const at = s => new Date(s);
+  let n = T.nextUp(S, at("2026-10-20T09:00"));
+  assert.equal(n.title, "Call Sam"); assert.equal(n.time, "18:30"); assert.equal(n.to, +at("2026-10-20T18:30"));
+  n = T.nextUp(S, at("2026-10-20T19:00"));
+  assert.equal(n.title, "Post due"); assert.equal(n.to, null);  // untimed, today: no countdown
+  n = T.nextUp(S, at("2026-10-21T00:30"));
+  assert.equal(n.title, "Quiz 2"); assert.equal(n.detail, "Ellis");
+  n = T.nextUp(S, at("2026-10-21T12:00"));
+  assert.equal(n.title, "Book room"); assert.equal(n.key, "nudges"); assert.equal(n.to, +at("2026-10-22T00:00"));
+  assert.equal(T.nextUp({}, at("2026-10-20T09:00")), null);
+  assert.equal(T.countdown((22 * 3600 + 41 * 60 + 58) * 1000), "22h 41m 58s");
+  assert.equal(T.countdown((2 * 86400 + 3600 + 5) * 1000), "2d 1h 00m 05s");
+  assert.equal(T.countdown(65e3), "1m 05s"); assert.equal(T.countdown(-5), "0m 00s");
+});
+
+test("knows tile only once Claude has logged bets", () => {
+  assert.ok(!by.knows);
+  const k = T.items({ ...state, predictions: { n: 12, score: 64, avg_conf: 80, hit_rate: 70 } }, { today }).find(i => i.key === "knows");
+  assert.equal(k.count, 64); assert.equal(k.score, 6);
+});

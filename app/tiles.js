@@ -9,11 +9,11 @@ const ICONS = { doc: '<path d="M6 3h9l4 4v14H6z"/>', cal: '<rect x="3" y="5" wid
   bot: '<rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 3v4M9 12h.01M15 12h.01"/>', ppl: '<circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6"/>', case: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5h6v2"/>',
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', fold: '<path d="M3 7h6l2 2h10v10H3z"/>', bulb: '<path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z"/>',
   fire: '<path d="M12 3s5 5 5 10a5 5 0 01-10 0c0-3 2-4 2-4s0 3 3 3c0-4 0-9 0-9z"/>', inbox: '<path d="M3 13l3-8h12l3 8v6H3zM3 13h5l1 3h6l1-3h5"/>',
-  map: '<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="8" r="2.5"/><circle cx="10" cy="18" r="2.5"/><path d="M8 7l8 1M7.5 8l2 8"/>', spark: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/>' };
+  aim: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/>', map: '<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="8" r="2.5"/><circle cx="10" cy="18" r="2.5"/><path d="M8 7l8 1M7.5 8l2 8"/>', spark: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/>' };
 const LEGEND = ["--accent", "--good", "--info", "--bad", "--muted", "--extra"];
 
 // ---------- items: one per section, scored 0-100 from live state (spec "Scores") ----------
-const ORDER = ["cover", "next", "people", "intern", "nudges", "agents", "routines", "projects", "ideas", "streak", "habits", "map", "inbox"];
+const ORDER = ["cover", "next", "people", "intern", "nudges", "agents", "routines", "projects", "ideas", "streak", "habits", "knows", "map", "inbox"];
 const ISO = /^\d{4}-\d{2}-\d{2}/;
 function items(S, o) {
   S = S || {}; o = o || {};
@@ -50,7 +50,7 @@ function items(S, o) {
   mk("intern", "Internships", "case", Math.min(70, 10 + 15 * soon.length), { count: ins.length, cleared: !ins.length, why: `${soon.length} due this week`,
     summary: `${g("applied").length} applied, ${g("apply").length} to apply, ${g("check").length} to check.`,
     rows: [...g("apply"), ...g("check")].sort((a, b) => (a.group === b.group ? 0 : a.group === "apply" ? -1 : 1) || iso(a).localeCompare(iso(b))).map(r => [r.company, `${r.group} · ${r.deadline || "—"}`]),
-    spot: nextDl ? [`${nextDl.company} · ${nextDl.role || ""}`, `deadline ${nextDl.deadline}`] : null });
+    spot: nextDl ? [[nextDl.company, nextDl.role].filter(Boolean).join(" · "), `deadline ${nextDl.deadline}`] : null });
 
   // Notes to self
   const open = (S.nudges || []).filter(n => n.status === "open"), due = n => n.due ? dd(n.due) : null;
@@ -91,6 +91,10 @@ function items(S, o) {
   // Habits: only while Claude has some waiting for a yes/no
   const prop = (S.habits || []).filter(h => h.status === "proposed");
   if (prop.length) mk("habits", "Habits", "spark", 5 + 20 * prop.length, { count: prop.length, why: `${prop.length} to decide`, summary: `${prop.length} new habit${prop.length === 1 ? "" : "s"} to decide.`, rows: prop.map(h => [h.title, "to decide"]) });
+
+  // How well Claude knows you: only once Claude has logged bets (claude/predictions.md)
+  const pr = S.predictions;
+  if (pr && pr.n) mk("knows", "How well Claude knows you", "aim", 6, { count: pr.score, why: `${pr.n} bets`, summary: `Says ${pr.avg_conf}% sure, right ${pr.hit_rate}%.` });
 
   // Map: only when the page has a graph summary {nodes, links, legend:[[name,count]]}
   const gs = o.graphSummary;
@@ -330,8 +334,26 @@ function fit(root) {
 // strip: the top of an opened tile — count, summary and the one thing that matters, then the full section below it
 const strip = it => !it || it.hero ? "" : `<span class="bt-big">${esc(it.cleared ? "✓" : it.count)}</span><p class="bt-desc">${esc(it.cleared ? "All clear." : it.summary)}</p>`
   + (it.spot ? `<div class="bt-spot"><b>${esc(it.spot[0])}</b><span>${esc(it.spot[1])}</span></div>` : "");
+// nextUp: the soonest thing still ahead, from Up next (now.upcoming) and dated Notes to self. Its time comes from u.time or a
+// leading "18:30 " in the title; an untimed one stays ahead until its day ends. to = what the countdown counts to (null = today).
+function nextUp(S, now) {
+  S = S || {}; now = +(now || new Date());
+  const pad = n => String(n).padStart(2, "0"), at = (d, t) => +new Date(`${d}T${t}`);  // no offset: local time
+  const all = [...(S.now && S.now.upcoming || []).map(u => ({ ...u, key: "next" })),
+    ...(S.nudges || []).filter(n => n.status === "open" && n.due).map(n => ({ date: n.due, title: n.title, key: "nudges" }))];
+  return all.filter(u => ISO.test(u.date || "")).map(u => {
+    const d = u.date.slice(0, 10), m = String(u.time || u.title || "").match(/^(\d{1,2}):(\d{2})\b\s*/), t = m && `${pad(m[1])}:${m[2]}`;
+    const title = m && !u.time ? u.title.slice(m[0].length) : u.title || "";
+    return { key: u.key, title, date: d, time: t || "", detail: u.detail || "", at: at(d, t || "23:59:59"), to: t ? at(d, t) : at(d, "00:00") > now ? at(d, "00:00") : null };
+  }).filter(u => u.at > now).sort((a, b) => a.at - b.at)[0] || null;
+}
+// countdown(ms) -> "22h 41m 58s" (days only when there are some; minutes and seconds keep two digits after a bigger unit)
+function countdown(ms) {
+  const s = Math.max(0, Math.floor(ms / 1000)), d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), p = n => String(n).padStart(2, "0");
+  return d ? `${d}d ${h}h ${p(m)}m ${p(s % 60)}s` : h ? `${h}h ${p(m)}m ${p(s % 60)}s` : `${m}m ${p(s % 60)}s`;
+}
 const colsFor = w => w >= 1500 ? 12 : w >= 1100 ? 10 : w >= 800 ? 8 : w >= 560 ? 6 : 4;
-const API = { colsFor, fit, strip, items, templates, solve, outline, renderPart, renderBlock, esc, ICONS, ROW, GAP };
+const API = { colsFor, nextUp, countdown, fit, strip, items, templates, solve, outline, renderPart, renderBlock, esc, ICONS, ROW, GAP };
 if (typeof window !== "undefined") window.BrainTiles = API;
 if (typeof module !== "undefined" && module.exports) module.exports = API;
 })();
