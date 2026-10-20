@@ -1,40 +1,35 @@
-# Adaptive tiles (desktop Brain)
+# Adaptive tiles (desktop + phone Brain)
 
 ## Why
-Brain's desktop page is a fixed stack of tiles, most of them full-width, so what matters right now sits next to what doesn't. Zac wants the page to arrange itself: the most important thing gets the biggest tile, quiet things shrink, and opening any tile gives its full UI without leaving the page. Mockup he approved: `.superpowers/brainstorm/6019-1792460956/content/bento-14.html` (Soft dark, orange hero, black tiles).
+Brain's page is a fixed stack of tiles, so what matters right now sits next to what doesn't. Zac wants the page to arrange itself: the most important thing gets the most room, quiet things shrink, every tile is shaped by what it holds (Tetris pieces, not just rectangles), the pieces interlock with no holes, and opening any tile gives its full UI without leaving the page.
 
-## What he decided
-- One screen of tiles that fills the window (more margin top and bottom, a little at the sides), laid out like his sketch: hero top-left, four squares top-right, a tall column on the right, wide tiles and small squares below.
-- Which item goes in which slot is decided by a score ("math for what shows"), recomputed whenever the data changes. The highest score takes the hero; the squares are for low scorers. None of the slots are fixed launchers.
-- Big tiles show real text: a one-line summary plus as many rows as fit (fade at the bottom, no cut-off lines).
-- Clicking a tile grows that tile itself (its real box, no scaling or squashing) out to 75% of the screen, centred under the top bar. Its contents are the tile's full UI. Done / Esc / click outside shrinks it back into its spot. The grid does not move, tilt or shift; it only dims.
-- The top bar stays put above everything: greeting on the left; Capture and a Settings button on the right. Settings opens the same way (a tile growing from the button) and holds the theme picker.
-- Works in every theme (only theme tokens, no hard-coded colours).
+The approved prototype is `~/Notes/.brain/.superpowers/brainstorm/6019-1792460956/content/demo-real.html` (real data, desktop + phone width). It is the reference for look, layout and behaviour. Its markup feedback from Zac is folded into this doc.
 
-## Design (builder's calls, marked)
-- **Reuse, don't rewrite** (call): every existing tile section (`#cover`, Up next, Notes to self, Projects, Internships, Agents, Routines, Ideas, Habits, Map, Timeline) keeps its current render function and markup. They move into a hidden holder; the grid shows new *summary* tiles. Opening a summary moves the real section into the overlay (listeners and state come with it) and moves it back on close. So every action that works today still works.
-- **Items and summaries** (call): one entry per section: title, score, big number, one-line summary, rows. "People waiting" is a new item from `S.people` follow-ups (opens the existing People & me panel content).
-- **Scores, 0–100** (call; tune later):
-  - Cover: 80 if there's a headline, else 0.
-  - Up next: soonest item today 75, tomorrow 60, within 3 days 45, else 25; +20 if it's an exam/quiz/midterm/test/interview due today.
-  - Notes to self: 15 per overdue + 5 per open, max 90; 0 if none open.
-  - People waiting: 8 per follow-up, max 60.
-  - Internships: 10 + 15 per deadline in the next 7 days, max 80.
-  - Agents: 20 per queued/running/failed run, max 70; 5 otherwise.
-  - Routines: 70 if any failed last run, else 15.
-  - Projects: 30. Ideas: 10. Habits: 5 + 20 per proposed. Timeline: 12. Map: 8.
-  - Ties keep this order. Items scoring 0 are hidden.
-- **Hero** (call): when the cover wins, the hero *is* the cover (today's headline, dek and buttons). When another item wins (an exam today in Up next), the hero shows that item big: its top row as the headline, the next rows beside it, an Open button; the cover drops to a normal slot.
-- **Top bar** (call): the theme chip becomes the Settings button. The stats and "how well Claude knows you" chips stay. The agents chip opens the Agents item. "People & me" stays and opens its panel as today; the People waiting tile opens the same panel.
-- **Slots** (from the mockup): hero 7×6, tall 3×8, wide 7×3, mid 2×5, four squares 2×2 (top-right), bottom wide 5×3, two bottom squares 2×3. Up next prefers the tall slot when it ranks top-3. Items past the 11 slots go in an extra row of squares below (the page scrolls).
-- **Overlay**: a fixed box whose left/top/width/height animate from the tile's rect to 75% of the window (0.5s, Brain's ease); content fades in after it grows and out before it shrinks. z-index under the note drawer and palette so opening a note from inside the overlay works.
-- **Small screens** (call): under 1000px wide the grid falls back to one column in score order; overlay goes full width.
+## What Zac decided
+- **Board**: tiles sit in a centred board, 75% of the window wide on big screens, growing to the full width on smaller ones. Top bar spans the window and never moves.
+- **Columns follow the board width**: 12 at ≥1500px, 10 at ≥1100, 8 at ≥800, 6 at ≥560, else 4 (phone). Row unit 28px, gap 14px. Re-solve on resize.
+- **Score decides room**: each item gets a score 0–100 from live state; higher scores are placed first, top-left, and get bigger shapes.
+- **Shapes come from content**: a tile is made of *parts* (rectangles): `hero`, `head` (title + big count + one-line summary + spotlight), `list` (rows or events), `big` (number block, may show rows if roomy), `map`. Parts together form the piece: Today/Up next is a T (header bar, events down the stem), lists are Γ or step shapes, numbers are blocks. Each part is sized to its text (lines estimated from the column width).
+- **Solver**: try ~700 combinations of each tile's template, mirror and small order swaps; cost = holes×40 + height×7 + Σ score×row×0.06 + template-index×1.5. Seeded RNG so the same data gives the same layout (no jitter). Then close gaps by growing a real part into free cells (right, down, left, up); any cell still empty becomes an arm of the most important neighbour. No holes, ever.
+- **One continuous outline per piece**: SVG path around the union of the piece's cells with 20px rounded convex and concave corners; gaps inside a piece are filled.
+- **Hero** (cover, unless something outranks it): one block. Headline + side notes (right column on desktop, below on phone), buttons bottom-left. Sized to its text. No empty arm.
+- **Head parts are never half empty**: big count + summary, and a **spotlight** card with the one thing that matters now (People: the VIP right now, e.g. today's call; Notes: most overdue; Up next: next event; Internships: next deadline; Agents: most recent run; Projects: most active). Spotlight sits right of the summary when wide, below it when narrow.
+- **Lists fill their space**: as many whole rows as fit, then an **"All N →"** button (never "+N more"). Lists always sit under their own title.
+- **Small tiles use their room**: Routines and Ideas show rows; Streak shows a 14-day dot strip; Map shows the mini graph plus its top clusters with counts. Empty items become a solid tile reading "✓ All clear" (readable contrast, not dashed/faded).
+- **Ranking**: People waiting ranks just under the cover and above Internships ("VIP right now").
+- **Header**: "Brain · Tuesday, October 20 · 2 overdue · 4 today".
+- **Opening a tile**: the tile's real box grows (left/top/width/height animate, no scaling, no squash) from where it sits to 75% of the window (phone: full screen, rounded corners). The grid does not move or tilt; it only dims. Content fades in after, out before it shrinks back into its spot on Done/Esc/click outside. The overlay holds the existing full UI for that section (today's tile content moves into it and back, so every action keeps working).
+- **Acting re-flows**: when Zac does something (marks a note done, etc.), scores recompute and pieces glide to their new spots/shapes (View Transitions; snapshots cross-fade with `object-fit:none`, never stretched). Background refreshes never reshuffle while he's looking; only load, returning after 10+ min, or his own actions.
+- **Top bar**: greeting + date line on the left; centred **Dynamic Island** agent pill (grows while an agent works, "Done ✓", shrinks back; click drops down a list of runs; it replaces the agents chip); Capture (⌘K) and a Settings button on the right. Phone: no + in the top bar (floating orange + bottom-right instead), island sits right of the title, title truncates with "…".
+- **Settings** opens like a tile (grows from the button): theme picker (existing families/modes), cover length (short/medium/long), layout (Tiles / Scroll = today's page). Scroll is a fallback that shows the old full tiles.
+- **Every theme**: only theme tokens, no hard-coded colours. Fonts stay Bodoni Moda + Schibsted Grotesk for everyday themes.
+- **60fps** on open/close/re-flow in `tools/frames`.
+
+## Scores (first version, tune later)
+Cover 80 (90 if nothing else is due) · Up next: today 75, tomorrow 60, ≤3 days 45, else 25, +20 if exam/quiz/midterm/test/interview today · People waiting: min(78, 10×follow-ups) · Internships: min(70, 10 + 15×deadlines in 7 days) · Notes to self: min(90, 15×overdue + 5×open) · Agents: min(70, 20×queued/running/failed) else 5 · Routines: 70 if a run failed else 15 · Projects 30 · Ideas 10 · Streak 12 · Habits 5 + 20×proposed · Map 8 · Inbox: 1 and "All clear" when empty. Ties keep this order.
 
 ## Not doing
-- Phone app: unchanged in this pass.
-- Learning the scores from what Zac opens (later, once the fixed scores have been lived with).
-- Drag-to-rearrange.
+Learning scores from what Zac opens; drag-to-rearrange; changing the server's data model beyond what the tiles need.
 
 ## Done when
-- The desktop page shows the adaptive grid with real data in all 11 themes, and every action from today's tiles works from inside the overlay.
-- Open/close animations hold ~60fps in `tools/frames`.
+Desktop (all 11 themes) and phone show the adaptive board with real data, every existing tile action works from inside the opened tile, Scroll layout still works, tests pass, and `tools/frames` holds ~60fps on open/close/re-flow.
