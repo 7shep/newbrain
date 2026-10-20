@@ -263,18 +263,60 @@ button, .row, header[data-sec] { -webkit-touch-callout: none; }
 .tpick .modes { display: flex; flex-wrap: wrap; gap: 6px; }
 .tpick .modes .pill.on { background: var(--accent); color: var(--accent-ink); }
 
+/* adaptive tiles (docs/superpowers/specs/2026-10-19-adaptive-tiles-design.md): home is a board of shaped pieces from app/tiles.js;
+   a tapped piece grows into a full-screen page holding its section from the feed above. Settings → Layout → Scroll brings the feed back. */
+#board { display: none; grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); grid-auto-rows: 28px; gap: 14px; transition: opacity .45s var(--ease); }
+body.tiles #board { display: grid; } body.tiles #hero, body.tiles .deck { display: none; }
+body.pg { overflow: hidden; } body.pg #board { opacity: .35; }
+::view-transition-old(*), ::view-transition-new(*) { object-fit: none; overflow: clip; height: 100%; }
+.bar { position: relative; } .bar h1 { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.tiles .bar h1 { font-size: 19px; }
+.island { display: none; flex: none; align-items: center; gap: 7px; height: 30px; width: var(--iw, 90px); max-width: 44vw; padding: 0 11px; border: 0; border-radius: 15px;
+  background: var(--ink); color: var(--bg); font: 600 12px var(--sans); white-space: nowrap; overflow: hidden; transition: width .6s var(--spring), transform .18s var(--ease); }
+body.tiles .island { display: flex; } .island:active { transform: scale(.94); }
+.island i { width: 7px; height: 7px; border-radius: 50%; background: var(--good); flex: none; }
+.island.work i { background: var(--accent); animation: pulse 1s ease-in-out infinite; }
+.island span { overflow: hidden; text-overflow: ellipsis; }
+.ilist { position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 12; background: var(--ink); color: var(--bg); border-radius: 22px; padding: 10px 16px; font-size: 13px;
+  opacity: 0; transform: translateY(-8px) scale(.96); transform-origin: top; pointer-events: none; transition: opacity .2s var(--ease), transform .4s var(--spring); }
+.ilist.on { opacity: 1; transform: none; pointer-events: auto; }
+.ilist div { display: flex; gap: 10px; padding: 7px 0; border-top: 1px solid color-mix(in srgb, var(--bg) 20%, transparent); }
+.ilist div:first-child { border-top: 0; } .ilist b { flex: 1; min-width: 0; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ilist span { flex: none; opacity: .65; font: 500 11px var(--mono); }
+body.tiles .fab { width: 56px; padding: 0; justify-content: center; font-size: 0; gap: 0; } body.tiles .fab .i { width: 24px; height: 24px; }
+#page { position: fixed; left: var(--l); top: var(--t); width: var(--w); height: var(--h); z-index: 15; display: flex; flex-direction: column; overflow: hidden;
+  background: var(--tile); border: 1px solid var(--line); border-radius: 28px; opacity: 0; pointer-events: none;
+  transition: left .5s var(--ease), top .5s var(--ease), width .5s var(--ease), height .5s var(--ease), opacity .12s .4s; }
+#page.on { opacity: 1; pointer-events: auto; transition: left .5s var(--ease), top .5s var(--ease), width .5s var(--ease), height .5s var(--ease), opacity .06s; }
+#page > header, #pageUi { opacity: 0; transition: opacity .15s; } #page.on > header, #page.on #pageUi { opacity: 1; transition: opacity .3s .22s; }
+#page > header { display: flex; align-items: center; gap: 10px; padding: calc(env(safe-area-inset-top) + 12px) 16px 12px; border-bottom: 1px solid var(--line); }
+#page > header h2 { flex: 1; min-width: 0; margin: 0; font: 800 26px/1.1 var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#page > header small { flex: none; font: 500 11.5px var(--mono); color: var(--dim); }
+#pageUi { flex: 1; overflow-y: auto; padding: 16px 16px calc(env(safe-area-inset-bottom) + 30px); -webkit-overflow-scrolling: touch; }
+#pageUi > .tile { background: none; border: 0; padding: 0; margin: 0; } #pageUi > .tile > header { display: none; }
+#pageUi .tile.collapsed .sb { grid-template-rows: 1fr; } #pageUi .sb > div { padding-top: 0; }
+#page.cover { background: var(--grain), var(--cover); color: var(--cover-ink); border-color: var(--cover-solid); }
+#page.cover > header { border-color: color-mix(in srgb, var(--cover-ink) 20%, transparent); } #page.cover > header small { color: inherit; opacity: .7; }
+#page.cover .side { margin: 14px 0 0; font-size: 14px; opacity: .85; } #page.cover .acts { margin-top: 18px; }
+#page.cover .pill { background: var(--cover-ink); color: var(--cover-solid); }
+@media (prefers-reduced-motion: reduce) { #page, #page > header, #pageUi, #board, .island, .ilist { transition: none; } .island.work i { animation: none; } }
+
 </style>
 <link rel="stylesheet" href="../app/theme.css">
 <script src="../app/theme.js"></script>
+<link rel="stylesheet" href="../app/tiles.css">
+<script src="../app/tiles.js"></script>
 </head>
 <body>
 <div class="bar">
-  <h1 id="greet">Brain</h1><span class="sp"></span>
+  <h1 id="greet">Brain</h1><button class="island" id="island" aria-label="Agent runs" aria-haspopup="true"><i></i><span id="itxt"></span></button><span class="sp"></span>
   <span class="dot" id="syncDot" title="Sync status"></span>
   <button class="ib" id="refresh" aria-label="Refresh"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></button>
   <button class="ib" id="openSettings" aria-label="Settings"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 15.1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+  <div class="ilist" id="ilist" role="menu"></div>
 </div>
 <div id="banner"></div>
+<div id="board" aria-label="Home"></div>
 <div id="hero"></div>
 <div class="deck">
 <main id="main"><div class="tile empty">Loading…</div></main>
@@ -282,10 +324,15 @@ button, .row, header[data-sec] { -webkit-touch-callout: none; }
   <div class="sb"><div><input id="mapQ" list="mapList" placeholder="Ideas, projects, people, clusters…" autocomplete="off" autocapitalize="off" aria-label="Search your map"><datalist id="mapList"></datalist>
   <div id="mapOut"></div></div></div></section>
 </div>
-<button class="fab" id="openCapture" hidden><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>Capture</button>
+<button class="fab" id="openCapture" aria-label="Capture" hidden><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>Capture</button>
 
 <button class="mic" id="mic" hidden aria-label="Hold to ask your notes"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
 <div class="pop" id="pop" role="dialog" aria-label="Ask your notes" aria-live="polite"><small id="popQ"></small><p id="popA"></p><input id="popIn" placeholder="Ask your notes…" hidden enterkeyhint="send"></div>
+
+<section id="page" role="dialog" aria-modal="true" aria-labelledby="pageT">
+  <header><button class="ib" data-close aria-label="Close"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button><h2 id="pageT"></h2><small id="pageM"></small></header>
+  <div id="pageUi"></div>
+</section>
 
 <section class="sheet" id="capture" aria-label="Capture">
   <header><button class="ib" data-close aria-label="Close"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button><span class="p">Capture a thought</span><span class="cap-ico" id="capIcon" aria-hidden="true"></span></header>
@@ -309,6 +356,10 @@ button, .row, header[data-sec] { -webkit-touch-callout: none; }
   <form class="body" id="setForm">
     <div class="theme-row"><span>Theme: match Mac</span><button class="sw" type="button" role="switch" id="matchSw" aria-label="Match the Mac's theme"></button></div>
     <div class="tpick" id="themePick"></div>
+    <label>Layout</label>
+    <div class="secpick" id="layPick"></div>
+    <label>Cover length</label>
+    <div class="secpick" id="covPick"></div>
     <label>Show on home</label>
     <div class="secpick" id="secPick"></div>
     <p class="help">Brain on your phone reads your private notes repo on GitHub. Nothing is stored anywhere except this phone.</p>
@@ -398,7 +449,7 @@ function optimistic(a, S) {
 }
 function act(action, body, msg) {
   const a = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, action, body, sent: false };
-  outbox.push(a); store.set("outbox", outbox);
+  outbox.push(a); store.set("outbox", outbox); reflow = true;
   if (S) optimistic(a, S);
   render(); if (msg) toast(msg); flush(); return a;
 }
@@ -444,13 +495,16 @@ function paint() {
 function render() {
   paint(); showAnswer();
   if (!S) return;
-  const view = JSON.parse(JSON.stringify(S));
+  const view = JSON.parse(JSON.stringify(S)), tiles = tilesOn();
   outbox.forEach(a => optimistic(a, view)); // unconfirmed changes stay applied on screen
+  document.body.classList.toggle("tiles", tiles); island(view);
   const h = new Date().getHours(), name = ((view.me?.meta?.name) || "").split(/\s+/)[0];
-  $("greet").innerHTML = `${h < 12 ? "Morning" : h < 18 ? "Afternoon" : "Evening"}${name ? ", " + esc(name) : ""} <span>· ${new Date().toLocaleDateString("en", { weekday: "short" })}</span>`;
   const t = today(), n = view.now || {};
   const up = (n.upcoming || []).filter(u => u.date >= t).slice(0, 6);
   const open = view.nudges.filter(x => x.status === "open" || (x.status === "snoozed" && x.snooze_until && x.snooze_until <= t));
+  const late = open.filter(x => x.due && daysFrom(x.due) < 0).length, nToday = up.filter(u => daysFrom(u.date) === 0).length;
+  $("greet").innerHTML = tiles ? `Brain <span>· ${new Date().toLocaleDateString("en", { weekday: "long", month: "long", day: "numeric" })}${late ? ` · ${late} overdue` : ""}${nToday ? ` · ${nToday} today` : ""}</span>`
+    : `${h < 12 ? "Morning" : h < 18 ? "Afternoon" : "Evening"}${name ? ", " + esc(name) : ""} <span>· ${new Date().toLocaleDateString("en", { weekday: "short" })}</span>`;
   const projects = view.projects.filter(p => !p.archived && ["active", "paused"].includes(p.meta.status));
   const habits = view.habits;
   const nx = up[0], dn = nx ? daysFrom(nx.date) : null;
@@ -473,7 +527,7 @@ function render() {
     if (!lastHtml) { const hs = $("hero").firstChild; hs.classList.add("intro"); setTimeout(() => hs.classList.remove("intro"), 1100); }
   }
   const html = `
-    ${sec("next", "Up next", "", `${up.length > 1 ? up.slice(1).map(u => { const dd = daysFrom(u.date); return `<div class="next"><div><b>${esc(u.date.slice(8))}</b><small>${dd === 0 ? "today" : dd === 1 ? "tmrw" : esc(new Date(u.date + "T00:00").toLocaleDateString("en", { weekday: "short" }))}${u.time ? " " + esc(u.time) : ""}</small></div>
+    ${sec("next", "Up next", "", `${up.length > (tiles ? 0 : 1) ? up.slice(tiles ? 0 : 1).map(u => { const dd = daysFrom(u.date); return `<div class="next"><div><b>${esc(u.date.slice(8))}</b><small>${dd === 0 ? "today" : dd === 1 ? "tmrw" : esc(new Date(u.date + "T00:00").toLocaleDateString("en", { weekday: "short" }))}${u.time ? " " + esc(u.time) : ""}</small></div>
         <div><div class="t">${esc(u.title)}</div>${u.detail ? `<div class="d">${esc(u.detail)}</div>` : ""}</div></div>`; }).join("") : `<div class="empty">Nothing else coming up.</div>`}`)}
     ${sec("nudges", "Notes to self", open.length ? open.length + " open" : "", `${open.length ? open.map(x => { const dd = x.due ? daysFrom(x.due) : null; const due = dd === null ? "" : dd < 0 ? `${-dd}d overdue` : dd === 0 ? "today" : `in ${dd}d`;
         return `<div class="nudge"><h4>${esc(x.title)}${due ? `<span class="due">${due}</span>` : ""}</h4>${x.why ? `<p data-expand>${esc(x.why)}</p>` : ""}
@@ -497,10 +551,92 @@ function render() {
     ${(view.sessions || []).length ? sec("sessions", "Everything we've done", view.sessions.length, view.sessions.slice(0, showAllSessions ? 999 : 8).map(x => `<button class="row" data-open="${esc(x.path)}"><div><div class="t">${esc(x.title)}</div><div class="s">${esc(x.date)} · ${esc(x.tldr || "")}</div></div></button>`).join("")
         + (view.sessions.length > 8 ? `<button class="more" id="allSessions">${showAllSessions ? "Show fewer" : `Show all ${view.sessions.length}`}</button>` : "")) : ""}`;
   // Only rebuild when something changed, so the entrance animation doesn't replay on every refresh.
-  if (html === lastHtml) return;
-  const main = $("main"); main.innerHTML = lastHtml = html;
-  if (!introDone) { introDone = true; main.classList.add("intro"); setTimeout(() => main.classList.remove("intro"), 1300); }
+  if (html !== lastHtml) {
+    const main = $("main"); main.innerHTML = lastHtml = html;
+    if (!introDone && !tiles) { introDone = true; main.classList.add("intro"); setTimeout(() => main.classList.remove("intro"), 1300); }
+    if (pageKey) fillPage();
+  }
+  if (tiles) board(view);
 }
+
+/* ---------- adaptive tiles: app/tiles.js scores and shapes the board; a tapped piece grows into its section ---------- */
+const BT = window.BrainTiles, SEC_OF = { next: "next", people: "people", intern: "intern", nudges: "nudges", agents: "agents", routines: "routines", projects: "projects", ideas: "ideas", streak: "sessions", habits: "habits" };
+let layout = store.get("layout", "tiles"), coverLen = store.get("cover", "medium"), blocks = null, solvedFor = "", lastBoard = "", reflow = true, pageKey = null, ITEMS = {}, hiddenAt = Date.now();
+const tilesOn = () => layout === "tiles" && !!BT && !!S;
+// Pieces only move on load, his own actions, a manual refresh or coming back after 10+ min; other refreshes just update what they say.
+function board(view) {
+  if (pageKey) return;  // re-flow after the open piece has shrunk back
+  const B = $("board"), w = B.clientWidth, cols = BT.colsFor(w), gap = BT.GAP, cw = (w - (cols - 1) * gap) / cols, g = view.graph;
+  const list = BT.items(view, { today: today(), graphSummary: g && { ...g, legend: g.legend || g.clusters } }).filter(it => !hidden.has(SEC_OF[it.key]));
+  ITEMS = Object.fromEntries(list.map(it => [it.key, it]));
+  const sig = [cols, Math.round(cw), coverLen, list.map(it => it.key)].join("|"), moved = reflow || sig !== solvedFor;
+  if (moved) { blocks = BT.solve(list, cols, cw, { cover: coverLen }); solvedFor = sig; reflow = false; }
+  const html = blocks.map(b => { const r = BT.renderBlock(ITEMS[b.key], b, { cw, rh: BT.ROW, gap, cover: coverLen });
+    return `<div class="bt" data-k="${b.key}" style="grid-column:${r.x0 + 1} / span ${r.c};grid-row:${r.y0 + 1} / span ${r.r};view-transition-name:bt-${b.key}">${r.html}</div>`; }).join("");
+  if (html === lastBoard) return;
+  const go = () => { B.style.setProperty("--cols", cols); B.innerHTML = lastBoard = html; B.querySelectorAll("[data-mini]").forEach(miniMap); };
+  moved && lastBoard && document.startViewTransition && !calm() ? document.startViewTransition(go) : go();
+}
+const MAPC = ["--accent", "--good", "--info", "--bad", "--muted", "--extra"];  // same order as tiles.js's legend dots
+function miniMap(cv) {  // a sketch of the map: one dot cloud per top cluster, sized by its count (the phone has no layout to draw)
+  const L = ITEMS.map?.legend || [], r = cv.getBoundingClientRect(), d = devicePixelRatio, x = cv.getContext("2d"), cs = getComputedStyle(document.documentElement);
+  cv.width = r.width * d; cv.height = r.height * d; x.scale(d, d);
+  const tot = L.reduce((s, l) => s + l[1], 0) || 1; let seed = 7; const rnd = () => (seed = seed * 16807 % 2147483647) / 2147483647;
+  L.forEach(([, c], i) => { const cx = .2 + .3 * (i % 3), cy = i < 3 ? .28 : .72; x.fillStyle = cs.getPropertyValue(MAPC[i % 6]);
+    for (let k = Math.max(3, Math.round(c / tot * 140)); k--;) { const a = rnd() * 6.28, q = rnd() ** .6; x.beginPath(); x.arc((cx + Math.cos(a) * q * .13) * r.width, (cy + Math.sin(a) * q * .2) * r.height, 1.8, 0, 6.3); x.fill(); } });
+}
+const P = $("page"), box = r => { for (const [k, v] of [["--l", r.left], ["--t", r.top], ["--w", r.width], ["--h", r.height]]) P.style.setProperty(k, v + "px"); };
+function openPage(key, el) {
+  const it = ITEMS[key]; if (!it || pageKey) return;
+  pageKey = key; $("pageT").textContent = it.title; $("pageM").textContent = it.cleared ? "all clear" : it.why;
+  P.classList.toggle("cover", key === "cover"); fillPage(); $("pageUi").scrollTop = 0;
+  P.style.transition = "none"; box(el.getBoundingClientRect()); P.offsetWidth; P.style.transition = "";
+  P.classList.add("on"); document.body.classList.add("pg");
+  requestAnimationFrame(() => box({ left: 0, top: 0, width: innerWidth, height: innerHeight }));
+}
+function closePage() {
+  if (!pageKey) return;
+  const el = $("board").querySelector(`[data-k="${pageKey}"]`); if (el) box(el.getBoundingClientRect());
+  P.classList.remove("on"); document.body.classList.remove("pg"); pageKey = null;
+  setTimeout(() => { if (pageKey) return; document.querySelector(".deck").append($("mapTile")); $("mapTile").hidden = !G; $("pageUi").innerHTML = ""; lastHtml = ""; render(); }, calm() ? 0 : 520);
+}
+// The page holds the section's own UI from the feed (moved, not copied), so every button and swipe works as it does there.
+function fillPage() {
+  const k = pageKey, ui = $("pageUi"), it = ITEMS[k] || {};
+  if (k === "map") { $("mapTile").hidden = false; return ui.replaceChildren($("mapTile")); }
+  const s = SEC_OF[k] && $("main").querySelector(`header[data-sec="${SEC_OF[k]}"]`)?.closest(".tile");
+  if (s) return ui.replaceChildren(s);
+  const hv = it.hero;
+  ui.innerHTML = hv ? `<small>ISSUE ${esc(S.issue)} · <span class="cd">${coverIn()}</span></small><h3>${esc(hv.headline).replace(/\*([^*]+)\*/g, "<em>$1</em>")}</h3>${hv.dek ? `<p>${esc(hv.dek)}</p>` : ""}
+    ${hv.side.map(x => `<p class="side">${esc(x)}</p>`).join("")}<div class="acts">${hv.acts.filter(a => /\.md$/.test(a.arg)).map(a => `<button class="pill" data-open="${esc(a.arg)}">${esc(a.label)}</button>`).join("")}</div>`
+    : it.rows?.length ? it.rows.map(r => `<div class="row"><div><div class="t">${esc(r[0])}</div><div class="s">${esc(r[1])}</div></div></div>`).join("") : `<p class="empty">✓ All clear</p>`;
+}
+$("board").addEventListener("click", e => {
+  const b = e.target.closest(".bt"), a = e.target.closest(".bt-btn")?.dataset.arg; if (!b) return;
+  tap(); /\.md$/.test(a || "") ? openDoc(a) : openPage(b.dataset.k, b);
+});
+addEventListener("keydown", e => { if (e.key === "Escape") closePage(); });
+addEventListener("resize", () => { if (tilesOn() && !pageKey) render(); });
+// Dynamic Island: agent runs at a glance; grows while something is filing or running, says Done, tap for the list.
+let iWork = 0, iDone = 0;
+function island(view) {
+  const runs = view.agents || [], work = outbox.filter(a => a.action === "capture").length + runs.filter(a => /queued|running/.test(a.status || "")).length;
+  if (iWork && !work) { iDone = Date.now() + 2400; setTimeout(render, 2500); }
+  iWork = work;
+  const txt = work ? `Working · ${work}` : Date.now() < iDone ? "Done ✓" : `${runs.length} agent${runs.length === 1 ? "" : "s"}`;
+  $("island").classList.toggle("work", !!work); $("itxt").textContent = txt; $("island").style.setProperty("--iw", 36 + txt.length * 7 + "px");
+  $("ilist").innerHTML = runs.slice(0, 6).map(a => `<div><b>${esc(a.text || a.file)}</b><span>${esc(a.status)}</span></div>`).join("") || "<div><b>No agent runs yet</b></div>";
+}
+$("island").onclick = e => { e.stopPropagation(); tap(); $("ilist").classList.toggle("on"); };
+document.addEventListener("click", e => { if (!e.target.closest("#ilist")) $("ilist").classList.remove("on"); });
+function drawLayPick() {
+  const p = (k, v, l, on) => `<button type="button" class="pill${on ? " on" : ""}" aria-pressed="${on}" data-lay="${k}" data-v="${v}">${l}</button>`;
+  $("layPick").innerHTML = p("layout", "tiles", "Tiles", layout === "tiles") + p("layout", "scroll", "Scroll", layout === "scroll");
+  $("covPick").innerHTML = ["short", "medium", "long"].map(v => p("cover", v, v[0].toUpperCase() + v.slice(1), coverLen === v)).join("");
+}
+document.addEventListener("click", e => { const b = e.target.closest("[data-lay]"); if (!b) return;
+  b.dataset.lay === "layout" ? layout = b.dataset.v : coverLen = b.dataset.v; store.set(b.dataset.lay, b.dataset.v);
+  reflow = true; lastHero = lastHtml = lastBoard = ""; tap(); drawLayPick(); render(); });
 // Routines: read-only status from claude/routines.json (the Mac refreshes it; run/pause live on the Mac).
 function routinesSec(R) {
   if (!R || !R.routines.length) return "";
@@ -551,7 +687,7 @@ const SECTIONS = [["next", "Up next"], ["nudges", "Notes to self"], ["projects",
 let hidden = new Set(store.get("hidden", []));
 function drawSecPick() { $("secPick").innerHTML = SECTIONS.map(([k, t]) => `<button type="button" class="pill${hidden.has(k) ? "" : " on"}" aria-pressed="${!hidden.has(k)}" data-sec-pick="${k}">${esc(t)}</button>`).join(""); }
 document.addEventListener("click", e => { const b = e.target.closest("[data-sec-pick]"); if (!b) return; const k = b.dataset.secPick;
-  hidden.has(k) ? hidden.delete(k) : hidden.add(k); store.set("hidden", [...hidden]); tap(); drawSecPick(); lastHero = ""; render(); });
+  hidden.has(k) ? hidden.delete(k) : hidden.add(k); store.set("hidden", [...hidden]); tap(); drawSecPick(); lastHero = ""; reflow = true; render(); });
 const CHEV = `<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>`;
 const sec = (key, title, n, body) => hidden.has(key) ? "" : `<section class="tile${folded.has(key) ? " collapsed" : ""}"><header data-sec="${key}" role="button" aria-expanded="${!folded.has(key)}"><h2>${esc(title)}</h2><span class="n">${esc(n)}</span>${CHEV}</header><div class="sb"><div>${body}</div></div></section>`;
 function fold(header) {
@@ -564,11 +700,11 @@ function fold(header) {
 // Android vibrates; iOS 18+ Safari gives a light tick when a switch-style checkbox is toggled via its label.
 function tap() { try { if (navigator.vibrate) navigator.vibrate(8); else $("hap").click(); } catch {} }
 let sw = null;
-$("main").addEventListener("touchstart", e => {
-  const card = e.target.closest(".nudge, .idea"); if (!card || card.dataset.leaving || e.target.closest("button")) return;
+document.addEventListener("touchstart", e => {  // cards live in the feed or, moved, in an open tile's page
+  const card = e.target.closest(".nudge, .idea"); if (!card || card.dataset.leaving || e.target.closest("button") || e.touches[0].clientX < 28) return;
   sw = { card, x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0, on: false };
 }, { passive: true });
-$("main").addEventListener("touchmove", e => {
+document.addEventListener("touchmove", e => {
   if (!sw) return;
   const dx = e.touches[0].clientX - sw.x, dy = e.touches[0].clientY - sw.y;
   if (!sw.on) { if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { sw = null; return; } if (Math.abs(dx) < 10) return; sw.on = true; sw.card.classList.add("swiping"); }
@@ -581,7 +717,7 @@ $("main").addEventListener("touchmove", e => {
   sw.card.style.transform = `translateX(${dx}px) rotate(${dx / 60}deg)`;
   if (Math.abs(dx) > 90 && !sw.buzzed) { sw.buzzed = true; tap(); }
 }, { passive: true });
-$("main").addEventListener("touchend", () => {
+document.addEventListener("touchend", () => {
   if (!sw) return;
   const { card, dx, on } = sw; sw = null;
   if (!on) return;
@@ -602,7 +738,7 @@ document.querySelectorAll(".sheet > header").forEach(h => {
 // Back: swipe in from the left edge to close the open sheet, like iOS back (a home-screen app has no browser back gesture).
 let edge = null;
 addEventListener("touchstart", e => {
-  const t = e.touches[0], open = [...document.querySelectorAll(".sheet.on")].pop();
+  const t = e.touches[0], open = [...document.querySelectorAll("#page.on, .sheet.on")].pop();
   if (open && t.clientX < 28) edge = { sheet: open, x: t.clientX, y: t.clientY, dx: 0, t: Date.now(), on: false };
 }, { passive: true });
 addEventListener("touchmove", e => {
@@ -755,8 +891,8 @@ async function openDoc(path) {
 
 /* ---------- sheets, capture, settings ---------- */
 function open(id) { $(id).classList.add("on"); }
-function close(id) { $(id).classList.remove("on"); }
-document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => close(b.closest(".sheet").id));
+function close(id) { if (id === "page") return closePage(); $(id).classList.remove("on"); }
+document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => close(b.closest(".sheet, #page").id));
 const TYPES = [["note", "Note"], ["idea", "Idea"], ["todo", "Todo"], ["person", "Person"], ["habit", "Habit for Claude"], ["routine", "Routine"]];
 // per type: prompt, icon paths, and the rotating "Try:" sparks under the form
 const CAP = {
@@ -828,7 +964,7 @@ $("capGo").onclick = () => {
     $("openCapture").animate([{ transform: "scale(1)" }, { transform: "scale(1.18)" }, { transform: "scale(1)" }], { duration: 420, easing: spring() });
   });
 };
-$("openSettings").onclick = () => { $("repo").value = cfg?.repo || ""; $("token").value = cfg?.token || ""; drawSecPick(); drawThemes(); open("settings"); };
+$("openSettings").onclick = () => { $("repo").value = cfg?.repo || ""; $("token").value = cfg?.token || ""; drawSecPick(); drawLayPick(); drawThemes(); open("settings"); };
 $("setForm").onsubmit = async e => {
   e.preventDefault();
   cfg = { repo: $("repo").value.trim().replace(/^https:\/\/github\.com\//, "").replace(/\/$/, ""), token: $("token").value.trim() };
@@ -841,7 +977,7 @@ $("copyLink").onclick = async () => {
   catch { prompt("Your install link (it holds your key):", url); }
 };
 $("signOut").onclick = () => { try { localStorage.clear(); } catch {} cfg = null; S = null; outbox = []; location.reload(); };
-$("refresh").onclick = () => refresh(true);
+$("refresh").onclick = () => { reflow = true; refresh(true); };
 
 document.addEventListener("click", e => {
   const hd = e.target.closest("header[data-sec]"); if (hd) return fold(hd);
@@ -939,7 +1075,7 @@ function boot() {
   render(); refresh(); flush(); if (!G) loadGraph();
   if (linkCfg && !standalone) setTimeout(() => toast("Connected. Now tap Share, then Add to Home Screen"), 600);
 }
-document.addEventListener("visibilitychange", () => { if (!document.hidden) { refresh(); flush(); } });
+document.addEventListener("visibilitychange", () => { if (document.hidden) hiddenAt = Date.now(); else { if (Date.now() - hiddenAt > 6e5) reflow = true; refresh(); flush(); } });
 addEventListener("online", flush);
 boot();
 </script>

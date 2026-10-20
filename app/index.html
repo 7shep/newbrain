@@ -20,10 +20,26 @@ a { color: var(--info); text-underline-offset: 3px; }
 svg.i { width: 15px; height: 15px; flex: none; }
 [hidden] { display: none !important; }
 
-/* ---------- top bar ---------- */
-.bar { display: flex; align-items: center; gap: 12px 16px; max-width: 1360px; margin: 0 auto 16px; flex-wrap: wrap; }
-.bar h1 { font-size: 26px; font-weight: 700; letter-spacing: -.025em; margin: 0; }
-.bar h1 span { color: var(--muted); font-weight: 400; }
+/* ---------- top bar: spans the window, never moves; greeting · Dynamic Island · capture + settings ---------- */
+.bar { position: sticky; top: 0; z-index: 15; display: grid; grid-template-columns: minmax(0, 1fr) 220px minmax(0, 1fr); align-items: center; gap: 16px;
+  margin: -18px calc(-1 * clamp(16px, 2.4vw, 28px)) 18px; padding: 14px clamp(16px, 2.4vw, 28px); background: color-mix(in srgb, var(--bg) 86%, transparent); backdrop-filter: blur(14px); }
+.bar h1 { font-size: 22px; font-weight: 700; letter-spacing: -.025em; margin: 0; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
+.bar h1 small { display: block; font: 500 12.5px var(--sans); letter-spacing: 0; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
+.island-slot { position: relative; height: 40px; }
+.island { position: absolute; top: 0; left: 50%; transform: translateX(-50%); z-index: 2; height: 40px; width: var(--iw, 110px); max-width: 90vw; display: flex; align-items: center; gap: 9px; padding: 0 15px;
+  background: var(--ink); color: var(--bg); border-radius: 22px; overflow: hidden; white-space: nowrap; font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: width .6s var(--spring), height .5s var(--spring), border-radius .5s var(--spring); }
+.island .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); flex: none; }
+.island.work .dot { background: var(--accent); animation: ipulse 1s ease-in-out infinite; }
+@keyframes ipulse { 50% { transform: scale(1.6); opacity: .5; } }
+.island .itxt { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.island .ilist { display: none; width: 100%; font-weight: 400; }
+.island.open { height: 260px; width: 380px; border-radius: 26px; flex-direction: column; align-items: flex-start; padding: 14px 18px; cursor: default; }
+.island.open .ilist { display: block; }
+.ilist div { display: flex; gap: 10px; padding: 7px 0; border-top: 1px solid color-mix(in srgb, var(--bg) 22%, transparent); color: color-mix(in srgb, var(--bg) 62%, transparent); font-size: 12.5px; }
+.ilist b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 500; color: var(--bg); }
+.ilist .iall { margin-top: 6px; background: var(--bg); color: var(--ink); border: 0; border-radius: 999px; padding: 4px 12px; font-size: 12px; font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .island.work .dot { animation: none; } }
 .chip { display: inline-flex; align-items: center; gap: 7px; font: 500 12px var(--mono); color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 5px 10px; white-space: nowrap; }
 .chip.agents-chip { background: none; cursor: pointer; color: var(--dim); border-color: transparent; font: inherit; }
 .chip.agents-chip:hover, .chip.agents-chip.on { color: var(--muted); border-color: var(--line); }
@@ -118,10 +134,45 @@ kbd { font: 500 11px var(--mono); border: 1px solid var(--line); border-radius: 
 .panel-head h2 { margin: 0 !important; }
 .panel-head .add { margin-left: auto; border: 1px solid var(--line); background: none; border-radius: 8px; padding: 3px 9px; font-size: 12px; font-weight: 600; color: var(--muted); }
 .people-btn { margin-left: auto; }
-/* second row: capture takes the room, the chips sit after it in one outlined style */
-.bar-tools { flex-basis: 100%; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.bar-tools .capture-btn { margin-left: 0; flex: 1 1 320px; width: auto; }
+/* right side of the bar: capture takes the room, the chips sit after it in one outlined style */
+.bar-tools { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0; }
+.bar-tools .capture-btn { margin-left: 0; flex: 0 1 340px; width: auto; min-width: 0; }
+.capture-btn .lbl { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bar-tools .chip.agents-chip { border-color: var(--line); }
+.bar-tools .people-btn { margin-left: 0; }
+@media (max-width: 1100px) { .bar-tools .lbl { display: none; } .bar-tools .capture-btn { flex: none; } }
+
+/* ---------- adaptive board (tiles.js); the classic sections wait in #grid and move into the opened tile ---------- */
+.board { max-width: max(75vw, min(100%, 1100px)); margin: 0 auto; display: grid; grid-template-columns: repeat(var(--cols, 12), minmax(0, 1fr)); grid-auto-rows: 28px; gap: 14px; transition: filter .45s; }
+.bt:focus-visible { outline-offset: 4px; border-radius: 20px; }
+body:not(.scroll) #grid { display: block; }
+body:not(.scroll) #grid > :not(.full) { display: none !important; }
+body.scroll .board { display: none; }
+body.paged .board, body.paged #grid { filter: brightness(.42) saturate(.8); }
+::view-transition-group(*) { animation-duration: .7s; animation-timing-function: var(--spring); }
+::view-transition-old(*), ::view-transition-new(*) { height: 100%; width: 100%; object-fit: none; object-position: left top; animation-duration: .3s; }
+.tscrim { position: fixed; inset: 0; z-index: 16; display: none; }
+body.paged .tscrim { display: block; }
+.page { position: fixed; z-index: 17; display: flex; flex-direction: column; overflow: hidden; opacity: 0; pointer-events: none; background: var(--tile); border: 1px solid var(--line); border-radius: 28px; box-shadow: var(--tile-shadow);
+  transition: left .55s var(--ease), top .55s var(--ease), width .55s var(--ease), height .55s var(--ease), opacity .12s .45s; }
+body.paged .page { opacity: 1; pointer-events: auto; transition: left .55s var(--ease), top .55s var(--ease), width .55s var(--ease), height .55s var(--ease), opacity .08s; }
+.page > * { transition: opacity .3s .15s; }
+body:not(.paged) .page > * { opacity: 0; transition-delay: 0s; }
+.page > header { display: flex; align-items: center; gap: 14px; padding: 20px 28px; border-bottom: 1px solid var(--line); }
+.page > header h2 { margin: 0; font: 800 34px/1 var(--display); letter-spacing: -.01em; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.page > header .meta { font: 500 12px var(--mono); color: var(--dim); }
+.page .ui { flex: 1; overflow: auto; padding: 22px 28px 40px; overscroll-behavior: contain; }
+.page .ui > [hidden] { display: block !important; }
+.page .ui > .tile:not(.cover) { background: none; border: 0; padding: 0; border-radius: 0; box-shadow: none; }
+.page .ui > .tile > header > svg:first-child, .page .ui > .tile > header > h2 { display: none; }
+.page .ui > .tile > header .n { margin-left: 0; }
+.settings { max-width: 560px; }
+.settings .themes { position: static; width: auto; opacity: 1; transform: none; pointer-events: auto; box-shadow: none; background: none; border: 0; padding: 0; }
+.settings .lbl { font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--dim); margin: 22px 2px 8px; }
+.seg { display: inline-flex; background: var(--tile-2); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
+.seg button { background: none; border: 0; border-radius: 999px; padding: 6px 14px; font-size: 13px; color: var(--muted); }
+.seg button.on { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; } }
 .habits { grid-column: span 12; }
 .brainstorm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
 .brainstorm input { flex: 1 1 280px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 10px 13px; outline: none; transition: border-color .2s; }
@@ -341,17 +392,28 @@ a.it-row:hover { background: var(--tile-2); }
 </style>
 <link rel="stylesheet" href="theme.css">
 <script src="theme.js"></script>
+<link rel="stylesheet" href="tiles.css">
+<script src="tiles.js"></script>
 
 <div class="bar">
   <h1 id="greet">Brain</h1>
-  <button class="pill sm people-btn" id="openPeople"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6M17 11a3 3 0 100-6M22 21c0-3-2-5-5-5"/></svg>People &amp; me</button>
+  <div class="island-slot"><div class="island" id="island" hidden role="button" tabindex="0" aria-label="Background agents"><span class="dot"></span><span class="itxt" id="itxt"></span><div class="ilist" id="ilist"></div></div></div>
   <div class="bar-tools">
-    <button class="capture-btn" id="openPalette"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Capture a thought, or jump to anything<kbd>⌘K</kbd></button>
-    <button class="chip agents-chip" id="agentChip" hidden title="Background agents"></button>
+    <button class="capture-btn" id="openPalette"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg><span class="lbl">Capture a thought, or jump to anything</span><kbd>⌘K</kbd></button>
     <button class="chip agents-chip" id="knowsChip" hidden title="How well Claude knows you"></button>
     <button class="chip agents-chip" id="statsChip" title="Usage stats"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;margin-right:5px;vertical-align:-2px"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>stats</button>
-    <button class="chip agents-chip" id="themeChip" title="Theme"></button>
+    <button class="pill sm people-btn" id="openPeople" title="People &amp; me"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6M17 11a3 3 0 100-6M22 21c0-3-2-5-5-5"/></svg><span class="lbl">People &amp; me</span></button>
+    <button class="ib" id="settingsBtn" title="Settings" aria-label="Settings"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg></button>
   </div>
+</div>
+
+<main class="board" id="board" aria-label="Today"></main>
+<div class="tscrim" id="tScrim"></div>
+<section class="page" id="page" role="dialog" aria-modal="true" aria-labelledby="pageTitle"><header><h2 id="pageTitle"></h2><span class="meta" id="pageMeta"></span><button class="pill sm" id="pageDone">Done</button></header><div class="ui" id="pageUi"></div></section>
+<div class="settings" id="settingsBox" hidden>
+  <div class="lbl" style="margin-top:0">Theme</div><div class="themes" id="themes"></div>
+  <div class="lbl">Cover length</div><div class="seg" id="segCover"></div>
+  <div class="lbl">Layout</div><div class="seg" id="segLayout"></div>
 </div>
 
 <main class="grid" id="grid">
@@ -395,15 +457,14 @@ a.it-row:hover { background: var(--tile-2); }
   <div class="results" id="pResults"></div>
   <footer><span><kbd>↵</kbd>capture</span><span><kbd>↑↓</kbd>jump to a page</span><span><kbd>tab</kbd>change type</span><span><kbd>esc</kbd>close</span></footer>
 </div>
-<div class="themes" id="themes" role="dialog" aria-label="Theme"></div>
 <div class="toast" id="toast"><span id="toastMsg"></span><button id="toastUndo" hidden>Undo</button></div>
 
 <script>
-// Theme picker (the chip in the top bar). app/theme.js does the work; the pick is also saved to the notes so the phone follows it.
-const themeChip = document.getElementById("themeChip"), themesPop = document.getElementById("themes");
+// Theme picker (inside Settings). app/theme.js does the work; the pick is also saved to the notes so the phone follows it.
+const settingsBtn = document.getElementById("settingsBtn"), themesPop = document.getElementById("themes");
 function themeLabel() {
   const r = BrainTheme.resolve(BrainTheme.get()), f = BrainTheme.FAMILIES[r.family];
-  themeChip.textContent = `${r.tone === "dark" ? "☾" : "☀"} ${f.label} · ${r.mode === "auto" ? "Auto" : f.modes[r.mode]}`;
+  settingsBtn.title = `Settings · ${f.label} · ${r.mode === "auto" ? "Auto" : f.modes[r.mode]}`;
 }
 function pickTheme(choice, save = true) {
   BrainTheme.apply(choice); themeLabel(); drawThemes();
@@ -421,15 +482,11 @@ function drawThemes() {
   // Each family tile previews itself in the mode you'd land on.
   themesPop.querySelectorAll(".fam").forEach(b => BrainTheme.paint(b.querySelector(".pv"), b.dataset.f + "/" + r.mode));
 }
-themeChip.onclick = e => { e.stopPropagation(); drawThemes(); themesPop.classList.toggle("on"); };
 themesPop.onclick = e => {
-  e.stopPropagation();
   const b = e.target.closest("button"); if (!b) return;
   const r = BrainTheme.resolve(BrainTheme.get());
   pickTheme(b.dataset.f ? b.dataset.f + "/" + r.mode : r.family + "/" + b.dataset.m);
 };
-addEventListener("click", () => themesPop.classList.remove("on"));
-addEventListener("keydown", e => { if (e.key === "Escape") themesPop.classList.remove("on"); });
 themeLabel();
 (window.requestIdleCallback || setTimeout)(drawThemes);  // build the picker early: its fonts load before the first click, not during it
 
@@ -462,7 +519,8 @@ async function api(path, body, method) {
   return data;
 }
 let S = null, lastState = "";
-async function load() {
+// how: "act" (after Zac did something: the board re-flows), "bg" (poll/focus: never reshuffles while he's looking), "load" (first paint)
+async function load(how = "act") {
   try {
     const next = await api("/api/state"), key = JSON.stringify(next);
     if (key === lastState) return;  // the 30s poll and window focus usually find nothing new; don't redraw
@@ -470,7 +528,7 @@ async function load() {
     if (S.theme && S.theme !== BrainTheme.get()) pickTheme(S.theme, false);  // set from another window
     // Redrawing replaces whole tiles, so keep the page and the habit list where they were.
     const y = scrollY, hs = document.querySelector(".habit-scroll")?.scrollTop || 0;
-    render();
+    render(how);
     const h = document.querySelector(".habit-scroll"); if (h) h.scrollTop = hs;
     if (scrollY !== y) scrollTo(0, y);
   }
@@ -511,7 +569,7 @@ async function initMap() {
   const paintGroups = () => { const a = ["--accent", "--good", "--info", "--extra", "--bad"].map(css); groups.forEach((x, i) => x.color = a[i] || css("--muted")); };
   groups.forEach(x => x.short = (x.name || "Cluster " + x.id).split(" / ")[0]);
   paintGroups();
-  document.addEventListener("brain-theme", () => { paintGroups(); draw(); });
+  document.addEventListener("brain-theme", () => { paintGroups(); draw(); drawMinis(); });
   const colorOf = n => groups.find(x => x.id === n.group).color;
   const hubs = new Set(groups.slice(0, 10).map(x => g.nodes.filter(n => n.group === x.id).sort((a, b) => b.deg - a.deg)[0]));
   $("mapCount").textContent = `${g.nodes.length} ideas · ${links.length} links · built ${g.built}`;
@@ -580,8 +638,22 @@ async function initMap() {
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   new ResizeObserver(size).observe(cv);
   size();
-  if (reduce) { for (let i = 0; i < 450; i++) tick(); fit(); draw(); }
-  else { let frames = 0; (function run() { for (let i = 0; i < 3; i++) tick(); if (!touched) fit(); draw(); if (++frames < 150) requestAnimationFrame(run); })(); }
+  // The Map tile's mini graph: same layout, coloured like the tile's legend (tiles.js: biggest cluster first).
+  const MINI = ["--accent", "--good", "--info", "--bad", "--muted", "--extra"];
+  drawMinis = () => board.querySelectorAll("canvas[data-mini]").forEach(c => {
+    const r = c.getBoundingClientRect(), d = devicePixelRatio || 1; if (!r.width) return;
+    c.width = r.width * d; c.height = r.height * d; const x = c.getContext("2d"); x.scale(d, d);
+    const xs = g.nodes.map(n => n.x), ys = g.nodes.map(n => n.y), x0 = Math.min(...xs), y0 = Math.min(...ys);
+    const k = Math.min(r.width / (Math.max(...xs) - x0 || 1), r.height / (Math.max(...ys) - y0 || 1)) * .9;
+    const ox = (r.width - (Math.max(...xs) - x0) * k) / 2, oy = (r.height - (Math.max(...ys) - y0) * k) / 2, P = n => [ox + (n.x - x0) * k, oy + (n.y - y0) * k];
+    x.globalAlpha = .12; x.strokeStyle = css("--muted"); x.lineWidth = .6; x.beginPath();
+    for (const [a, b] of links) if (a.group === b.group) { x.moveTo(...P(a)); x.lineTo(...P(b)); }
+    x.stroke(); x.globalAlpha = 1;
+    const col = MINI.map(css), rank = new Map(groups.map((gr, i) => [gr.id, i]));
+    for (const n of g.nodes) { x.fillStyle = col[rank.get(n.group)] || css("--dim"); x.beginPath(); x.arc(...P(n), 1.8, 0, 6.3); x.fill(); }
+  });
+  if (reduce) { for (let i = 0; i < 450; i++) tick(); fit(); draw(); drawMinis(); }
+  else { let frames = 0; (function run() { for (let i = 0; i < 3; i++) tick(); if (!touched) fit(); draw(); if (++frames < 150) requestAnimationFrame(run); else drawMinis(); })(); }
 
   // Hover, click to open, drag to pan, ⌘/ctrl + scroll or the buttons to zoom.
   const at = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left - view.x) / view.k, (e.clientY - r.top - view.y) / view.k]; };
@@ -667,12 +739,133 @@ async function initMap() {
 }
 
 /* ---------- render ---------- */
-function render() {
-  const [hi] = greeting();
-  $("greet").innerHTML = `${esc(hi)} <span>· ${esc(new Date().toLocaleDateString("en", { weekday: "long" }))}</span>`;
+function render(how) {
+  const [hi] = greeting(), late = S.nudges.filter(n => n.status === "open" && n.due && daysFrom(n.due) < 0).length, today = (S.now.upcoming || []).filter(u => u.date && daysFrom(u.date) === 0).length;
+  $("greet").innerHTML = `${esc(hi)}<small>${esc(new Date().toLocaleDateString("en", { weekday: "long", month: "long", day: "numeric" }))}${late ? ` · ${late} overdue` : ""}${today ? ` · ${today} today` : ""}</small>`;
   renderCover(); renderNext(); renderNudges(); renderProjects(); renderInternships(); renderIdeas(); renderHabits(); renderTimeline(); renderAgents(); renderKnows(); renderRoutines();
+  renderBoard(how);
   if (doc?.panel) openPeople();
 }
+
+/* ---------- adaptive board: app/tiles.js scores, shapes and packs; this places the pieces and opens them ---------- */
+const BT = window.BrainTiles, board = $("board"), reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
+const pref = (k, d) => { try { return localStorage.getItem("brain." + k) || d; } catch { return d; } };
+const setPref = (k, v) => { try { localStorage.setItem("brain." + k, v); } catch {} };
+let coverLen = pref("cover", "medium"), layout = pref("layout", "tiles"), blocks = [], boardSig = "", boardW = 0, tileList = [], lastAct = Date.now(), reflowOnClose = false;
+let drawMinis = () => {};  // initMap fills this in once the graph is laid out
+document.body.classList.toggle("scroll", layout === "scroll");
+["pointerdown", "keydown"].forEach(t => addEventListener(t, () => lastAct = Date.now(), true));
+function renderBoard(how) {
+  if (layout !== "tiles" || !S) return;
+  const its = BT.items(S, { graphSummary: S.graph && { nodes: S.graph.nodes, links: S.graph.links, legend: S.graph.clusters } }), byKey = Object.fromEntries(its.map(i => [i.key, i]));
+  const W = board.clientWidth, cols = BT.colsFor(W), cw = (W - (cols - 1) * BT.GAP) / cols, sigOf = bs => JSON.stringify(bs.map(b => [b.key, b.cells]));
+  tileList = its;
+  // Keep the pieces where they are (content only) for background refreshes while he's around, and while a tile is open.
+  const keep = W === boardW && blocks.length === its.length && blocks.every(b => byKey[b.key]) && how !== "resize" && how !== "load" && (page?.key || (how === "bg" && Date.now() - lastAct < 600e3));
+  if (keep) { if (page?.key && how === "act" && sigOf(BT.solve(its, cols, cw, { cover: coverLen })) !== boardSig) reflowOnClose = true; }
+  else blocks = BT.solve(its, cols, cw, { cover: coverLen });
+  const sig = sigOf(blocks), moved = sig !== boardSig; boardSig = sig; boardW = W;
+  const g = { cw, rh: BT.ROW, gap: BT.GAP, cover: coverLen, radius: document.documentElement.dataset.family === "swiss" ? 0 : 20 };  // Swiss is square everywhere
+  const paint = () => {
+    board.style.setProperty("--cols", cols);
+    board.innerHTML = blocks.map(b => {
+      const it = byKey[b.key], r = BT.renderBlock(it, b, g);
+      return `<div class="bt" data-k="${esc(b.key)}" tabindex="0" role="button" aria-label="Open ${esc(it.title)}" style="grid-column:${r.x0 + 1}/span ${r.c};grid-row:${r.y0 + 1}/span ${r.r};view-transition-name:bt-${esc(b.key)}">${r.html}</div>`;
+    }).join("");
+    drawMinis();
+  };
+  if (how === "act" && moved && document.startViewTransition && !reduceMotion.matches) document.startViewTransition(paint); else paint();
+}
+let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { if (board.clientWidth !== boardW) renderBoard("resize"); }, 150); });
+document.addEventListener("brain-theme", () => renderBoard("resize"));
+function setLayout(v) {
+  layout = v; setPref("layout", v); document.body.classList.toggle("scroll", v === "scroll");
+  boardW = 0; renderBoard("load");
+}
+
+// Opening a tile: the real section moves out of #grid into the page, which grows from the tile's box; Done/Esc/outside puts it back.
+const SECTIONS = { cover: "#cover", next: ".tile.next", nudges: ".tile.nudges", projects: ".tile.projects", intern: ".tile.intern", agents: "#agentsTile",
+  routines: "#routinesTile", ideas: ".tile.ideas", inbox: ".tile.ideas", habits: ".tile.habits", streak: ".tile.timeline" };
+function openTile(k, from) {
+  if (k === "people") return openPeople();
+  if (k === "map") return $("mapTile").hidden ? toast("No map yet. Run graphify to build one.") : $("mapFull").click();
+  const sec = document.querySelector(SECTIONS[k]), it = tileList.find(i => i.key === k);
+  if (sec) openPage(from, it ? it.title : k, it ? it.why : "", sec, k);
+}
+let page = null, settle = null;
+const pg = $("page");
+const boxTo = r => Object.assign(pg.style, { left: r.left + "px", top: r.top + "px", width: r.width + "px", height: r.height + "px" });
+const bigBox = () => innerWidth < 640 ? { left: 8, top: 8, width: innerWidth - 16, height: innerHeight - 16 }
+  : { left: innerWidth * .125, top: innerHeight * .125 + 30, width: innerWidth * .75, height: innerHeight * .75 - 30 };
+function openPage(from, title, meta, node, key) {
+  if (page) closePage(true);
+  settle?.();
+  const home = document.createComment("home");
+  node.replaceWith(home); $("pageUi").replaceChildren(node); $("pageUi").scrollTop = 0;
+  page = { node, home, from, key };
+  $("pageTitle").textContent = title; $("pageMeta").textContent = meta || "";
+  pg.style.transition = "none"; boxTo(from.getBoundingClientRect()); pg.offsetWidth; pg.style.transition = "";
+  document.body.classList.add("paged");
+  requestAnimationFrame(() => boxTo(bigBox()));
+  $("pageDone").focus({ preventScroll: true });
+}
+function closePage(now) {
+  if (!page) return;
+  const p = page, src = (p.key && board.querySelector(`.bt[data-k="${p.key}"]`)) || p.from;
+  page = null;
+  if (now) pg.style.transition = "none";
+  if (src.isConnected && src.offsetParent) boxTo(src.getBoundingClientRect());
+  document.body.classList.remove("paged");
+  // the section goes home once the box has shrunk back (and the content has faded out)
+  settle = () => { clearTimeout(t); settle = null; pg.style.transition = ""; p.home.replaceWith(p.node); if (reflowOnClose) { reflowOnClose = false; renderBoard("act"); } };
+  const t = setTimeout(settle, now || reduceMotion.matches ? 0 : 560);
+}
+addEventListener("resize", () => { if (page) { pg.style.transition = "none"; boxTo(bigBox()); pg.offsetWidth; pg.style.transition = ""; } });
+$("pageDone").onclick = () => closePage();
+$("tScrim").onclick = () => closePage();
+board.addEventListener("click", e => {
+  const bt = e.target.closest(".bt"); if (!bt) return;
+  const a = e.target.closest("[data-act]"), all = e.target.closest("[data-all]");
+  if (a && a.dataset.act === "resume") { const p = S.projects.find(x => x.slug === a.dataset.arg); return p?.resume && copyCmd(p.resume.command); }
+  if (a && a.dataset.act === "open" && /\.md$/.test(a.dataset.arg)) return openDoc(a.dataset.arg);
+  openTile(a ? a.dataset.arg : all ? all.dataset.all : bt.dataset.k, bt);
+});
+board.addEventListener("keydown", e => { const bt = e.target.classList?.contains("bt") && e.target; if (bt && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openTile(bt.dataset.k, bt); } });
+
+// Settings grows from its button like a tile: theme, cover length, layout.
+function drawSettings() {
+  const seg = (vals, on) => vals.map(([v, l]) => `<button data-v="${v}" class="${v === on ? "on" : ""}">${l}</button>`).join("");
+  $("segCover").innerHTML = seg([["short", "Short"], ["medium", "Medium"], ["long", "Long"]], coverLen);
+  $("segLayout").innerHTML = seg([["tiles", "Tiles"], ["scroll", "Scroll"]], layout);
+}
+settingsBtn.onclick = () => { drawThemes(); drawSettings(); openPage(settingsBtn, "Settings", "", $("settingsBox"), null); };
+$("segCover").onclick = e => { const b = e.target.closest("button"); if (!b) return; coverLen = b.dataset.v; setPref("cover", coverLen); drawSettings(); renderBoard("act"); };
+$("segLayout").onclick = e => { const b = e.target.closest("button"); if (!b || b.dataset.v === layout) return; const v = b.dataset.v; drawSettings(); closePage(); setTimeout(() => setLayout(v), reduceMotion.matches ? 0 : 560); };
+
+// Dynamic Island: "N agents" at rest; stretches with a pulsing dot while one works; "Done ✓"; click drops the run list.
+const island = $("island");
+let wasBusy = false, doneUntil = 0;
+function drawIsland() {
+  const runs = S.agents; island.hidden = !runs; if (!runs) return;
+  const act = runs.filter(r => r.status === "queued" || r.status === "running"), busy = act.length;
+  if (wasBusy && !busy) { doneUntil = Date.now() + 2600; setTimeout(drawIsland, 2700); }
+  wasBusy = !!busy;
+  const done = !busy && Date.now() < doneUntil, open = island.classList.contains("open");
+  const txt = busy ? `${busy > 1 ? busy + " agents · " : ""}${act[0].status === "running" ? "Working" : "Queued"}: ${act[0].text}` : done ? "Done ✓" : `${runs.length} agent${runs.length === 1 ? "" : "s"}`;
+  island.className = "island" + (busy ? " work" : "") + (open ? " open" : "");
+  $("itxt").textContent = txt;
+  island.dataset.w = Math.round(Math.min(420, 56 + txt.length * 7.4));
+  if (!open) island.style.setProperty("--iw", island.dataset.w + "px");
+  $("ilist").innerHTML = (runs.slice(0, 6).map(r => `<div><b>${esc(r.text)}</b><span>${esc(r.status)}</span></div>`).join("") || `<div>Nothing yet. Anything you capture gets its own agent.</div>`)
+    + `<button class="iall">All runs →</button>`;
+}
+const islandOpen = on => { island.classList.toggle("open", on); island.style.setProperty("--iw", (on ? 380 : +island.dataset.w || 110) + "px"); };
+island.addEventListener("click", e => {
+  if (e.target.closest(".iall")) { islandOpen(false); return openTile("agents", island); }
+  if (!island.classList.contains("open")) islandOpen(true);
+});
+island.addEventListener("keydown", e => { if (e.key === "Enter" && e.target === island) islandOpen(!island.classList.contains("open")); });
+addEventListener("click", e => { if (!e.target.closest("#island") && island.classList.contains("open")) islandOpen(false); });
 
 function reopenButtons(item, { big } = {}) {
   const out = [];
@@ -737,12 +930,10 @@ function renderNudges() {
 
 function renderAgents() {
   const runs = S.agents;
-  // Kept out of the way: a small top-bar chip (amber while working); the tile only shows when you open it.
+  // Kept out of the way: the Dynamic Island in the top bar; the tile only shows when you open it.
   const busy = (runs || []).filter(r => r.status === "queued" || r.status === "running").length;
-  $("agentChip").hidden = !runs;  // null: agents are off (no agents/ folder)
-  $("agentChip").className = "chip agents-chip" + (busy ? " busy" : "") + (showAgents ? " on" : "");
-  $("agentChip").innerHTML = `<span class="st"></span>${busy ? `${busy} agent${busy > 1 ? "s" : ""} working` : "agents"}`;
-  $("agentsTile").hidden = !runs || !showAgents;
+  drawIsland();  // null runs: agents are off (no agents/ folder)
+  $("agentsTile").hidden = !runs;
   if (!runs) return;
   $("agentCount").textContent = busy ? `${busy} working` : "";
   const label = { queued: "queued", running: "running", done: "done", failed: "failed" };
@@ -751,11 +942,9 @@ function renderAgents() {
       <div class="rep">${esc(r.report || (r.status === "done" ? "(no report)" : "Working on it…"))}</div></div>`).join("")
     : `<div class="empty">Anything you capture gets its own agent. Nothing yet.</div>`;
   clearTimeout(agentPoll);
-  if (busy) agentPoll = setTimeout(() => { if (!document.hidden && idle()) load(); }, 5000);
+  if (busy) agentPoll = setTimeout(() => { if (!document.hidden && idle()) load("bg"); }, 5000);
 }
 const openRuns = new Set();
-let showAgents = false;
-$("agentChip").addEventListener("click", () => { showAgents = !showAgents; renderAgents(); if (showAgents) $("agentsTile").scrollIntoView({ behavior: "smooth", block: "nearest" }); });
 let agentPoll = null;
 document.addEventListener("click", e => {
   const row = e.target.closest("[data-run]");
@@ -1142,15 +1331,14 @@ function addPerson() {
 
 /* ---------- actions ---------- */
 let undo = null;
+async function copyCmd(cmd) {
+  try { await navigator.clipboard.writeText(cmd); toast("Resume command copied — paste it in Terminal"); }
+  catch { prompt("Copy this into Terminal:", cmd); }
+}
 document.addEventListener("click", async e => {
   const t = e.target.closest("[data-copy],[data-open],[data-nact],[data-hset],[data-iact],[data-archive],[data-action],[data-link],[data-capture],[data-jump],#toggleProjects,#toggleIdeas,#toggleOutJobs,#togglePast,#brainRandom,#moreSessions");
   if (!t || e.target.closest("a[href]:not([data-link])")) return;
-  if (t.dataset.copy !== undefined) {
-    e.stopPropagation();
-    try { await navigator.clipboard.writeText(t.dataset.copy); toast("Resume command copied — paste it in Terminal"); }
-    catch { prompt("Copy this into Terminal:", t.dataset.copy); }
-    return;
-  }
+  if (t.dataset.copy !== undefined) { e.stopPropagation(); return copyCmd(t.dataset.copy); }
   if (t.dataset.nact) {
     e.stopPropagation();
     const card = t.closest("[data-nudge]"), id = card.dataset.nudge, action = t.dataset.nact;
@@ -1294,7 +1482,7 @@ document.addEventListener("keydown", e => {
   const typing = /INPUT|TEXTAREA/.test(document.activeElement.tagName);
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); $("palette").classList.contains("on") ? closePalette() : openPalette(); }
   else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s" && doc && !doc.panel && !$("dEditWrap").hidden) { e.preventDefault(); saveDoc(); }
-  else if (e.key === "Escape") { if ($("palette").classList.contains("on")) closePalette(); else if (doc) closeDoc(); }
+  else if (e.key === "Escape") { if ($("palette").classList.contains("on")) closePalette(); else if (doc) closeDoc(); else if (island.classList.contains("open")) islandOpen(false); else if (page) closePage(); }
   else if (e.key === "e" && doc && !doc.panel && !typing && $("dEditWrap").hidden) { e.preventDefault(); setMode(true); }
 });
 
@@ -1322,8 +1510,8 @@ function celebrate(el, n = 22) {
 }
 
 /* ---------- boot ---------- */
-load().then(() => { freshenRoutines(); const h = decodeURIComponent(location.hash.slice(1)); if (h === "people") openPeople(); else if (h.endsWith(".md")) openDoc(h); initMap(); });
+load("load").then(() => { freshenRoutines(); const h = decodeURIComponent(location.hash.slice(1)); if (h === "people") openPeople(); else if (h.endsWith(".md")) openDoc(h); initMap(); });
 const idle = () => !doc && !/INPUT|TEXTAREA/.test(document.activeElement?.tagName || "");
-setInterval(() => { if (!document.hidden && idle()) load(); }, 30000);
-addEventListener("focus", () => { if (idle()) load(); });
+setInterval(() => { if (!document.hidden && idle()) load("bg"); }, 30000);
+addEventListener("focus", () => { if (idle()) load("bg"); });
 </script>

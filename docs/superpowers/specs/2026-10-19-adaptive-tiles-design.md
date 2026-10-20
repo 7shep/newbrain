@@ -33,3 +33,8 @@ Learning scores from what Zac opens; drag-to-rearrange; changing the server's da
 
 ## Done when
 Desktop (all 11 themes) and phone show the adaptive board with real data, every existing tile action works from inside the opened tile, Scroll layout still works, tests pass, and `tools/frames` holds ~60fps on open/close/re-flow.
+
+## Added after the build started (lead applies these)
+- **Opened tiles**: start with a summary strip (count · summary · spotlight), then the full section; size to content (max 75% of the window), long ones scroll. Not every tile opens: only ones with more behind them (People, Notes, Internships, Up next, Projects, Ideas, Agents); Streak, Inbox/"All clear" and other glance tiles aren't clickable; Map jumps to the full-screen map.
+- **Freelance tiles**: anything urgent gets its own tile. Claude writes them to `claude/tiles.md` (title, 1–2 lines, urgency, expires, optional action); Brain scores them high by urgency, shows them like any tile, and drops them when they expire or Zac marks them done.
+- **Everything fits its box**: after each layout, measure every part (scrollHeight/scrollWidth vs its box). If text overflows, re-size that piece (more rows) and re-solve, or trim lists to whole rows + "All N →". Never clip text mid-line or overflow a piece. A test/screenshot check enforces it in every theme, desktop and phone.

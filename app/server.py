@@ -261,6 +261,7 @@ def state():
         "agents": AGENTS.recent(),
         "routines": ROUTINES.load(),
         "theme": saved_theme(),
+        "graph": graph_summary(),
         "predictions": predictions.stats(predictions.parse(read("claude/predictions.md"))),
         "has": {k: k in by_path for k in ("me.md", "now.md")},
     }
@@ -551,7 +552,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             with open(os.path.join(HERE, "index.html"), encoding="utf-8") as f:
                 html = f.read().replace("__BRAIN_TOKEN__", TOKEN).replace('"__NOTES_ROOT__"', json.dumps(NOTES))  # json: Windows backslashes stay intact
             return self.send(200, html.encode(), "text/html; charset=utf-8")
-        if url.path in ("/theme.css", "/theme.js"):  # shared with the phone app
+        if url.path in ("/theme.css", "/theme.js", "/tiles.css", "/tiles.js"):  # shared with the phone app
             with open(os.path.join(HERE, url.path[1:]), "rb") as f:
                 return self.send(200, f.read(), "text/css; charset=utf-8" if url.path.endswith("css") else "text/javascript; charset=utf-8")
         if not self.authed():
@@ -636,6 +637,19 @@ def graph_get():
     ids = {n["id"] for n in nodes}
     links = [[l["source"], l["target"]] for l in g.get("links", []) if l["source"] in ids and l["target"] in ids]
     return {"nodes": nodes, "links": links, "built": datetime.datetime.fromtimestamp(os.path.getmtime(path)).date().isoformat()}
+
+
+def graph_summary():
+    """Map tile: node/link counts and the six biggest clusters as [name, count]; None without a graph."""
+    g = graph_get()
+    if not g:
+        return None
+    sizes, names = {}, {}
+    for n in g["nodes"]:
+        sizes[n["group"]] = sizes.get(n["group"], 0) + 1
+        names.setdefault(n["group"], n["groupName"].split(" / ")[0] or f"Cluster {n['group']}")
+    top = sorted(sizes, key=sizes.get, reverse=True)[:6]
+    return {"nodes": len(g["nodes"]), "links": len(g["links"]), "clusters": [[names[k], sizes[k]] for k in top]}
 
 
 def publish_graph():
