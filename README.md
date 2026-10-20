@@ -17,7 +17,7 @@ act on them.
 - **Edit in place:** every note, person and project page opens in a side panel with a live markdown preview. ⌘S saves the file.
 - **Reopen anything:** copy the command to resume a past Claude Code chat, open a project in VS Code, or open its live site.
 - **Map of everything:** if you've run graphify (the Claude Code skill) on your notes (`graphify-out/graph.json`), a Map tile draws the knowledge graph in the app's colours. Hover a dot to see its links, click to open its note, use the legend to focus one cluster, or search it: type a few letters and it suggests matching ideas and clusters, then flies to the one you pick.
-- **Light and dark:** two matte themes, Pro Black and Frost, that follow your system until you pick one: the chip in the desktop top bar, or **Settings → Dark mode** on the phone. Each device keeps its own choice.
+- **Themes:** five families, each with its own modes: Classic and Brain (Light, Soft light, Dark, Soft dark, or Auto to follow your system), plus three wild ones, Phosphor, Riso and Swiss. Pick from the theme chip in the desktop top bar; the phone follows the Mac's pick (saved in `claude/theme.json`) until you choose one in **Settings** there.
 - **Everything we've done:** one self-contained note per session, in a full-width timeline.
 - **People & me:** your profile and contacts, one click away but out of the main view.
 - **On your phone:** a home-screen app with the cover, Up next, Notes to self, projects, ideas, habits and capture. It works with your laptop off, using a private GitHub repo as the backend. [Set it up →](#on-your-phone)
@@ -191,7 +191,8 @@ Prompt with `set BRAIN_AGENT=codex` followed by `%USERPROFILE%\Notes\.brain\bin\
 └── .brain/                   this repo
     ├── app/server.py         stdlib HTTP server: reads/writes the notes, serves the app
     ├── app/index.html        the whole UI (vanilla JS, no build)
-    ├── app/theme.css         colours and light/dark themes, shared with the phone app
+    ├── app/theme.css         every theme's tokens (colour, type, shape, texture), shared with the phone app
+    ├── app/theme.js          theme picking (family/mode, auto), shared with the phone app
     ├── app/agents.py         background agent runner (queue, one at a time, status files)
     ├── app/sync.py           git pull/commit/push for the phone app
     ├── app/phone.py          applies phone actions on GitHub, writes phone/state.json
