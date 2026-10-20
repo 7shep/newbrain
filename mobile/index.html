@@ -365,6 +365,7 @@ $("themePick").onclick = e => {
 };
 $("matchSw").onclick = () => { store.set("themeMatch", !store.get("themeMatch", true)); phoneTheme(); drawThemes(); };
 phoneTheme();
+(window.requestIdleCallback || setTimeout)(drawThemes);  // build the Settings picker early so its fonts are loaded before it opens
 const today = () => new Date().toLocaleDateString("en-CA");
 const daysFrom = d => Math.round((new Date(d + "T00:00") - new Date(today() + "T00:00")) / 864e5);
 

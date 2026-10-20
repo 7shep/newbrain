@@ -431,6 +431,7 @@ themesPop.onclick = e => {
 addEventListener("click", () => themesPop.classList.remove("on"));
 addEventListener("keydown", e => { if (e.key === "Escape") themesPop.classList.remove("on"); });
 themeLabel();
+(window.requestIdleCallback || setTimeout)(drawThemes);  // build the picker early: its fonts load before the first click, not during it
 
 const TOKEN = "__BRAIN_TOKEN__";
 const $ = id => document.getElementById(id);
