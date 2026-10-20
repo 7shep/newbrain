@@ -16,7 +16,7 @@
   function resolve(choice) {
     let [family, mode] = String(LEGACY[choice] || choice || "").split("/");
     const f = FAMILIES[family] || FAMILIES[(family = "classic")];
-    if (mode !== "auto" && !f.modes[mode]) mode = f.auto ? "auto" : Object.keys(f.modes)[0];
+    if (mode === "auto" ? !f.auto : !f.modes[mode]) mode = f.auto ? "auto" : Object.keys(f.modes)[0];
     const m = mode === "auto" ? f.auto[sysLight.matches ? 0 : 1] : mode;
     return { family, mode, id: family + "-" + m, tone: DARK.has(m) ? "dark" : "light" };
   }
