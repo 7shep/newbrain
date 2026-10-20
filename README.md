@@ -193,6 +193,7 @@ Prompt with `set BRAIN_AGENT=codex` followed by `%USERPROFILE%\Notes\.brain\bin\
     ├── app/index.html        the whole UI (vanilla JS, no build)
     ├── app/theme.css         every theme's tokens (colour, type, shape, texture), shared with the phone app
     ├── app/theme.js          theme picking (family/mode, auto), shared with the phone app
+    ├── tools/frames/         60fps check: drives Chrome through each theme, reports dropped frames and marks stalls
     ├── app/agents.py         background agent runner (queue, one at a time, status files)
     ├── app/sync.py           git pull/commit/push for the phone app
     ├── app/phone.py          applies phone actions on GitHub, writes phone/state.json
