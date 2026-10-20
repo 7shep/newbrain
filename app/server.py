@@ -551,9 +551,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
             with open(os.path.join(HERE, "index.html"), encoding="utf-8") as f:
                 html = f.read().replace("__BRAIN_TOKEN__", TOKEN).replace('"__NOTES_ROOT__"', json.dumps(NOTES))  # json: Windows backslashes stay intact
             return self.send(200, html.encode(), "text/html; charset=utf-8")
-        if url.path == "/theme.css":  # shared with the phone app
-            with open(os.path.join(HERE, "theme.css"), "rb") as f:
-                return self.send(200, f.read(), "text/css; charset=utf-8")
+        if url.path in ("/theme.css", "/theme.js"):  # shared with the phone app
+            with open(os.path.join(HERE, url.path[1:]), "rb") as f:
+                return self.send(200, f.read(), "text/css; charset=utf-8" if url.path.endswith("css") else "text/javascript; charset=utf-8")
         if not self.authed():
             return self.send(403, {"error": "forbidden"})
         try:
