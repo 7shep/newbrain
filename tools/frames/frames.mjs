@@ -1,4 +1,4 @@
-// Frame test for Brain: scroll, open the theme picker (or the phone's Settings) and hover, in each theme, and record
+// Frame test for Brain: scroll, open/close a tile and Settings, re-flow the board, and hover, in each theme, and record
 //  (1) in-page frame times (requestAnimationFrame) -> fps, dropped frames (>25ms) and the worst frame, per step
 //  (2) Chrome's own screencast frames -> saved to disk; diff.py flags pauses and boxes what changed
 // Usage (Brain running on :4747; Chrome installed):
@@ -65,13 +65,17 @@ for (const theme of themes) {
   } else for (let i = 0; i < 90; i++) { await send("Input.dispatchMouseEvent", { type: "mouseWheel", x: 700, y: 500, deltaX: 0, deltaY: i < 45 ? 60 : -60 }); await sleep(16); }
   await sleep(400);
   console.log("  max scroll", await evalJs("document.documentElement.scrollHeight-innerHeight"));
-  // Act 2: open and close the theme picker, hover across tiles
+  // Act 2: open and close a tile (it grows from its spot), then Settings (theme picker inside)
+  const close = `(document.getElementById("pageDone") || document.querySelector("#page [data-close]")).click()`;
+  await evalJs(`scrollTo(0,0);__mark.push(["open",performance.now()]);document.querySelectorAll("#board .bt .bt-part")[1].click()`); await sleep(900);
+  await evalJs(`__mark.push(["close",performance.now()]);${close}`); await sleep(900);
   if (PHONE) { await evalJs(`__mark.push(["settings",performance.now()]);document.getElementById("openSettings").click()`); await sleep(900);
     await evalJs(`document.querySelector("#settings [data-close]").click()`); }
-  else { await evalJs(`__mark.push(["picker",performance.now()]);document.getElementById("themeChip").click()`);
+  else { await evalJs(`__mark.push(["settings",performance.now()]);document.getElementById("settingsBtn").click()`); await sleep(900); await evalJs(close); }
   await sleep(700);
-  await evalJs(`document.body.click()`); }
-  await sleep(500);
+  // Act 3: re-flow (the cover length changes, every piece glides to its new spot)
+  await evalJs(`__mark.push(["reflow",performance.now()]);document.querySelector('${PHONE ? "[data-lay=cover][data-v=long]" : "#segCover [data-v=long]"}').click()`); await sleep(1000);
+  await evalJs(`document.querySelector('${PHONE ? "[data-lay=cover][data-v=medium]" : "#segCover [data-v=medium]"}').click()`);
   await evalJs(`__mark.push(["hover",performance.now()])`);
   for (let i = 0; i < 60; i++) { await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 100 + i * 20, y: 300 + (i % 10) * 30 }); await sleep(16); }
   await sleep(300);
