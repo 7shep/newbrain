@@ -17,7 +17,7 @@ act on them.
 - **Edit in place:** every note, person and project page opens in a side panel with a live markdown preview. ⌘S saves the file.
 - **Reopen anything:** copy the command to resume a past Claude Code chat, open a project in VS Code, or open its live site.
 - **Map of everything:** if you've run graphify (the Claude Code skill) on your notes (`graphify-out/graph.json`), a Map tile draws the knowledge graph in the app's colours. Hover a dot to see its links, click to open its note, use the legend to focus one cluster, or search it: type a few letters and it suggests matching ideas and clusters, then flies to the one you pick.
-- **Themes:** five families, each with its own modes: Classic and Brain (Light, Soft light, Dark, Soft dark, or Auto to follow your system), plus three unique ones, Phosphor, Riso and Swiss. Pick from the theme chip in the desktop top bar; the phone follows the Mac's pick (saved in `claude/theme.json`) until you choose one in **Settings** there.
+- **Themes:** five families, each with its own modes: Classic and Brain (Light, Soft light, Dark, Soft dark, or Auto to follow your system), plus three unique ones, Phosphor, Riso and Swiss. Pick one in **Settings** on either device; with **Sync theme** on (the default, a switch on each) the other follows (shared through `claude/theme.json`), and off each keeps its own.
 - **Everything we've done:** one self-contained note per session, in a full-width timeline.
 - **People & me:** your profile and contacts, in the People tile on the board.
 - **On your phone:** a home-screen app with the cover, Up next, Notes to self, projects, ideas, habits and capture. It works with your laptop off, using a private GitHub repo as the backend. [Set it up →](#on-your-phone)

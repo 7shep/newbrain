@@ -382,7 +382,7 @@ body.tiles .fab { width: 56px; padding: 0; justify-content: center; font-size: 0
 <section class="sheet" id="settings" aria-label="Settings">
   <header><button class="ib" data-close aria-label="Close"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button><span class="p">Connect your notes</span></header>
   <form class="body" id="setForm">
-    <div class="theme-row"><span>Theme: match Mac</span><button class="sw" type="button" role="switch" id="matchSw" aria-label="Match the Mac's theme"></button></div>
+    <div class="theme-row"><span>Sync theme with Mac</span><button class="sw" type="button" role="switch" id="matchSw" aria-label="Sync theme with Mac"></button></div>
     <div class="tpick" id="themePick"></div>
     <label>Layout</label>
     <div class="secpick" id="layPick"></div>
@@ -419,11 +419,13 @@ const linkCfg = (() => { try { const c = JSON.parse(atob(decodeURIComponent((loc
 if (linkCfg) { store.set("cfg", linkCfg); if (standalone) history.replaceState(null, "", location.pathname); }
 let cfg = store.get("cfg", null), S = store.get("state", null), outbox = store.get("outbox", []), error = null;
 
-// Theme: follows the Mac's pick (S.theme) until you pick one here (Settings → Theme). app/theme.js does the work.
+// Theme: with "Sync theme with Mac" on (the default; stored as themeMatch), the phone shows the shared pick (S.theme, from
+// claude/theme.json) and a pick here is queued as a "theme" action that writes it, so the Mac follows. Off: each keeps its own.
 function phoneTheme() {
-  if (!store.get("themeMatch", true) || !S?.theme) return;
-  try { localStorage.setItem("brain.theme", S.theme); } catch {}
-  if (S.theme !== BrainTheme.get()) BrainTheme.apply(S.theme);
+  const pend = outbox.filter(a => a.action === "theme").pop(), t = pend ? pend.body.theme : S?.theme;  // a pick still on its way wins
+  if (!store.get("themeMatch", true) || !t) return;
+  try { localStorage.setItem("brain.theme", t); } catch {}
+  if (t !== BrainTheme.get()) BrainTheme.apply(t);
 }
 function drawThemes() {
   const r = BrainTheme.resolve(BrainTheme.get()), F = BrainTheme.FAMILIES, match = store.get("themeMatch", true);
@@ -438,9 +440,9 @@ function drawThemes() {
 $("themePick").onclick = e => {
   const b = e.target.closest("button"); if (!b) return;
   const r = BrainTheme.resolve(BrainTheme.get()), choice = b.dataset.f ? b.dataset.f + "/" + r.mode : r.family + "/" + b.dataset.m;
-  store.set("themeMatch", false);
   try { localStorage.setItem("brain.theme", choice); } catch {}
   BrainTheme.apply(choice); drawThemes();
+  if (store.get("themeMatch", true)) act("theme", { theme: choice });
 };
 $("matchSw").onclick = () => { store.set("themeMatch", !store.get("themeMatch", true)); phoneTheme(); drawThemes(); };
 phoneTheme();
@@ -474,6 +476,7 @@ function optimistic(a, S) {
   if (a.action === "nudge") { const n = S.nudges.find(x => x.id === b.id); if (n) n.status = b.action === "snooze" ? "snoozed" : b.action; }
   if (a.action === "idea") S.ideas = S.ideas.filter(l => l !== b.text);
   if (a.action === "habit") { const h = S.habits.find(x => x.id === b.id); if (h) h.status = b.status; }
+  if (a.action === "theme") S.theme = b.theme;
 }
 function act(action, body, msg) {
   const a = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, action, body, sent: false };

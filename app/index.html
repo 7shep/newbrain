@@ -166,6 +166,7 @@ body:not(.paged) .page > * { opacity: 0; transition-delay: 0s; }
 .drawer.side { width: min(460px, 100%); }
 .drawer.side header h2 { margin: 0; flex: 1; font: 800 24px/1 var(--display); }
 .drawer.side .body { padding: 22px 24px 40px; }
+.sync-row { display: flex; justify-content: space-between; align-items: center; margin: 0 2px 14px; font-size: 13.5px; }
 .settings .themes { position: static; width: auto; opacity: 1; transform: none; pointer-events: auto; box-shadow: none; background: none; border: 0; padding: 0; }
 .settings .lbl { font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--dim); margin: 22px 2px 8px; }
 .seg { display: inline-flex; background: var(--tile-2); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
@@ -412,7 +413,9 @@ a.it-row:hover { background: var(--tile-2); }
 <aside class="drawer side" id="setSide" aria-label="Settings">
   <header><h2>Settings</h2><button class="ib" id="setClose" title="Close (Esc)" aria-label="Close"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></header>
   <div class="body settings">
-    <div class="lbl" style="margin-top:0">Theme</div><div class="themes" id="themes"></div>
+    <div class="lbl" style="margin-top:0">Theme</div>
+    <div class="sync-row"><span>Sync theme with phone</span><button class="sw" role="switch" id="syncSw" aria-label="Sync theme with phone"></button></div>
+    <div class="themes" id="themes"></div>
     <div class="lbl">Cover length</div><div class="seg" id="segCover"></div>
     <div class="lbl">Layout</div><div class="seg" id="segLayout"></div>
   </div>
@@ -464,7 +467,9 @@ a.it-row:hover { background: var(--tile-2); }
 <div class="toast" id="toast"><span id="toastMsg"></span><button id="toastUndo" hidden>Undo</button></div>
 
 <script>
-// Theme picker (inside Settings). app/theme.js does the work; the pick is also saved to the notes so the phone follows it.
+// Theme picker (inside Settings). app/theme.js does the work. With "Sync theme with phone" on (the default), the pick is
+// also saved to the notes (claude/theme.json) so the phone follows it, and a pick made on the phone comes back the same way.
+let themeSync = (() => { try { return localStorage.getItem("brain.themeSync") !== "off"; } catch { return true; } })();
 const settingsBtn = document.getElementById("settingsBtn"), themesPop = document.getElementById("themes");
 function themeLabel() {
   const r = BrainTheme.resolve(BrainTheme.get()), f = BrainTheme.FAMILIES[r.family];
@@ -473,7 +478,7 @@ function themeLabel() {
 function pickTheme(choice, save = true) {
   BrainTheme.apply(choice); themeLabel(); drawThemes();
   try { localStorage.setItem("brain.theme", choice); } catch {}
-  if (save) api("/api/theme", { theme: choice }).catch(e => toast(e.message));
+  if (save && themeSync) api("/api/theme", { theme: choice }).catch(e => toast(e.message));
 }
 function drawThemes() {
   const r = BrainTheme.resolve(BrainTheme.get()), F = BrainTheme.FAMILIES;
@@ -529,7 +534,7 @@ async function load(how = "act") {
     const next = await api("/api/state"), key = JSON.stringify(next);
     if (key === lastState) return;  // the 30s poll and window focus usually find nothing new; don't redraw
     lastState = key; S = next;
-    if (S.theme && S.theme !== BrainTheme.get()) pickTheme(S.theme, false);  // set from another window
+    if (themeSync && S.theme && S.theme !== BrainTheme.get()) pickTheme(S.theme, false);  // set from the phone or another window
     // Redrawing replaces whole tiles, so keep the page and the habit list where they were.
     const y = scrollY, hs = document.querySelector(".habit-scroll")?.scrollTop || 0;
     render(how);
@@ -840,7 +845,14 @@ function drawSettings() {
   const seg = (vals, on) => vals.map(([v, l]) => `<button data-v="${v}" class="${v === on ? "on" : ""}">${l}</button>`).join("");
   $("segCover").innerHTML = seg([["short", "Short"], ["medium", "Medium"], ["long", "Long"]], coverLen);
   $("segLayout").innerHTML = seg([["tiles", "Tiles"], ["scroll", "Scroll"]], layout);
+  $("syncSw").classList.toggle("off", !themeSync); $("syncSw").setAttribute("aria-checked", themeSync);
 }
+// Turning sync back on takes the shared theme, like the phone does.
+$("syncSw").onclick = () => {
+  themeSync = !themeSync; try { localStorage.setItem("brain.themeSync", themeSync ? "on" : "off"); } catch {}
+  if (themeSync && S?.theme && S.theme !== BrainTheme.get()) pickTheme(S.theme, false);
+  drawSettings();
+};
 const settingsOpen = on => { $("setSide").classList.toggle("on", on); $("setScrim").classList.toggle("on", on); };
 settingsBtn.onclick = () => { drawThemes(); drawSettings(); settingsOpen(true); };
 $("setClose").onclick = $("setScrim").onclick = () => settingsOpen(false);

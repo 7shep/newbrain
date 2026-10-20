@@ -96,6 +96,16 @@ class ApplyQueueTest(unittest.TestCase):
         self.assertEqual(set(state["sessions"][0]), {"path", "title", "date", "tldr"})  # the phone only gets what it shows
         self.assertNotIn("notes", state)
 
+    def test_theme_pick_from_the_phone_becomes_the_shared_theme(self):
+        notes = notes_copy()
+        queue(notes, "1-theme", "theme", {"theme": "riso/paper"})
+        queue(notes, "2-bad", "theme", {"theme": "../../etc"})
+        state = self.run_phone(notes)
+        self.assertEqual(state["applied"], ["1-theme"])
+        self.assertEqual([f["id"] for f in state["failed"]], ["2-bad"])
+        self.assertEqual(json.loads(read(notes, "claude/theme.json")), {"theme": "riso/paper"})  # what the Mac follows
+        self.assertEqual(state["theme"], "riso/paper")
+
     def test_routines_snapshot_and_routine_captures_reach_the_phone(self):
         notes = notes_copy()
         with open(os.path.join(notes, "claude", "routines.json"), "w") as f:
