@@ -92,6 +92,9 @@ test("renderPart escapes text and shows lists, buttons, clear", () => {
   }
   const list = T.renderPart(evil, "list", { w: 300, h: 120 });
   assert.match(list, /All 9 →/); assert.ok(!/more/.test(list.replace(/bt-more/g, "")));
+  assert.ok(!/<div class="bt-more" hidden>/.test(list) && /<div class="bt-row" hidden>/.test(list), "rows past the estimate wait hidden for fit()");
+  assert.ok(!/bt-more" hidden/.test(T.renderPart(evil, "list", { w: 300, h: 120 })));
+  assert.match(T.strip(by.people), /bt-big.*bt-spot/s); assert.equal(T.strip(by.cover), ""); assert.match(T.strip(by.inbox), /All clear/);
   assert.match(T.renderPart(by.inbox, "big", { w: 200, h: 100 }), /✓ All clear/);
   assert.match(T.renderPart(by.cover, "hero", { w: 800, h: 400 }, { cover: "long" }), /<i>sent<\/i>.*bt-dek/s);
   assert.ok(!/bt-side/.test(T.renderPart(by.cover, "hero", { w: 800, h: 400 }, { cover: "short" })));

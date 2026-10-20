@@ -120,7 +120,7 @@ function heroPx(it, w, phone, cover) {
   const hw = two ? inner * .6 - 14 : inner, sw = two ? inner * .4 - 14 : inner;
   const left = 30 + Math.ceil(h.headline.replace(/\*/g, "").length * fs * .5 / hw) * fs + (cover === "long" && h.dek ? Math.ceil(h.dek.length * 7.4 / hw) * 21 + 8 : 0);
   const sideH = side.reduce((s, t) => s + Math.ceil(t.length * 7.2 / sw) * 20 + 12, 0);
-  return 52 + (two ? Math.max(left, sideH + 24) : left + sideH) + (h.acts.length ? 54 : 10);
+  return 62 + (two ? Math.max(left, sideH + 24) : left + sideH) + (h.acts.length ? 54 : 10);
 }
 function headPx(it, w) {
   const wide = w > 520, tw = Math.max(80, w - 110 - (it.spot && wide ? Math.min(w * .48, 300) + 14 : 0));
@@ -134,7 +134,7 @@ function templates(it, rank, cols, colW, o) {
     if (rank === 0) return [[P(0, 0, F, need(heroPx(it, pw(F), true, cover)), "hero")]];
     if (it.events) return [[P(0, 0, F, hh, "head"), P(0, hh, F, need(Math.min(it.events.length, 5) * 58 + 12), "list")]];
     if (it.legend) return [[P(0, 0, F, need(200), "map")]];
-    if (n && s >= 18) { const lr = need(Math.min(n, 5) * 31 + 40); return [[P(0, 0, F, hh, "head"), P(0, hh, F, lr, "list")]]; }
+    if (n && s >= 18) { const lr = need(Math.min(n, 5) * 32 + (n > 5 ? 44 : 8));  /* room for "All N →" only when rows are left out */ return [[P(0, 0, F, hh, "head"), P(0, hh, F, lr, "list")]]; }
     return [[P(0, 0, half, need(it.days ? 140 : 118), "big")]];
   }
   // desktop: designed at 12 columns, widths scaled to 10/8
@@ -254,8 +254,8 @@ function outline(cells, cw, rh, gap, radius) {
 
 // ---------- renderPart: one part's share of the content (all text escaped) ----------
 const ico = k => `<svg class="bt-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[k] || ""}</svg>`;
-const rowHtml = r => `<div class="bt-row"><b>${esc(r[0])}</b><span>${esc(r[1])}</span></div>`;
-const allBtn = it => `<div class="bt-more"><button class="bt-all" data-all="${esc(it.key)}">All ${esc(it.count && typeof it.count === "number" ? Math.max(it.count, (it.events || it.rows).length) : (it.events || it.rows).length)} →</button></div>`;
+const rowHtml = (r, off) => `<div class="bt-row"${off ? " hidden" : ""}><b>${esc(r[0])}</b><span>${esc(r[1])}</span></div>`;
+const allBtn = (it, on) => `<div class="bt-more"${on ? "" : " hidden"}><button class="bt-all" data-all="${esc(it.key)}"${typeof it.count === "number" && it.count > (it.events || it.rows).length ? ' data-extra="1"' : ""}>All ${esc(it.count && typeof it.count === "number" ? Math.max(it.count, (it.events || it.rows).length) : (it.events || it.rows).length)} →</button></div>`;
 function renderPart(it, role, box, o) {
   box = box || { w: 400, h: 200 }; o = o || {};
   const head = `<h2 class="bt-h">${ico(it.icon)}<span class="bt-t">${esc(it.title)}</span><span class="bt-sc">${it.cleared ? "" : esc(it.score)}</span></h2>`;
@@ -273,14 +273,14 @@ function renderPart(it, role, box, o) {
   }
   if (role === "list" && it.events) {
     const fit = Math.max(1, Math.floor((box.h - 8) / 50)), show = it.events.length > fit ? fit - 1 : fit;
-    return `<div class="bt-tl">${it.events.slice(0, show).map((e, i) => `<div class="bt-ev${i ? "" : " now"}"><span>${esc(e[0])}</span><div><b>${esc(e[1])}</b>${e[2] ? `<small>${esc(e[2])}</small>` : ""}</div></div>`).join("")}</div>`
-      + (it.events.length > show || it.count > it.events.length ? allBtn(it) : "");
+    return `<div class="bt-tl">${it.events.map((e, i) => `<div class="bt-ev${i ? "" : " now"}"${i < show ? "" : " hidden"}><span>${esc(e[0])}</span><div><b>${esc(e[1])}</b>${e[2] ? `<small>${esc(e[2])}</small>` : ""}</div></div>`).join("")}</div>`
+      + allBtn(it, it.events.length > show || it.count > it.events.length);
   }
   if (role === "list") {
     const fit = Math.max(1, Math.floor((box.h - 14) / 31)), show = it.rows.length > fit ? fit - 1 : fit;
-    return it.rows.slice(0, show).map(rowHtml).join("") + (it.rows.length > show ? allBtn(it) : "");
+    return it.rows.slice(0, 30).map((r, i) => rowHtml(r, i >= show)).join("") + allBtn(it, it.rows.length > show);
   }
-  if (role === "map") return `${head}<div class="bt-map"><canvas class="bt-mini" data-mini></canvas>${it.legend ? `<div class="bt-legend">${it.legend.map((l, i) => `<div><i style="background:var(${LEGEND[i % LEGEND.length]})"></i>${esc(l[0])}<span>${esc(l[1])}</span></div>`).join("")}<small>${esc(it.why)}</small></div>` : ""}</div>`;
+  if (role === "map") return `${head}<div class="bt-map"><canvas class="bt-mini" data-mini></canvas>${it.legend ? `<div class="bt-legend">${it.legend.map((l, i) => `<div><i style="background:var(${LEGEND[i % LEGEND.length]})"></i><em>${esc(l[0])}</em><span>${esc(l[1])}</span></div>`).join("")}<small>${esc(it.why)}</small></div>` : ""}</div>`;
   if (it.days) return `${head}<div class="bt-big">${esc(it.count)}</div><div class="bt-dots">${it.days.map(d => `<i class="${d ? "on" : ""}"></i>`).join("")}</div><div class="bt-one">${esc(it.summary)}</div>`;
   if (box.h > 150 && it.rows.length) {
     const fit = Math.max(1, Math.floor((box.h - 110) / 27));
@@ -299,8 +299,39 @@ function renderBlock(it, b, g) {
   return { html, x0: o.x0, y0: o.y0, c: Math.max(...xs) - o.x0 + 1, r: Math.max(...ys) - o.y0 + 1 };
 }
 
+// fit: in the page, show as many whole rows as each part really holds (text wraps differently from the estimate),
+// then "All N →" only when some are left out. Nothing ever spills out of its box.
+function fit(root) {
+  // a head keeps only the height its text uses; the list right under it moves up and takes the rest (no empty band)
+  for (const h of root.querySelectorAll(".bt-part.r-head")) {
+    const l = h.parentNode.querySelector(".bt-part.r-list"), px = k => parseFloat(h.style[k]) || 0, lx = k => parseFloat(l?.style[k]) || 0;
+    if (!l || lx("left") < px("left") || lx("left") + lx("width") > px("left") + px("width") + 1) continue;
+    const used = Math.max(...[...h.children].map(c => c.offsetTop + c.offsetHeight)) + 16, d = Math.floor(px("height") - used);
+    if (d > 4) { h.style.height = px("height") - d + "px"; l.style.top = lx("top") - d + "px"; l.style.height = lx("height") + d + "px"; }
+  }
+  // the cover's headline steps down a size until it fits (display fonts differ a lot in width between themes)
+  for (const p of root.querySelectorAll(".bt-part.r-hero")) {
+    const hl = p.querySelector(".bt-hl"); if (!hl) continue;
+    hl.style.fontSize = "";
+    for (let fs = parseFloat(getComputedStyle(hl).fontSize); fs > 20 && p.scrollHeight > p.clientHeight + 1; fs -= 2) hl.style.fontSize = fs - 2 + "px";
+  }
+  for (const p of root.querySelectorAll(".bt-part")) {
+    const rows = [...p.querySelectorAll(".bt-row, .bt-ev")], more = p.querySelector(".bt-more");
+    if (!rows.length) continue;
+    const over = () => p.scrollHeight > p.clientHeight + 1;
+    rows.forEach(r => r.hidden = false); if (more) more.hidden = true;
+    let n = rows.length;
+    if (more && !over() && !p.querySelector(".bt-all").dataset.extra) continue;
+    if (more) more.hidden = false;
+    while (n > 1 && over()) rows[--n].hidden = true;
+    if (more && n === rows.length && !p.querySelector(".bt-all").dataset.extra) more.hidden = true;
+  }
+}
+// strip: the top of an opened tile — count, summary and the one thing that matters, then the full section below it
+const strip = it => !it || it.hero ? "" : `<span class="bt-big">${esc(it.cleared ? "✓" : it.count)}</span><p class="bt-desc">${esc(it.cleared ? "All clear." : it.summary)}</p>`
+  + (it.spot ? `<div class="bt-spot"><b>${esc(it.spot[0])}</b><span>${esc(it.spot[1])}</span></div>` : "");
 const colsFor = w => w >= 1500 ? 12 : w >= 1100 ? 10 : w >= 800 ? 8 : w >= 560 ? 6 : 4;
-const API = { colsFor, items, templates, solve, outline, renderPart, renderBlock, esc, ICONS, ROW, GAP };
+const API = { colsFor, fit, strip, items, templates, solve, outline, renderPart, renderBlock, esc, ICONS, ROW, GAP };
 if (typeof window !== "undefined") window.BrainTiles = API;
 if (typeof module !== "undefined" && module.exports) module.exports = API;
 })();
