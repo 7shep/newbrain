@@ -61,7 +61,7 @@ argues against it first.**
 | Interested, not eager, in outreach | Open finished files for me, and commit + push notes after updating them | Treat an iCloud-synced Desktop like a normal folder |
 
 **Skills I wrote:**
-- [`/wild`](skills/wild/SKILL.md): the one exception to "argue first". When I say "go wild", Codex generates 40+ ideas across 8
+- [`/wild`](.agents/skills/wild/SKILL.md): the one exception to "argue first". When I say "go wild", Codex generates 40+ ideas across 8
   forced angles (absurd scale, wrong medium, flip the user, collide my projects, cog sci, startup-in-10-days,
   anti-idea, pure bit), pushes the 5 strangest further, then lands on exactly two: one doable this month and one pure
   fun. Tested against a no-skill baseline: 12 sensible ideas became 45 across every angle, 7 of them physical.
@@ -82,6 +82,8 @@ argues against it first.**
 
   Save it to ~/.agents/skills/wild/SKILL.md. Then test it: run it once on one of my real projects and show me the result, so I can see it works before I rely on it.
   ```
+
+The tailored skill in this fork lives in `.agents/skills/wild/SKILL.md`, a real directory tracked in Git so Windows does not need symlink support. Open Codex in this repository and invoke `$wild` or say "go wild". Start a fresh Codex session after pulling if it is missing from the skill list. The home-directory installation in the prompt above is optional for use outside this repository and must be installed separately on each computer.
 
 **What I build on:** [Superpowers](https://github.com/obra/superpowers) (brainstorm, then spec, then plan, then
 test-first for anything real), [graphify](https://github.com/safishamsi/graphify) (the Map), and the impeccable
