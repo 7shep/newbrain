@@ -14,27 +14,19 @@
 <link rel="icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Schibsted+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&family=Bodoni+Moda:opsz,wght@6..96,700;6..96,800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@400;500;600;700;800;900&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Schibsted+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&family=Bodoni+Moda:opsz,wght@6..96,700;6..96,800&display=swap" rel="stylesheet">
 <!--
   Brain on your phone (spec: docs/specs/2026-09-27-phone-app.md). This page holds no notes: it reads
   phone/state.json and notes from your private notes repo with your own GitHub key, and every change is a
   small file in phone/queue/ that the notes repo's GitHub Action applies with Brain's own code.
 -->
-<script>/* theme before first paint: saved choice, else the system setting */
-(function(){var h=document.documentElement,t=null;try{t=localStorage.getItem("brain.theme")}catch(e){}
-h.dataset.theme=t||(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark");})();</script>
 
 <style>
 :root {
-  --sans: "Schibsted Grotesk", -apple-system, "SF Pro Text", system-ui, sans-serif;
-  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  --display: "Bodoni Moda", "Bodoni 72", Didot, Georgia, serif;
   --ease: cubic-bezier(.16, 1, .3, 1);
-  color-scheme: dark;
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html { background: var(--bg); }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--sans);
+body { margin: 0; color: var(--ink); font: 15px/1.5 var(--sans);
   padding: calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 96px); }
 button, input, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
@@ -43,9 +35,9 @@ button { cursor: pointer; }
 .bar h1 span { color: var(--dim); font-weight: 500; }
 .bar .sp { flex: 1; }
 .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--dim); flex: none; }
-.dot.pending { background: var(--amber); animation: pulse 1.2s ease-in-out infinite; }
-.dot.ok { background: var(--mint); }
-.dot.bad { background: var(--rose); }
+.dot.pending { background: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
+.dot.ok { background: var(--good); }
+.dot.bad { background: var(--bad); }
 @keyframes pulse { 50% { opacity: .35; } }
 .ib { width: 38px; height: 38px; border-radius: 11px; border: 1px solid var(--line); background: var(--tile); display: grid; place-items: center; color: var(--muted); }
 .i { width: 18px; height: 18px; }
@@ -53,31 +45,31 @@ button { cursor: pointer; }
 .tile > header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .tile > header h2 { margin: 0; font-size: 13px; font-weight: 600; color: var(--muted); }
 .tile > header .n { margin-left: auto; font: 500 11.5px var(--mono); color: var(--dim); }
-.cover { background: var(--amber); color: var(--amber-ink); border-color: var(--amber); }
+.cover { color: var(--cover-ink); border-color: var(--cover-solid); }
 .cover small { font: 500 11px var(--mono); letter-spacing: .04em; opacity: .75; }
 .cover h3 { font: 800 30px/1.02 var(--display); margin: 8px 0 10px; letter-spacing: -.01em; text-wrap: balance; }
 .cover h3 em { font-weight: 600; }
 .cover p { margin: 0; font-size: 14px; opacity: .85; }
 .next { display: grid; grid-template-columns: 52px 1fr; gap: 2px 12px; padding: 9px 0; border-top: 1px solid var(--line); }
 .next:first-of-type { border-top: 0; padding-top: 0; }
-.next b { font: 700 20px/1 var(--sans); color: var(--amber); }
+.next b { font: 700 20px/1 var(--sans); color: var(--accent); }
 .next small { font: 500 11px var(--mono); color: var(--dim); display: block; }
 .next .t { font-weight: 600; }
 .next .d { color: var(--muted); font-size: 13.5px; }
 .nudge, .job { background: var(--tile-2); border-radius: 14px; padding: 12px; margin-bottom: 8px; }
 .nudge h4, .job h4 { margin: 0 0 4px; font-size: 15px; }
-.due { font: 500 11px var(--mono); color: var(--rose); margin-left: 6px; }
+.due { font: 500 11px var(--mono); color: var(--bad); margin-left: 6px; }
 .nudge p, .job p { margin: 0 0 10px; color: var(--muted); font-size: 13.5px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .nudge p.full, .job p.full { display: block; }
 .job p { margin: 4px 0 0; white-space: pre-line; } .idea small.clamp { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; } a.pill { color: inherit; text-decoration: none; display: inline-block; } .job small { font: 500 11px var(--mono); color: var(--dim); }
 .acts { display: flex; flex-wrap: wrap; gap: 6px; }
 .pill { border: 1px solid transparent; background: color-mix(in srgb, var(--ink) 9%, transparent); border-radius: 999px; padding: 7px 10px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
-.pill.yes { background: var(--mint); color: var(--mint-ink); border-color: var(--mint); }
+.pill.yes { background: var(--good); color: var(--good-ink); border-color: var(--good); }
 .row { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-top: 1px solid var(--line); width: 100%; background: none; border-left: 0; border-right: 0; border-bottom: 0; text-align: left; }
 .row:first-of-type { border-top: 0; }
-.row .st { width: 8px; height: 8px; border-radius: 50%; background: var(--mint); flex: none; }
-.row .st.paused { background: var(--amber); } .row .st.abandoned, .row .st.done { background: var(--dim); }
-.row .st.bad { background: var(--rose); } .row .st.off, .row .st.never { background: var(--dim); }
+.row .st { width: 8px; height: 8px; border-radius: 50%; background: var(--good); flex: none; }
+.row .st.paused { background: var(--accent); } .row .st.abandoned, .row .st.done { background: var(--dim); }
+.row .st.bad { background: var(--bad); } .row .st.off, .row .st.never { background: var(--dim); }
 .row .t { font-weight: 600; } .row .s { color: var(--muted); font-size: 13px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 .row > div { min-width: 0; flex: 1; }
 .idea { padding: 10px 0; border-top: 1px solid var(--line); }
@@ -95,13 +87,13 @@ button { cursor: pointer; }
 .secpick .pill { background: transparent; color: var(--muted); transition: background-color .2s, color .2s, transform .18s var(--ease); } .secpick .pill:active { transform: scale(.96); }
 .secpick .pill.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .theme-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-.sw.on { background: var(--mint); } .sw.on::after { transform: translateX(18px); background: var(--mint-ink); }
+.sw.on { background: var(--good); } .sw.on::after { transform: translateX(18px); background: var(--good-ink); }
 .empty { color: var(--dim); font-size: 14px; }
 .more { background: none; border: 0; color: var(--muted); font-size: 13px; padding: 10px 0 4px; transform-origin: left center; }
 .fab { position: fixed; right: 18px; bottom: calc(env(safe-area-inset-bottom) + 18px); height: 56px; padding: 0 22px; border-radius: 28px; border: 0;
-  background: var(--amber); color: var(--amber-ink); font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; box-shadow: 0 12px 30px -8px rgba(0,0,0,.7); z-index: 5; }
+  background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; box-shadow: 0 12px 30px -8px rgba(0,0,0,.7); z-index: 5; }
 .mic { position: fixed; left: 18px; bottom: calc(env(safe-area-inset-bottom) + 18px); width: 56px; height: 56px; border-radius: 50%; border: 0; z-index: 6;
-  background: var(--mint); color: var(--mint-ink); display: grid; place-items: center; box-shadow: 0 12px 30px -8px rgba(0,0,0,.7);
+  background: var(--good); color: var(--good-ink); display: grid; place-items: center; box-shadow: 0 12px 30px -8px rgba(0,0,0,.7);
   touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; animation: pop .7s var(--ease) .5s backwards; transition: transform .18s var(--ease); }
 .mic.hot { transform: scale(1.15); animation: ping 1s infinite; }
 .pop { position: fixed; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 88px); z-index: 6; background: var(--tile); border: 1px solid var(--line);
@@ -119,10 +111,10 @@ button { cursor: pointer; }
 .sheet .body { flex: 1; overflow-y: auto; padding: 16px 16px calc(env(safe-area-inset-bottom) + 30px); -webkit-overflow-scrolling: touch; }
 .types { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
 .types button { border: 1px solid var(--line); background: var(--tile); border-radius: 999px; padding: 7px 13px; font-size: 13px; font-weight: 600; color: var(--muted); }
-.types button[aria-pressed="true"] { background: var(--amber); border-color: var(--amber); color: var(--amber-ink); }
+.types button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 textarea { width: 100%; min-height: 160px; background: var(--tile); border: 1px solid var(--line); border-radius: 14px; padding: 14px; font-size: 16px; resize: vertical; outline: none; }
-textarea:focus, input:focus { border-color: var(--amber); }
-.go { width: 100%; margin-top: 12px; height: 50px; border: 0; border-radius: 14px; background: var(--amber); color: var(--amber-ink); font-weight: 700; font-size: 16px; }
+textarea:focus, input:focus { border-color: var(--accent); }
+.go { width: 100%; margin-top: 12px; height: 50px; border: 0; border-radius: 14px; background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 16px; }
 .go:disabled { opacity: .4; }
 label { display: block; margin: 14px 0 6px; font-size: 13px; color: var(--muted); font-weight: 600; }
 input { width: 100%; background: var(--tile); border: 1px solid var(--line); border-radius: 12px; padding: 12px; font-size: 16px; outline: none; }
@@ -131,14 +123,14 @@ input { width: 100%; background: var(--tile); border: 1px solid var(--line); bor
 .toast { position: fixed; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom) + 86px); background: var(--ink); color: var(--bg); padding: 12px 14px; border-radius: 12px;
   font-weight: 600; font-size: 14px; opacity: 0; transform: translateY(10px); transition: .3s var(--ease); pointer-events: none; z-index: 30; }
 .toast.on { opacity: 1; transform: none; }
-.banner { background: color-mix(in srgb, var(--rose) 12%, transparent); border: 1px solid color-mix(in srgb, var(--rose) 35%, transparent); color: var(--rose); border-radius: 12px; padding: 10px 12px; font-size: 13.5px; margin-bottom: 12px; }
+.banner { background: color-mix(in srgb, var(--bad) 12%, transparent); border: 1px solid color-mix(in srgb, var(--bad) 35%, transparent); color: var(--bad); border-radius: 12px; padding: 10px 12px; font-size: 13.5px; margin-bottom: 12px; }
 /* home layout: one big countdown, pill actions and two stat tiles on top; the rest sits in a lower deck */
 .hero { padding: 6px 2px 18px; }
 .hero > small { font: 500 12px var(--mono); color: var(--muted); }
 .hero .big { font: 700 54px/1 var(--sans); letter-spacing: -.04em; margin: 6px 0 4px; }
 .hero .big span { color: var(--dim); font-weight: 600; font-size: 34px; letter-spacing: -.02em; }
 .hero .sub { margin: 0 0 16px; color: var(--muted); font-size: 14px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.hero .sub b { color: var(--mint); font-weight: 600; }
+.hero .sub b { color: var(--good); font-weight: 600; }
 .hero .acts { gap: 8px; margin-bottom: 14px; }
 .hero .acts .pill { padding: 9px 15px; font-size: 13.5px; background: var(--tile); border-color: var(--line); }
 .hero .acts .pill.solid { background: var(--ink); color: var(--bg); border-color: var(--ink); }
@@ -146,8 +138,8 @@ input { width: 100%; background: var(--tile); border: 1px solid var(--line); bor
 .stat { text-align: left; background: var(--tile); border: 1px solid var(--line); border-radius: 20px; padding: 14px 14px 16px; transition: transform .18s var(--ease); }
 .stat:active { transform: scale(.96); }
 .stat small { display: flex; gap: 6px; align-items: center; color: var(--muted); font-size: 12.5px; }
-.stat small i { width: 7px; height: 7px; border-radius: 50%; background: var(--rose); }
-.stat:last-child small i { background: var(--lilac); }
+.stat small i { width: 7px; height: 7px; border-radius: 50%; background: var(--bad); }
+.stat:last-child small i { background: var(--extra); }
 .stat b { display: block; font: 700 28px/1 var(--sans); letter-spacing: -.03em; margin-top: 12px; }
 .stat em { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-top: 6px; font: 500 12.5px/1.35 var(--sans); color: var(--muted); }
 /* update strip: cards side by side, swipe between them; one fills the view, the next peeks in (native scroll-snap, no JS drag) */
@@ -169,23 +161,23 @@ button.card { transition: transform .18s var(--ease), background-color .2s, colo
 .card.cover p { font-size: 15px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 8; -webkit-box-orient: vertical; overflow: hidden; }
 .dots { display: flex; justify-content: center; gap: 6px; margin: 10px 0 14px; }
 .dots i { width: 6px; height: 6px; border-radius: 999px; background: var(--tile-3); transition: width .35s var(--spring), background-color .2s; }
-.dots i.on { width: 18px; background: var(--amber); }
-.deck { --deck: #000; background: var(--deck); margin: 0 -16px calc(-1 * (env(safe-area-inset-bottom) + 96px)); padding: 18px 16px calc(env(safe-area-inset-bottom) + 110px);
+.dots i.on { width: 18px; background: var(--accent); }
+.deck { --deck: color-mix(in srgb, var(--ink) 6%, var(--bg)); background: var(--deck); margin: 0 -16px calc(-1 * (env(safe-area-inset-bottom) + 96px)); padding: 18px 16px calc(env(safe-area-inset-bottom) + 110px);
   border-radius: 30px 30px 0 0; border-top: 1px solid var(--line); min-height: 60vh; }
-html[data-theme="light"] .deck, html[data-theme="soft"] .deck { --deck: color-mix(in srgb, var(--ink) 6%, var(--bg)); }
+[data-tone="dark"] .deck { --deck: color-mix(in srgb, #000 70%, var(--bg)); }
 /* note reader */
 .md h1 { font: 800 30px/1.05 var(--display); margin: 0 0 12px; }
-.md h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .09em; color: var(--amber); margin: 26px 0 8px; }
+.md h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .09em; color: var(--accent); margin: 26px 0 8px; }
 .md h3 { font-size: 16px; margin: 18px 0 6px; }
 .md p { margin: 8px 0; } .md ul { padding-left: 20px; margin: 6px 0; } .md li { margin: 4px 0; }
 .md li.task { list-style: none; margin-left: -20px; } .md li.task input { width: auto; margin-right: 8px; }
-.md a { color: var(--amber); }
+.md a { color: var(--accent); }
 .md code { font: 12.5px var(--mono); background: var(--tile-2); padding: 1px 5px; border-radius: 5px; word-break: break-word; }
 .md pre { background: var(--tile); border: 1px solid var(--line); border-radius: 10px; padding: 12px; overflow-x: auto; }
 .md pre code { background: none; padding: 0; }
 .md table { border-collapse: collapse; font-size: 13px; display: block; overflow-x: auto; margin: 10px 0; }
 .md td, .md th { border: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
-.md blockquote { border-left: 3px solid var(--amber); margin: 10px 0; padding: 2px 12px; color: var(--muted); }
+.md blockquote { border-left: 3px solid var(--accent); margin: 10px 0; padding: 2px 12px; color: var(--muted); }
 .md hr { border: 0; border-top: 1px solid var(--line); margin: 18px 0; }
 .fm { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
 .fm span { font: 500 11px var(--mono); color: var(--muted); background: var(--tile-2); border-radius: 6px; padding: 3px 8px; }
@@ -201,7 +193,7 @@ html[data-theme="light"] .deck, html[data-theme="soft"] .deck { --deck: color-mi
 .pill:active, .ib:active, .go:not(:disabled):active, .types button:active, .more:active { transform: scale(.92); }
 .more:active { color: var(--ink); }
 .tile > header[data-sec] h2 { transition: color .2s; } .tile > header[data-sec]:active h2 { color: var(--ink); }
-:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; } #capture :focus-visible { outline-color: var(--acc); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; } #capture :focus-visible { outline-color: var(--acc); }
 textarea:focus-visible, input:focus-visible { outline: 0; }
 .fab:active { transform: scale(.94); } .row:active { transform: scale(.985); }
 .fab { animation: pop .7s var(--ease) .4s backwards; }
@@ -210,7 +202,7 @@ textarea:focus-visible, input:focus-visible { outline: 0; }
 .ib.spin .i { animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .dot.ok { animation: ping .9s ease-out; }
-@keyframes ping { from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--mint) 70%, transparent); } to { box-shadow: 0 0 0 10px transparent; } }
+@keyframes ping { from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--good) 70%, transparent); } to { box-shadow: 0 0 0 10px transparent; } }
 .sw::after { transition: transform .5s var(--spring); transform-origin: left center; }
 .sw:active::after { transform: scaleX(1.25); } .sw.on::after { transform-origin: right center; } .sw.on:active::after { transform: translateX(18px) scaleX(1.25); }
 .toast { transition: opacity .3s var(--ease), transform .6s var(--spring); transform: translateY(16px) scale(.9); }
@@ -233,9 +225,9 @@ button, .row, header[data-sec] { -webkit-touch-callout: none; }
 #hap { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .confetti { position: fixed; width: 7px; height: 10px; border-radius: 2px; pointer-events: none; z-index: 40; }
 /* capture: each type has its own colour, icon and prompt; the parts rise in when the sheet opens */
-#capture { --acc: var(--amber); --acc-ink: var(--amber-ink); }
-#capture[data-type="idea"] { --acc: var(--lilac); } #capture[data-type="todo"] { --acc: var(--mint); }
-#capture[data-type="person"] { --acc: var(--sky); } #capture[data-type="habit"] { --acc: var(--rose); }
+#capture { --acc: var(--accent); --acc-ink: var(--accent-ink); }
+#capture[data-type="idea"] { --acc: var(--extra); } #capture[data-type="todo"] { --acc: var(--good); }
+#capture[data-type="person"] { --acc: var(--info); } #capture[data-type="habit"] { --acc: var(--bad); }
 #capture .types button[aria-pressed="true"] { background: var(--acc); border-color: var(--acc); color: var(--acc-ink); }
 #capture textarea { transition: border-color .35s; } #capture textarea:focus { border-color: var(--acc); }
 #capture .go { background: var(--acc); color: var(--acc-ink); transition: transform .18s var(--ease), background-color .35s, box-shadow .35s; }
@@ -258,8 +250,22 @@ button, .row, header[data-sec] { -webkit-touch-callout: none; }
 @media (prefers-reduced-motion: reduce) { .dot.pending, .dot.ok, #main.intro > .tile, .fab, .mic, .mic.hot, .pop p.wait, .ib.spin .i, .types button[aria-pressed="true"] { animation: none; }
   .mic, .pop, .sheet, .toast, .sw::after, .pill, .ib, .go, .fab, .types button, .row, .more, .stat, button.card, .dots i { transition: none; } .hero.intro .card { animation: none; } }
 
+/* theme picker in Settings (same pieces as the desktop's) */
+.tpick { margin-bottom: 14px; }
+.tpick .fams { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 4px; }
+.tpick .fam { background: none; border: 0; padding: 0; font-size: 12px; color: var(--muted); text-align: left; }
+.tpick .fam.on { color: var(--ink); font-weight: 600; }
+.tpick .pv { display: flex; align-items: flex-end; justify-content: space-between; height: 64px; border-radius: 14px; padding: 8px; margin-bottom: 5px;
+  background: var(--grain), var(--bg-image), var(--bg); border: 2px solid transparent; box-shadow: inset 0 0 0 1px var(--line); }
+.tpick .fam.on .pv { border-color: var(--accent); }
+.tpick .pv i { width: 46%; height: 26px; border-radius: 7px; background: var(--tile); border: 1px solid var(--line); border-top: 6px solid var(--accent); }
+.tpick .pv b { font: 800 20px/1 var(--display); color: var(--ink); }
+.tpick .modes { display: flex; flex-wrap: wrap; gap: 6px; }
+.tpick .modes .pill.on { background: var(--accent); color: var(--accent-ink); }
+
 </style>
 <link rel="stylesheet" href="../app/theme.css">
+<script src="../app/theme.js"></script>
 </head>
 <body>
 <div class="bar">
@@ -301,8 +307,8 @@ button, .row, header[data-sec] { -webkit-touch-callout: none; }
 <section class="sheet" id="settings" aria-label="Settings">
   <header><button class="ib" data-close aria-label="Close"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button><span class="p">Connect your notes</span></header>
   <form class="body" id="setForm">
-    <div class="theme-row"><span>Dark mode</span><button class="sw" type="button" role="switch" id="darkSw" aria-label="Dark mode"></button></div>
-    <div class="theme-row"><span>Soft look</span><button class="sw" type="button" role="switch" id="softSw" aria-label="Soft look"></button></div>
+    <div class="theme-row"><span>Theme: match Mac</span><button class="sw" type="button" role="switch" id="matchSw" aria-label="Match the Mac's theme"></button></div>
+    <div class="tpick" id="themePick"></div>
     <label>Show on home</label>
     <div class="secpick" id="secPick"></div>
     <p class="help">Brain on your phone reads your private notes repo on GitHub. Nothing is stored anywhere except this phone.</p>
@@ -320,22 +326,6 @@ button, .row, header[data-sec] { -webkit-touch-callout: none; }
 <label id="hap" aria-hidden="true"><input type="checkbox" switch tabindex="-1"></label>
 
 <script>
-// Theme: follow the system unless a choice was saved (Settings → Dark mode).
-matchMedia("(prefers-color-scheme: light)").addEventListener("change", e => {
-  let saved = null; try { saved = localStorage.getItem("brain.theme"); } catch {}
-  if (!saved) setTheme(e.matches ? "light" : "dark", false);
-});
-function setTheme(t, save = true) {
-  document.documentElement.dataset.theme = t;
-  if (save) try { localStorage.setItem("brain.theme", t); } catch {}
-  for (const [id, on] of [["darkSw", t === "dark"], ["softSw", t === "soft"]]) { const sw = document.getElementById(id); if (sw) { sw.classList.toggle("on", on); sw.setAttribute("aria-checked", on); } }
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.content = { light: "#e6e8eb", soft: "#e9e9ea" }[t] || "#0c0d0f";
-}
-setTheme(document.documentElement.dataset.theme, false);
-document.getElementById("darkSw").onclick = () => setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
-document.getElementById("softSw").onclick = () => setTheme(document.documentElement.dataset.theme === "soft" ? "light" : "soft");
-
 "use strict";
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -349,6 +339,32 @@ const standalone = navigator.standalone || matchMedia("(display-mode: standalone
 const linkCfg = (() => { try { const c = JSON.parse(atob(decodeURIComponent((location.hash.match(/^#c=([^&]+)/) || [])[1]))); return c.repo && c.token ? c : null; } catch { return null; } })();
 if (linkCfg) { store.set("cfg", linkCfg); if (standalone) history.replaceState(null, "", location.pathname); }
 let cfg = store.get("cfg", null), S = store.get("state", null), outbox = store.get("outbox", []), error = null;
+
+// Theme: follows the Mac's pick (S.theme) until you pick one here (Settings → Theme). app/theme.js does the work.
+function phoneTheme() {
+  if (!store.get("themeMatch", true) || !S?.theme) return;
+  try { localStorage.setItem("brain.theme", S.theme); } catch {}
+  if (S.theme !== BrainTheme.get()) BrainTheme.apply(S.theme);
+}
+function drawThemes() {
+  const r = BrainTheme.resolve(BrainTheme.get()), F = BrainTheme.FAMILIES, match = store.get("themeMatch", true);
+  $("matchSw").classList.toggle("on", match); $("matchSw").setAttribute("aria-checked", match);
+  const fam = wild => Object.entries(F).filter(([, f]) => !!f.wild === wild).map(([k, f]) =>
+    `<button type="button" class="fam${k === r.family ? " on" : ""}" data-f="${k}"><span class="pv"><i></i><b>Aa</b></span>${f.label}</button>`).join("");
+  const f = F[r.family], modes = [...(f.auto ? [["auto", "Auto"]] : []), ...Object.entries(f.modes)];
+  $("themePick").innerHTML = `<label>Everyday</label><div class="fams">${fam(false)}</div><label>Wild</label><div class="fams">${fam(true)}</div>
+    <label>Mode</label><div class="modes">${modes.map(([m, l]) => `<button type="button" class="pill${m === r.mode ? " on" : ""}" data-m="${m}">${l}</button>`).join("")}</div>`;
+  $("themePick").querySelectorAll(".fam").forEach(b => BrainTheme.paint(b.querySelector(".pv"), b.dataset.f + "/" + r.mode));
+}
+$("themePick").onclick = e => {
+  const b = e.target.closest("button"); if (!b) return;
+  const r = BrainTheme.resolve(BrainTheme.get()), choice = b.dataset.f ? b.dataset.f + "/" + r.mode : r.family + "/" + b.dataset.m;
+  store.set("themeMatch", false);
+  try { localStorage.setItem("brain.theme", choice); } catch {}
+  BrainTheme.apply(choice); drawThemes();
+};
+$("matchSw").onclick = () => { store.set("themeMatch", !store.get("themeMatch", true)); phoneTheme(); drawThemes(); };
+phoneTheme();
 const today = () => new Date().toLocaleDateString("en-CA");
 const daysFrom = d => Math.round((new Date(d + "T00:00") - new Date(today() + "T00:00")) / 864e5);
 
@@ -368,7 +384,7 @@ async function loadState() {
   const r = await gh("phone/state.json");
   if (r.status === 404) throw new Error("No phone/state.json yet. The notes repo's Brain action hasn't run.");
   if (!r.ok) throw new Error(`GitHub said ${r.status}.`);
-  S = await r.json(); store.set("state", S);
+  S = await r.json(); store.set("state", S); phoneTheme();
   for (const f of S.failed || []) if (outbox.some(o => o.id === f.id)) toast("Couldn't apply one change: " + f.error);
 }
 
@@ -560,7 +576,7 @@ $("main").addEventListener("touchmove", e => {
   let hint = sw.card.querySelector(".swipe-hint");
   if (!hint) { hint = document.createElement("span"); hint.className = "swipe-hint"; sw.card.appendChild(hint); }
   hint.textContent = right ? "Done" : isNudge ? "Tomorrow" : "Dismiss";
-  hint.style.cssText = `${right ? "left" : "right"}:${Math.min(Math.abs(dx), 110) - 70}px;color:${right ? "var(--mint)" : "var(--amber)"};opacity:${Math.min(Math.abs(dx) / 90, 1)}`;
+  hint.style.cssText = `${right ? "left" : "right"}:${Math.min(Math.abs(dx), 110) - 70}px;color:${right ? "var(--good)" : "var(--accent)"};opacity:${Math.min(Math.abs(dx) / 90, 1)}`;
   sw.card.style.transform = `translateX(${dx}px) rotate(${dx / 60}deg)`;
   if (Math.abs(dx) > 90 && !sw.buzzed) { sw.buzzed = true; tap(); }
 }, { passive: true });
@@ -611,7 +627,7 @@ const calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 function confetti(from) {
   if (calm()) return;
   const r = from.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
-  const cs = getComputedStyle(document.documentElement), colors = ["--amber", "--mint", "--rose", "--sky", "--lilac"].map(v => cs.getPropertyValue(v).trim());
+  const cs = getComputedStyle(document.documentElement), colors = ["--accent", "--good", "--bad", "--info", "--extra"].map(v => cs.getPropertyValue(v).trim());
   for (let k = 0; k < 22; k++) {
     const c = document.createElement("span"); c.className = "confetti";
     c.style.cssText = `left:${x}px;top:${y}px;background:${colors[k % colors.length]}`;
@@ -811,7 +827,7 @@ $("capGo").onclick = () => {
     $("openCapture").animate([{ transform: "scale(1)" }, { transform: "scale(1.18)" }, { transform: "scale(1)" }], { duration: 420, easing: spring() });
   });
 };
-$("openSettings").onclick = () => { $("repo").value = cfg?.repo || ""; $("token").value = cfg?.token || ""; drawSecPick(); open("settings"); };
+$("openSettings").onclick = () => { $("repo").value = cfg?.repo || ""; $("token").value = cfg?.token || ""; drawSecPick(); drawThemes(); open("settings"); };
 $("setForm").onsubmit = async e => {
   e.preventDefault();
   cfg = { repo: $("repo").value.trim().replace(/^https:\/\/github\.com\//, "").replace(/\/$/, ""), token: $("token").value.trim() };
