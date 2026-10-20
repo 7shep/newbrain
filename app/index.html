@@ -409,7 +409,7 @@ a.it-row:hover { background: var(--tile-2); }
 
 <main class="board" id="board" aria-label="Today"></main>
 <div class="tscrim" id="tScrim"></div>
-<section class="page" id="page" role="dialog" aria-modal="true" aria-labelledby="pageTitle"><header><h2 id="pageTitle"></h2><span class="meta" id="pageMeta"></span><button class="pill sm" id="pageDone">Done</button></header><div class="ui" id="pageUi"></div></section>
+<section class="page" id="page" role="dialog" aria-modal="true" aria-labelledby="pageTitle"><header><h2 id="pageTitle"></h2><span class="meta" id="pageMeta"></span><button class="pill sm" id="pageDone">Done</button></header><div class="bt-strip" id="pageStrip"></div><div class="ui" id="pageUi"></div></section>
 <div class="settings" id="settingsBox" hidden>
   <div class="lbl" style="margin-top:0">Theme</div><div class="themes" id="themes"></div>
   <div class="lbl">Cover length</div><div class="seg" id="segCover"></div>
@@ -753,6 +753,7 @@ const pref = (k, d) => { try { return localStorage.getItem("brain." + k) || d; }
 const setPref = (k, v) => { try { localStorage.setItem("brain." + k, v); } catch {} };
 let coverLen = pref("cover", "medium"), layout = pref("layout", "tiles"), blocks = [], boardSig = "", boardW = 0, tileList = [], lastAct = Date.now(), reflowOnClose = false;
 let drawMinis = () => {};  // initMap fills this in once the graph is laid out
+document.fonts?.ready.then(() => BT.fit(board));  // rows were fitted with fallback fonts if the web fonts were still loading
 document.body.classList.toggle("scroll", layout === "scroll");
 ["pointerdown", "keydown"].forEach(t => addEventListener(t, () => lastAct = Date.now(), true));
 function renderBoard(how) {
@@ -772,7 +773,7 @@ function renderBoard(how) {
       const it = byKey[b.key], r = BT.renderBlock(it, b, g);
       return `<div class="bt" data-k="${esc(b.key)}" tabindex="0" role="button" aria-label="Open ${esc(it.title)}" style="grid-column:${r.x0 + 1}/span ${r.c};grid-row:${r.y0 + 1}/span ${r.r};view-transition-name:bt-${esc(b.key)}">${r.html}</div>`;
     }).join("");
-    drawMinis();
+    BT.fit(board); drawMinis();
   };
   if (how === "act" && moved && document.startViewTransition && !reduceMotion.matches) document.startViewTransition(paint); else paint();
 }
@@ -803,7 +804,7 @@ function openPage(from, title, meta, node, key) {
   const home = document.createComment("home");
   node.replaceWith(home); $("pageUi").replaceChildren(node); $("pageUi").scrollTop = 0;
   page = { node, home, from, key };
-  $("pageTitle").textContent = title; $("pageMeta").textContent = meta || "";
+  $("pageTitle").textContent = title; $("pageMeta").textContent = meta || ""; $("pageStrip").innerHTML = BT.strip(key && tileList.find(i => i.key === key));
   pg.style.transition = "none"; boxTo(from.getBoundingClientRect()); pg.offsetWidth; pg.style.transition = "";
   document.body.classList.add("paged");
   requestAnimationFrame(() => boxTo(bigBox()));
