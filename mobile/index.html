@@ -352,7 +352,7 @@ function drawThemes() {
   const fam = wild => Object.entries(F).filter(([, f]) => !!f.wild === wild).map(([k, f]) =>
     `<button type="button" class="fam${k === r.family ? " on" : ""}" data-f="${k}"><span class="pv"><i></i><b>Aa</b></span>${f.label}</button>`).join("");
   const f = F[r.family], modes = [...(f.auto ? [["auto", "Auto"]] : []), ...Object.entries(f.modes)];
-  $("themePick").innerHTML = `<label>Everyday</label><div class="fams">${fam(false)}</div><label>Wild</label><div class="fams">${fam(true)}</div>
+  $("themePick").innerHTML = `<label>Everyday</label><div class="fams">${fam(false)}</div><label>Unique</label><div class="fams">${fam(true)}</div>
     <label>Mode</label><div class="modes">${modes.map(([m, l]) => `<button type="button" class="pill${m === r.mode ? " on" : ""}" data-m="${m}">${l}</button>`).join("")}</div>`;
   $("themePick").querySelectorAll(".fam").forEach(b => BrainTheme.paint(b.querySelector(".pv"), b.dataset.f + "/" + r.mode));
 }
