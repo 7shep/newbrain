@@ -62,7 +62,7 @@ ACTIONS = {
     "habit-new": server.act_habit_new,
 }
 # What the phone shows. Sessions and the note list stay on the Mac.
-KEEP = ("today", "issue", "streak", "now", "me", "people", "nudges", "habits", "projects", "ideas", "ideas_closed", "inbox", "agents", "predictions", "internships", "routines")
+KEEP = ("today", "issue", "streak", "now", "me", "people", "nudges", "habits", "projects", "ideas", "ideas_closed", "inbox", "agents", "predictions", "internships", "routines", "theme")
 
 
 def apply_queue():

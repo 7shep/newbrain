@@ -260,6 +260,7 @@ def state():
         "internships": internships(read("internships/tracker.md")),
         "agents": AGENTS.recent(),
         "routines": ROUTINES.load(),
+        "theme": saved_theme(),
         "predictions": predictions.stats(predictions.parse(read("claude/predictions.md"))),
         "has": {k: k in by_path for k in ("me.md", "now.md")},
     }
@@ -403,6 +404,21 @@ def act_idea(body):
     else:
         raise ValueError("unknown action")
     write("ideas.md", render_ideas(sections))
+
+
+def saved_theme():
+    """The desktop's theme pick ("family/mode", e.g. "riso/auto"); the phone follows it unless set itself."""
+    try:
+        return json.loads(read("claude/theme.json") or "{}").get("theme")
+    except ValueError:
+        return None
+
+
+def act_theme(body):
+    theme = body.get("theme")
+    if not isinstance(theme, str) or not re.fullmatch(r"[a-z]+/[a-z]+", theme):
+        raise ValueError("theme must look like family/mode")
+    write("claude/theme.json", json.dumps({"theme": theme}) + "\n")
 
 
 def act_project(body):
@@ -583,7 +599,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if not self.authed():
             return self.send(403, {"error": "forbidden"})
         routes = {"/api/nudge": act_nudge, "/api/habit": act_habit, "/api/capture": act_capture,
-                  "/api/idea": act_idea, "/api/project": act_project, "/api/habit-new": act_habit_new}
+                  "/api/idea": act_idea, "/api/project": act_project, "/api/habit-new": act_habit_new, "/api/theme": act_theme}
         path = urllib.parse.urlparse(self.path).path
         if path == "/api/routines":  # slow (a claude call), so outside LOCK
             return self.routines(self.body())
