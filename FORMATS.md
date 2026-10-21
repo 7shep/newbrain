@@ -149,3 +149,16 @@ The desktop app reads Markdown tables with a `Company` column. Optional columns 
 
 An optional `## Today · YYYY-MM-DD` section records today's plan. Only dated bullets under
 `## Upcoming` feed Up next; dated lines in `## Done` or other sections are excluded.
+
+## `daily/YYYY-MM-DD.md`
+
+A separate checklist for each local calendar day. The app shows only today's file; older lists are retained without carrying unfinished tasks forward. The server's local date guards writes, so delayed phone actions for a past day are rejected rather than applied to today's list. Phone and server should use the same local date. IDs make retries idempotent and updates target one item.
+
+```markdown
+# Daily tasks — 2026-10-21
+
+- [ ] Pick up groceries <!-- task:0123456789abcdef -->
+- [x] Water plants <!-- task:fedcba9876543210 -->
+```
+
+Task text is one line (1–300 characters), up to 100 tasks per day. The 16-character lowercase hexadecimal ID is stable.

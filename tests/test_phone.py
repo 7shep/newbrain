@@ -184,6 +184,20 @@ class ApplyQueueTest(unittest.TestCase):
         self.assertEqual(json.loads(read(notes, "claude/theme.json")), {"theme": "riso/paper"})  # what the Mac follows
         self.assertEqual(state["theme"], "riso/paper")
 
+    def test_daily_tasks_reach_the_phone_and_previous_day_actions_are_rejected(self):
+        import datetime
+        notes = notes_copy()
+        date = datetime.date.today().isoformat()
+        old = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
+        key = "0123456789abcdef"
+        queue(notes, "1-add", "daily", {"date": date, "action": "add", "id": key, "text": "Get groceries"})
+        queue(notes, "2-done", "daily", {"date": date, "action": "set", "id": key, "done": True})
+        queue(notes, "3-old", "daily", {"date": old, "action": "add", "id": "fedcba9876543210", "text": "Yesterday"})
+        state = self.run_phone(notes)
+        self.assertEqual(state["daily"], {"date": date, "tasks": [{"id": key, "text": "Get groceries", "done": True}]})
+        self.assertEqual(state["applied"], ["1-add", "2-done"])
+        self.assertEqual([x["id"] for x in state["failed"]], ["3-old"])
+
     def test_captures_are_parked_for_the_mac_not_run(self):
         notes = notes_copy()
         queue(notes, "1", "capture", {"kind": "idea", "text": "Parked idea"})

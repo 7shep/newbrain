@@ -11,6 +11,7 @@ act on them.
 ![Brain app running on the example notes](docs/screenshot.png)
 
 - **Cover story:** Codex writes a magazine-style headline about your week after real work.
+- **Daily tasks:** a small checklist for everyday tasks: add, check off, or remove items. Starts empty at local midnight; past lists stay in dated Markdown notes. Available on desktop and phone (phone changes use the existing sync queue).
 - **Notes to self:** reminders Codex adds only when they help. You can mark them Done (with confetti), snooze them, or say "Not doing this", which retires them for good.
 - **Projects:** hide the ones you're not working on; they wait under "Show hidden".
 - **How Codex adapts to you:** habits Codex follows every session. Codex can *propose* a new one, and you switch each on or off. You can also brainstorm a habit in the app, and Codex talks it through with you next session. Past habits stay out of the way.

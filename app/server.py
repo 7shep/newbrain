@@ -36,6 +36,7 @@ from agents import Agents, codex_command  # noqa: E402  (headless agent per capt
 from codex_routines import Routines  # noqa: E402  (Codex automations snapshot)
 from sync import Sync  # noqa: E402  (git pull/commit/push for the phone app, when phone/ exists)
 import predictions  # noqa: E402  (how well Codex knows you: codex/predictions.md)
+import daily  # daily checklist operations
 import stats  # noqa: E402  (usage stats from Codex transcripts)
 
 TOKEN = secrets.token_urlsafe(24)
@@ -195,6 +196,19 @@ def streak(dates):
     return n
 
 
+def daily_state():
+    date = today()
+    return {"date": date, "tasks": daily.parse(read("daily/%s.md" % date))}
+
+
+def act_daily(body):
+    if not isinstance(body, dict):
+        raise ValueError("Daily task actions must be an object")
+    current = daily_state()
+    tasks = daily.apply(current["tasks"], body, current["date"])
+    write("daily/%s.md" % current["date"], daily.render(current["date"], tasks))
+
+
 def state():
     docs = build.load_notes()
     idx = session_index()
@@ -262,6 +276,7 @@ def state():
         "internships": internships(read("internships/tracker.md")),
         "agents": AGENTS.recent(),
         "routines": ROUTINES.load(),
+        "daily": daily_state(),
         "theme": saved_theme(),
         "graph": graph_summary(),
         "predictions": predictions.stats(predictions.parse(read("codex/predictions.md"))),
@@ -563,7 +578,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             with open(asset, "rb") as f:
                 ctype = {".woff2": "font/woff2", ".woff": "font/woff", ".ttf": "font/ttf"}.get(os.path.splitext(asset)[1])
                 return self.send(200, f.read(), ctype or mimetypes.guess_type(asset)[0] or "application/octet-stream")
-        if url.path in ("/theme.css", "/theme.js", "/tiles.css", "/tiles.js"):  # shared with the phone app
+        if url.path in ("/theme.css", "/theme.js", "/tiles.css", "/tiles.js", "/daily.css", "/daily.js"):  # shared with the phone app
             with open(os.path.join(HERE, url.path[1:]), "rb") as f:
                 return self.send(200, f.read(), "text/css; charset=utf-8" if url.path.endswith("css") else "text/javascript; charset=utf-8")
         if not self.authed():
@@ -611,7 +626,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if not self.authed():
             return self.send(403, {"error": "forbidden"})
         routes = {"/api/nudge": act_nudge, "/api/habit": act_habit, "/api/capture": act_capture,
-                  "/api/idea": act_idea, "/api/project": act_project, "/api/habit-new": act_habit_new, "/api/theme": act_theme}
+                  "/api/idea": act_idea, "/api/project": act_project, "/api/habit-new": act_habit_new, "/api/theme": act_theme, "/api/daily": act_daily}
         path = urllib.parse.urlparse(self.path).path
         if path == "/api/routines":  # outside LOCK: suggestions can call Codex
             return self.routines(self.body())
@@ -624,7 +639,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 if path not in routes:
                     return self.send(404, {"error": "not found"})
                 routes[path](self.body())
-                self.commit_touched("brain: " + path.rsplit("/", 1)[-1])
+                self.commit_touched("feat(notes): update daily tasks" if path == "/api/daily" else "brain: " + path.rsplit("/", 1)[-1])
             return self.send(200, {"ok": True})
         except KeyError:
             return self.send(404, {"error": "No such item — the file may have changed. Reload."})

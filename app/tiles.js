@@ -13,7 +13,7 @@ const ICONS = { doc: '<path d="M6 3h9l4 4v14H6z"/>', cal: '<rect x="3" y="5" wid
 const LEGEND = ["--accent", "--good", "--info", "--bad", "--muted", "--extra"];
 
 // ---------- items: one per section, scored 0-100 from live state (spec "Scores") ----------
-const ORDER = ["cover", "next", "people", "intern", "nudges", "agents", "routines", "projects", "ideas", "streak", "habits", "knows", "map", "inbox"];
+const ORDER = ["cover", "next", "daily", "people", "intern", "nudges", "agents", "routines", "projects", "ideas", "streak", "habits", "knows", "map", "inbox"];
 const ISO = /^\d{4}-\d{2}-\d{2}/;
 function items(S, o) {
   S = S || {}; o = o || {};
@@ -32,6 +32,14 @@ function items(S, o) {
   mk("next", "Up next", "cal", (d0 === 0 ? 75 : d0 === 1 ? 60 : d0 !== null && d0 <= 3 ? 45 : 25) + (exam ? 20 : 0), {
     count: up.length, events: events.slice(0, 8), cleared: !up.length, why: `${up.length} coming up`,
     summary: up.length ? `${nToday} today · next: ${up[0].title}` : "Nothing coming up.", spot: up.length ? [up[0].title, events[0][0]] : null });
+
+  // A daily list is visible even before its first task; previous days never carry forward.
+  const daily = S.daily?.date === today ? S.daily.tasks || [] : [];
+  const remaining = daily.filter(t => !t.done), done = daily.length - remaining.length;
+  mk("daily", "Daily tasks", "bell", remaining.length ? 40 : 18, { count: remaining.length,
+    why: "starts fresh daily", summary: daily.length ? `${done} of ${daily.length} done today` : "A fresh page for today. Add a task.",
+    rows: daily.map(t => [t.text, t.done ? "done" : "to do"]),
+    spot: remaining[0] ? [remaining[0].text, "next on your list"] : null });
 
   // People waiting: VIP right now is whoever's follow-up names today, else whoever has waited longest
   const md = new Date(T).toLocaleDateString("en", { month: "short", day: "numeric", timeZone: "UTC" });
