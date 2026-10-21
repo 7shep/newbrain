@@ -14,27 +14,19 @@
 <link rel="icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Schibsted+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&family=Bodoni+Moda:opsz,wght@6..96,700;6..96,800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@400;500;600;700;800;900&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Schibsted+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&family=Bodoni+Moda:opsz,wght@6..96,700;6..96,800&display=swap" rel="stylesheet">
 <!--
   Brain on your phone (spec: docs/specs/2026-09-27-phone-app.md). This page holds no notes: it reads
   phone/state.json and notes from your private notes repo with your own GitHub key, and every change is a
   small file in phone/queue/ that the notes repo's GitHub Action applies with Brain's own code.
 -->
-<script>/* theme before first paint: saved choice, else the system setting */
-(function(){var h=document.documentElement,t=null;try{t=localStorage.getItem("brain.theme")}catch(e){}
-h.dataset.theme=t||(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark");})();</script>
 
 <style>
 :root {
-  --sans: "Schibsted Grotesk", -apple-system, "SF Pro Text", system-ui, sans-serif;
-  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  --display: "Bodoni Moda", "Bodoni 72", Didot, Georgia, serif;
   --ease: cubic-bezier(.16, 1, .3, 1);
-  color-scheme: dark;
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html { background: var(--bg); }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--sans);
+body { margin: 0; color: var(--ink); font: 15px/1.5 var(--sans);
   padding: calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 96px); }
 button, input, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
@@ -43,9 +35,9 @@ button { cursor: pointer; }
 .bar h1 span { color: var(--dim); font-weight: 500; }
 .bar .sp { flex: 1; }
 .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--dim); flex: none; }
-.dot.pending { background: var(--amber); animation: pulse 1.2s ease-in-out infinite; }
-.dot.ok { background: var(--mint); }
-.dot.bad { background: var(--rose); }
+.dot.pending { background: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
+.dot.ok { background: var(--good); }
+.dot.bad { background: var(--bad); }
 @keyframes pulse { 50% { opacity: .35; } }
 .ib { width: 38px; height: 38px; border-radius: 11px; border: 1px solid var(--line); background: var(--tile); display: grid; place-items: center; color: var(--muted); }
 .i { width: 18px; height: 18px; }
@@ -53,31 +45,31 @@ button { cursor: pointer; }
 .tile > header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .tile > header h2 { margin: 0; font-size: 13px; font-weight: 600; color: var(--muted); }
 .tile > header .n { margin-left: auto; font: 500 11.5px var(--mono); color: var(--dim); }
-.cover { background: var(--amber); color: var(--amber-ink); border-color: var(--amber); }
+.cover { color: var(--cover-ink); border-color: var(--cover-solid); }
 .cover small { font: 500 11px var(--mono); letter-spacing: .04em; opacity: .75; }
 .cover h3 { font: 800 30px/1.02 var(--display); margin: 8px 0 10px; letter-spacing: -.01em; text-wrap: balance; }
 .cover h3 em { font-weight: 600; }
 .cover p { margin: 0; font-size: 14px; opacity: .85; }
 .next { display: grid; grid-template-columns: 52px 1fr; gap: 2px 12px; padding: 9px 0; border-top: 1px solid var(--line); }
 .next:first-of-type { border-top: 0; padding-top: 0; }
-.next b { font: 700 20px/1 var(--sans); color: var(--amber); }
+.next b { font: 700 20px/1 var(--sans); color: var(--accent); }
 .next small { font: 500 11px var(--mono); color: var(--dim); display: block; }
 .next .t { font-weight: 600; }
 .next .d { color: var(--muted); font-size: 13.5px; }
 .nudge, .job { background: var(--tile-2); border-radius: 14px; padding: 12px; margin-bottom: 8px; }
 .nudge h4, .job h4 { margin: 0 0 4px; font-size: 15px; }
-.due { font: 500 11px var(--mono); color: var(--rose); margin-left: 6px; }
+.due { font: 500 11px var(--mono); color: var(--bad); margin-left: 6px; }
 .nudge p, .job p { margin: 0 0 10px; color: var(--muted); font-size: 13.5px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .nudge p.full, .job p.full { display: block; }
 .job p { margin: 4px 0 0; white-space: pre-line; } .idea small.clamp { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; } a.pill { color: inherit; text-decoration: none; display: inline-block; } .job small { font: 500 11px var(--mono); color: var(--dim); }
 .acts { display: flex; flex-wrap: wrap; gap: 6px; }
 .pill { border: 1px solid transparent; background: color-mix(in srgb, var(--ink) 9%, transparent); border-radius: 999px; padding: 7px 10px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
-.pill.yes { background: var(--mint); color: var(--mint-ink); border-color: var(--mint); }
+.pill.yes { background: var(--good); color: var(--good-ink); border-color: var(--good); }
 .row { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-top: 1px solid var(--line); width: 100%; background: none; border-left: 0; border-right: 0; border-bottom: 0; text-align: left; }
 .row:first-of-type { border-top: 0; }
-.row .st { width: 8px; height: 8px; border-radius: 50%; background: var(--mint); flex: none; }
-.row .st.paused { background: var(--amber); } .row .st.abandoned, .row .st.done { background: var(--dim); }
-.row .st.bad { background: var(--rose); } .row .st.off, .row .st.never { background: var(--dim); }
+.row .st { width: 8px; height: 8px; border-radius: 50%; background: var(--good); flex: none; }
+.row .st.paused { background: var(--accent); } .row .st.abandoned, .row .st.done { background: var(--dim); }
+.row .st.bad { background: var(--bad); } .row .st.off, .row .st.never { background: var(--dim); }
 .row .t { font-weight: 600; } .row .s { color: var(--muted); font-size: 13px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 .row > div { min-width: 0; flex: 1; }
 .idea { padding: 10px 0; border-top: 1px solid var(--line); }
@@ -95,13 +87,13 @@ button { cursor: pointer; }
 .secpick .pill { background: transparent; color: var(--muted); transition: background-color .2s, color .2s, transform .18s var(--ease); } .secpick .pill:active { transform: scale(.96); }
 .secpick .pill.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .theme-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-.sw.on { background: var(--mint); } .sw.on::after { transform: translateX(18px); background: var(--mint-ink); }
+.sw.on { background: var(--good); } .sw.on::after { transform: translateX(18px); background: var(--good-ink); }
 .empty { color: var(--dim); font-size: 14px; }
 .more { background: none; border: 0; color: var(--muted); font-size: 13px; padding: 10px 0 4px; transform-origin: left center; }
 .fab { position: fixed; right: 18px; bottom: calc(env(safe-area-inset-bottom) + 18px); height: 56px; padding: 0 22px; border-radius: 28px; border: 0;
-  background: var(--amber); color: var(--amber-ink); font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; box-shadow: 0 12px 30px -8px rgba(0,0,0,.7); z-index: 5; }
+  background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; box-shadow: 0 12px 30px -8px rgba(0,0,0,.7); z-index: 5; }
 .mic { position: fixed; left: 18px; bottom: calc(env(safe-area-inset-bottom) + 18px); width: 56px; height: 56px; border-radius: 50%; border: 0; z-index: 6;
-  background: var(--mint); color: var(--mint-ink); display: grid; place-items: center; box-shadow: 0 12px 30px -8px rgba(0,0,0,.7);
+  background: var(--good); color: var(--good-ink); display: grid; place-items: center; box-shadow: 0 12px 30px -8px rgba(0,0,0,.7);
   touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; animation: pop .7s var(--ease) .5s backwards; transition: transform .18s var(--ease); }
 .mic.hot { transform: scale(1.15); animation: ping 1s infinite; }
 .pop { position: fixed; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 88px); z-index: 6; background: var(--tile); border: 1px solid var(--line);
@@ -119,10 +111,10 @@ button { cursor: pointer; }
 .sheet .body { flex: 1; overflow-y: auto; padding: 16px 16px calc(env(safe-area-inset-bottom) + 30px); -webkit-overflow-scrolling: touch; }
 .types { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
 .types button { border: 1px solid var(--line); background: var(--tile); border-radius: 999px; padding: 7px 13px; font-size: 13px; font-weight: 600; color: var(--muted); }
-.types button[aria-pressed="true"] { background: var(--amber); border-color: var(--amber); color: var(--amber-ink); }
+.types button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 textarea { width: 100%; min-height: 160px; background: var(--tile); border: 1px solid var(--line); border-radius: 14px; padding: 14px; font-size: 16px; resize: vertical; outline: none; }
-textarea:focus, input:focus { border-color: var(--amber); }
-.go { width: 100%; margin-top: 12px; height: 50px; border: 0; border-radius: 14px; background: var(--amber); color: var(--amber-ink); font-weight: 700; font-size: 16px; }
+textarea:focus, input:focus { border-color: var(--accent); }
+.go { width: 100%; margin-top: 12px; height: 50px; border: 0; border-radius: 14px; background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 16px; }
 .go:disabled { opacity: .4; }
 label { display: block; margin: 14px 0 6px; font-size: 13px; color: var(--muted); font-weight: 600; }
 input { width: 100%; background: var(--tile); border: 1px solid var(--line); border-radius: 12px; padding: 12px; font-size: 16px; outline: none; }
@@ -131,14 +123,14 @@ input { width: 100%; background: var(--tile); border: 1px solid var(--line); bor
 .toast { position: fixed; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom) + 86px); background: var(--ink); color: var(--bg); padding: 12px 14px; border-radius: 12px;
   font-weight: 600; font-size: 14px; opacity: 0; transform: translateY(10px); transition: .3s var(--ease); pointer-events: none; z-index: 30; }
 .toast.on { opacity: 1; transform: none; }
-.banner { background: color-mix(in srgb, var(--rose) 12%, transparent); border: 1px solid color-mix(in srgb, var(--rose) 35%, transparent); color: var(--rose); border-radius: 12px; padding: 10px 12px; font-size: 13.5px; margin-bottom: 12px; }
+.banner { background: color-mix(in srgb, var(--bad) 12%, transparent); border: 1px solid color-mix(in srgb, var(--bad) 35%, transparent); color: var(--bad); border-radius: 12px; padding: 10px 12px; font-size: 13.5px; margin-bottom: 12px; }
 /* home layout: one big countdown, pill actions and two stat tiles on top; the rest sits in a lower deck */
 .hero { padding: 6px 2px 18px; }
 .hero > small { font: 500 12px var(--mono); color: var(--muted); }
 .hero .big { font: 700 54px/1 var(--sans); letter-spacing: -.04em; margin: 6px 0 4px; }
 .hero .big span { color: var(--dim); font-weight: 600; font-size: 34px; letter-spacing: -.02em; }
 .hero .sub { margin: 0 0 16px; color: var(--muted); font-size: 14px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.hero .sub b { color: var(--mint); font-weight: 600; }
+.hero .sub b { color: var(--good); font-weight: 600; }
 .hero .acts { gap: 8px; margin-bottom: 14px; }
 .hero .acts .pill { padding: 9px 15px; font-size: 13.5px; background: var(--tile); border-color: var(--line); }
 .hero .acts .pill.solid { background: var(--ink); color: var(--bg); border-color: var(--ink); }
@@ -146,8 +138,8 @@ input { width: 100%; background: var(--tile); border: 1px solid var(--line); bor
 .stat { text-align: left; background: var(--tile); border: 1px solid var(--line); border-radius: 20px; padding: 14px 14px 16px; transition: transform .18s var(--ease); }
 .stat:active { transform: scale(.96); }
 .stat small { display: flex; gap: 6px; align-items: center; color: var(--muted); font-size: 12.5px; }
-.stat small i { width: 7px; height: 7px; border-radius: 50%; background: var(--rose); }
-.stat:last-child small i { background: var(--lilac); }
+.stat small i { width: 7px; height: 7px; border-radius: 50%; background: var(--bad); }
+.stat:last-child small i { background: var(--extra); }
 .stat b { display: block; font: 700 28px/1 var(--sans); letter-spacing: -.03em; margin-top: 12px; }
 .stat em { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-top: 6px; font: 500 12.5px/1.35 var(--sans); color: var(--muted); }
 /* update strip: cards side by side, swipe between them; one fills the view, the next peeks in (native scroll-snap, no JS drag) */
@@ -169,23 +161,23 @@ button.card { transition: transform .18s var(--ease), background-color .2s, colo
 .card.cover p { font-size: 15px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 8; -webkit-box-orient: vertical; overflow: hidden; }
 .dots { display: flex; justify-content: center; gap: 6px; margin: 10px 0 14px; }
 .dots i { width: 6px; height: 6px; border-radius: 999px; background: var(--tile-3); transition: width .35s var(--spring), background-color .2s; }
-.dots i.on { width: 18px; background: var(--amber); }
-.deck { --deck: #000; background: var(--deck); margin: 0 -16px calc(-1 * (env(safe-area-inset-bottom) + 96px)); padding: 18px 16px calc(env(safe-area-inset-bottom) + 110px);
+.dots i.on { width: 18px; background: var(--accent); }
+.deck { --deck: color-mix(in srgb, var(--ink) 6%, var(--bg)); background: var(--deck); margin: 0 -16px calc(-1 * (env(safe-area-inset-bottom) + 96px)); padding: 18px 16px calc(env(safe-area-inset-bottom) + 110px);
   border-radius: 30px 30px 0 0; border-top: 1px solid var(--line); min-height: 60vh; }
-html[data-theme="light"] .deck, html[data-theme="soft"] .deck { --deck: color-mix(in srgb, var(--ink) 6%, var(--bg)); }
+[data-tone="dark"] .deck { --deck: color-mix(in srgb, #000 70%, var(--bg)); }
 /* note reader */
 .md h1 { font: 800 30px/1.05 var(--display); margin: 0 0 12px; }
-.md h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .09em; color: var(--amber); margin: 26px 0 8px; }
+.md h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .09em; color: var(--accent); margin: 26px 0 8px; }
 .md h3 { font-size: 16px; margin: 18px 0 6px; }
 .md p { margin: 8px 0; } .md ul { padding-left: 20px; margin: 6px 0; } .md li { margin: 4px 0; }
 .md li.task { list-style: none; margin-left: -20px; } .md li.task input { width: auto; margin-right: 8px; }
-.md a { color: var(--amber); }
+.md a { color: var(--accent); }
 .md code { font: 12.5px var(--mono); background: var(--tile-2); padding: 1px 5px; border-radius: 5px; word-break: break-word; }
 .md pre { background: var(--tile); border: 1px solid var(--line); border-radius: 10px; padding: 12px; overflow-x: auto; }
 .md pre code { background: none; padding: 0; }
 .md table { border-collapse: collapse; font-size: 13px; display: block; overflow-x: auto; margin: 10px 0; }
 .md td, .md th { border: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
-.md blockquote { border-left: 3px solid var(--amber); margin: 10px 0; padding: 2px 12px; color: var(--muted); }
+.md blockquote { border-left: 3px solid var(--accent); margin: 10px 0; padding: 2px 12px; color: var(--muted); }
 .md hr { border: 0; border-top: 1px solid var(--line); margin: 18px 0; }
 .fm { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
 .fm span { font: 500 11px var(--mono); color: var(--muted); background: var(--tile-2); border-radius: 6px; padding: 3px 8px; }
@@ -201,7 +193,7 @@ html[data-theme="light"] .deck, html[data-theme="soft"] .deck { --deck: color-mi
 .pill:active, .ib:active, .go:not(:disabled):active, .types button:active, .more:active { transform: scale(.92); }
 .more:active { color: var(--ink); }
 .tile > header[data-sec] h2 { transition: color .2s; } .tile > header[data-sec]:active h2 { color: var(--ink); }
-:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; } #capture :focus-visible { outline-color: var(--acc); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; } #capture :focus-visible { outline-color: var(--acc); }
 textarea:focus-visible, input:focus-visible { outline: 0; }
 .fab:active { transform: scale(.94); } .row:active { transform: scale(.985); }
 .fab { animation: pop .7s var(--ease) .4s backwards; }
@@ -210,7 +202,7 @@ textarea:focus-visible, input:focus-visible { outline: 0; }
 .ib.spin .i { animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .dot.ok { animation: ping .9s ease-out; }
-@keyframes ping { from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--mint) 70%, transparent); } to { box-shadow: 0 0 0 10px transparent; } }
+@keyframes ping { from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--good) 70%, transparent); } to { box-shadow: 0 0 0 10px transparent; } }
 .sw::after { transition: transform .5s var(--spring); transform-origin: left center; }
 .sw:active::after { transform: scaleX(1.25); } .sw.on::after { transform-origin: right center; } .sw.on:active::after { transform: translateX(18px) scaleX(1.25); }
 .toast { transition: opacity .3s var(--ease), transform .6s var(--spring); transform: translateY(16px) scale(.9); }
@@ -233,9 +225,9 @@ button, .row, header[data-sec] { -webkit-touch-callout: none; }
 #hap { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .confetti { position: fixed; width: 7px; height: 10px; border-radius: 2px; pointer-events: none; z-index: 40; }
 /* capture: each type has its own colour, icon and prompt; the parts rise in when the sheet opens */
-#capture { --acc: var(--amber); --acc-ink: var(--amber-ink); }
-#capture[data-type="idea"] { --acc: var(--lilac); } #capture[data-type="todo"] { --acc: var(--mint); }
-#capture[data-type="person"] { --acc: var(--sky); } #capture[data-type="habit"] { --acc: var(--rose); }
+#capture { --acc: var(--accent); --acc-ink: var(--accent-ink); }
+#capture[data-type="idea"] { --acc: var(--extra); } #capture[data-type="todo"] { --acc: var(--good); }
+#capture[data-type="person"] { --acc: var(--info); } #capture[data-type="habit"] { --acc: var(--bad); }
 #capture .types button[aria-pressed="true"] { background: var(--acc); border-color: var(--acc); color: var(--acc-ink); }
 #capture textarea { transition: border-color .35s; } #capture textarea:focus { border-color: var(--acc); }
 #capture .go { background: var(--acc); color: var(--acc-ink); transition: transform .18s var(--ease), background-color .35s, box-shadow .35s; }
@@ -258,17 +250,100 @@ button, .row, header[data-sec] { -webkit-touch-callout: none; }
 @media (prefers-reduced-motion: reduce) { .dot.pending, .dot.ok, #main.intro > .tile, .fab, .mic, .mic.hot, .pop p.wait, .ib.spin .i, .types button[aria-pressed="true"] { animation: none; }
   .mic, .pop, .sheet, .toast, .sw::after, .pill, .ib, .go, .fab, .types button, .row, .more, .stat, button.card, .dots i { transition: none; } .hero.intro .card { animation: none; } }
 
+/* theme picker in Settings (same pieces as the desktop's) */
+.tpick { margin-bottom: 14px; }
+.tpick .fams { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 4px; }
+.tpick .fam { background: none; border: 0; padding: 0; font-size: 12px; color: var(--muted); text-align: left; }
+.tpick .fam.on { color: var(--ink); font-weight: 600; }
+.tpick .pv { display: flex; align-items: flex-end; justify-content: space-between; height: 64px; border-radius: 14px; padding: 8px; margin-bottom: 5px;
+  background: var(--grain), var(--bg-image), var(--bg); border: 2px solid transparent; box-shadow: inset 0 0 0 1px var(--line); }
+.tpick .fam.on .pv { border-color: var(--accent); }
+.tpick .pv i { width: 46%; height: 26px; border-radius: 7px; background: var(--tile); border: 1px solid var(--line); border-top: 6px solid var(--accent); }
+.tpick .pv b { font: 800 20px/1 var(--display); color: var(--ink); }
+.tpick .modes { display: flex; flex-wrap: wrap; gap: 6px; }
+.tpick .modes .pill.on { background: var(--accent); color: var(--accent-ink); }
+
+/* adaptive tiles (docs/superpowers/specs/2026-10-19-adaptive-tiles-design.md): home is the Next card, the cover headline, four counts,
+   then the sections from app/tiles.js in two columns ("Mix A": the most urgent one full width, then pairs with a wide one every third row).
+   A tapped tile grows into a full-screen page holding its section from the feed below. Settings → Layout → Scroll brings the feed back. */
+#top { display: none; } body.tiles #top { display: block; }
+#board { display: none; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; transition: opacity .45s var(--ease); }
+body.tiles #board { display: grid; } body.tiles #hero, body.tiles .deck { display: none; }
+body.pg { overflow: hidden; } body.pg #board, body.pg #top { opacity: .35; } #top { transition: opacity .45s var(--ease); }
+.date { display: none; flex: none; font: 600 13px var(--sans); color: var(--muted); white-space: nowrap; } body.tiles .date { display: block; }
+body.tiles .bar { gap: 8px; } body.tiles .bar .ib { width: 32px; height: 32px; border-color: transparent; background: none; }
+body.tiles .bar .dot { margin-left: -2px; }
+.nx { display: block; width: 100%; text-align: left; margin: 0; padding: 14px 16px 15px; border-radius: 20px; transition: transform .18s var(--ease); }
+.nx:active { transform: scale(.985); }
+.nx small { font: 600 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; opacity: .8; }
+.nx b { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font: 800 24px/1.1 var(--display); letter-spacing: -.01em; margin: 4px 0 6px; }
+.nx > span { display: block; font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.hl { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 14px 2px 12px; font: 700 18px/1.25 var(--display); text-wrap: balance; cursor: pointer; }
+.hl em { font-weight: 600; }
+.sts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-bottom: 12px; }
+.sts button { min-width: 0; text-align: left; margin: 0; padding: 8px 9px; border-radius: 13px; font-size: 11.5px; color: var(--muted); transition: transform .18s var(--ease); }
+.sts button:active { transform: scale(.94); }
+.sts b { display: block; font: 800 20px/1.1 var(--display); color: var(--ink); }
+.pt { min-width: 0; height: 100px; margin: 0; padding: 11px 13px; text-align: left; display: flex; flex-direction: column; border-radius: 18px;
+  opacity: 0; transform: translateY(16px) scale(.96); transition: opacity .5s var(--ease), transform .6s var(--ease); }
+.pt.in { opacity: 1; transform: none; } .pt.in:active { transform: scale(.97); transition-duration: .18s; }
+.pt.wide { grid-column: span 2; }
+.pt.hot { background: color-mix(in srgb, var(--accent) 12%, var(--tile)); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+.pt small { font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pt b { font: 800 30px/1.1 var(--display); margin-top: auto; font-variant-numeric: tabular-nums; }
+.pt span { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pt.clear b { color: var(--good); }
+::view-transition-old(*), ::view-transition-new(*) { object-fit: none; overflow: clip; height: 100%; }
+.bar { position: relative; } .bar h1 { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.tiles .bar h1 { font-size: 19px; flex: none; }
+.island { display: none; flex: none; align-items: center; gap: 7px; height: 30px; width: var(--iw, 90px); max-width: 44vw; padding: 0 11px; border: 0; border-radius: 15px;
+  background: var(--ink); color: var(--bg); font: 600 12px var(--sans); white-space: nowrap; overflow: hidden; transition: width .6s var(--spring), transform .18s var(--ease); }
+body.tiles .island { display: flex; flex-shrink: 1; min-width: 0; max-width: 30vw; } .island:active { transform: scale(.94); }
+.island i { width: 7px; height: 7px; border-radius: 50%; background: var(--good); flex: none; }
+.island.work i { background: var(--accent); animation: pulse 1s ease-in-out infinite; }
+.island span { overflow: hidden; text-overflow: ellipsis; }
+.ilist { position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 12; background: var(--ink); color: var(--bg); border-radius: 22px; padding: 10px 16px; font-size: 13px;
+  opacity: 0; transform: translateY(-8px) scale(.96); transform-origin: top; pointer-events: none; transition: opacity .2s var(--ease), transform .4s var(--spring); }
+.ilist.on { opacity: 1; transform: none; pointer-events: auto; }
+.ilist div { display: flex; gap: 10px; padding: 7px 0; border-top: 1px solid color-mix(in srgb, var(--bg) 20%, transparent); }
+.ilist div:first-child { border-top: 0; } .ilist b { flex: 1; min-width: 0; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ilist span { flex: none; opacity: .65; font: 500 11px var(--mono); }
+body.tiles .fab { width: 56px; padding: 0; justify-content: center; font-size: 0; gap: 0; } body.tiles .fab .i { width: 24px; height: 24px; }
+#page { position: fixed; left: var(--l); top: var(--t); width: var(--w); height: var(--h); z-index: 15; display: flex; flex-direction: column; overflow: hidden;
+  background: var(--tile); border: 1px solid var(--line); border-radius: 28px; opacity: 0; pointer-events: none;
+  transition: left .5s var(--ease), top .5s var(--ease), width .5s var(--ease), height .5s var(--ease), opacity .12s .4s; }
+#page.on { opacity: 1; pointer-events: auto; transition: left .5s var(--ease), top .5s var(--ease), width .5s var(--ease), height .5s var(--ease), opacity .06s; }
+#page > header, #pageStrip, #pageUi { opacity: 0; transition: opacity .15s; } #page.on > header, #page.on #pageStrip, #page.on #pageUi { opacity: 1; transition: opacity .3s .22s; }
+#page > header { display: flex; align-items: center; gap: 10px; padding: calc(env(safe-area-inset-top) + 12px) 16px 12px; border-bottom: 1px solid var(--line); }
+#page > header h2 { flex: 1; min-width: 0; margin: 0; font: 800 26px/1.1 var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#page > header small { flex: none; font: 500 11.5px var(--mono); color: var(--dim); }
+#pageUi { flex: 1; overflow-y: auto; padding: 16px 16px calc(env(safe-area-inset-bottom) + 30px); -webkit-overflow-scrolling: touch; }
+#pageUi > .tile { background: none; border: 0; padding: 0; margin: 0; box-shadow: none; } #pageUi > .tile > header { display: none; }
+#pageUi .tile.collapsed .sb { grid-template-rows: 1fr; } #pageUi .sb > div { padding-top: 0; }
+#page.cover { background: var(--grain), var(--cover); color: var(--cover-ink); border-color: var(--cover-solid); }
+#page.cover > header { border-color: color-mix(in srgb, var(--cover-ink) 20%, transparent); } #page.cover > header small { color: inherit; opacity: .7; }
+#page.cover .side { margin: 14px 0 0; font-size: 14px; opacity: .85; } #page.cover .acts { margin-top: 18px; }
+#page.cover .pill { background: var(--cover-ink); color: var(--cover-solid); }
+@media (prefers-reduced-motion: reduce) { #page, #page > header, #pageStrip, #pageUi, #board, #top, .island, .ilist, .nx, .sts button { transition: none; } .island.work i { animation: none; }
+  .pt { opacity: 1; transform: none; transition: none; } }
+
 </style>
 <link rel="stylesheet" href="../app/theme.css">
+<script src="../app/theme.js"></script>
+<link rel="stylesheet" href="../app/tiles.css">
+<script src="../app/tiles.js"></script>
 </head>
 <body>
 <div class="bar">
-  <h1 id="greet">Brain</h1><span class="sp"></span>
-  <span class="dot" id="syncDot" title="Sync status"></span>
+  <h1 id="greet">Brain</h1><span class="dot" id="syncDot" title="Sync status"></span><button class="island" id="island" aria-label="Agent runs" aria-haspopup="true"><i></i><span id="itxt"></span></button><span class="sp"></span>
+  <span class="date" id="dateNow"></span>
   <button class="ib" id="refresh" aria-label="Refresh"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg></button>
   <button class="ib" id="openSettings" aria-label="Settings"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 15.1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+  <div class="ilist" id="ilist" role="menu"></div>
 </div>
 <div id="banner"></div>
+<div id="top"></div>
+<div id="board" aria-label="Home"></div>
 <div id="hero"></div>
 <div class="deck">
 <main id="main"><div class="tile empty">Loading…</div></main>
@@ -276,10 +351,16 @@ button, .row, header[data-sec] { -webkit-touch-callout: none; }
   <div class="sb"><div><input id="mapQ" list="mapList" placeholder="Ideas, projects, people, clusters…" autocomplete="off" autocapitalize="off" aria-label="Search your map"><datalist id="mapList"></datalist>
   <div id="mapOut"></div></div></div></section>
 </div>
-<button class="fab" id="openCapture" hidden><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>Capture</button>
+<button class="fab" id="openCapture" aria-label="Capture" hidden><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>Capture</button>
 
 <button class="mic" id="mic" hidden aria-label="Hold to ask your notes"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
 <div class="pop" id="pop" role="dialog" aria-label="Ask your notes" aria-live="polite"><small id="popQ"></small><p id="popA"></p><input id="popIn" placeholder="Ask your notes…" hidden enterkeyhint="send"></div>
+
+<section id="page" role="dialog" aria-modal="true" aria-labelledby="pageT">
+  <header><button class="ib" data-close aria-label="Close"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button><h2 id="pageT"></h2><small id="pageM"></small></header>
+  <div class="bt-strip" id="pageStrip"></div>
+  <div id="pageUi"></div>
+</section>
 
 <section class="sheet" id="capture" aria-label="Capture">
   <header><button class="ib" data-close aria-label="Close"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button><span class="p">Capture a thought</span><span class="cap-ico" id="capIcon" aria-hidden="true"></span></header>
@@ -301,8 +382,12 @@ button, .row, header[data-sec] { -webkit-touch-callout: none; }
 <section class="sheet" id="settings" aria-label="Settings">
   <header><button class="ib" data-close aria-label="Close"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button><span class="p">Connect your notes</span></header>
   <form class="body" id="setForm">
-    <div class="theme-row"><span>Dark mode</span><button class="sw" type="button" role="switch" id="darkSw" aria-label="Dark mode"></button></div>
-    <div class="theme-row"><span>Soft look</span><button class="sw" type="button" role="switch" id="softSw" aria-label="Soft look"></button></div>
+    <div class="theme-row"><span>Sync theme with Mac</span><button class="sw" type="button" role="switch" id="matchSw" aria-label="Sync theme with Mac"></button></div>
+    <div class="tpick" id="themePick"></div>
+    <label>Layout</label>
+    <div class="secpick" id="layPick"></div>
+    <label>Cover length</label>
+    <div class="secpick" id="covPick"></div>
     <label>Show on home</label>
     <div class="secpick" id="secPick"></div>
     <p class="help">Brain on your phone reads your private notes repo on GitHub. Nothing is stored anywhere except this phone.</p>
@@ -320,22 +405,6 @@ button, .row, header[data-sec] { -webkit-touch-callout: none; }
 <label id="hap" aria-hidden="true"><input type="checkbox" switch tabindex="-1"></label>
 
 <script>
-// Theme: follow the system unless a choice was saved (Settings → Dark mode).
-matchMedia("(prefers-color-scheme: light)").addEventListener("change", e => {
-  let saved = null; try { saved = localStorage.getItem("brain.theme"); } catch {}
-  if (!saved) setTheme(e.matches ? "light" : "dark", false);
-});
-function setTheme(t, save = true) {
-  document.documentElement.dataset.theme = t;
-  if (save) try { localStorage.setItem("brain.theme", t); } catch {}
-  for (const [id, on] of [["darkSw", t === "dark"], ["softSw", t === "soft"]]) { const sw = document.getElementById(id); if (sw) { sw.classList.toggle("on", on); sw.setAttribute("aria-checked", on); } }
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.content = { light: "#e6e8eb", soft: "#e9e9ea" }[t] || "#0c0d0f";
-}
-setTheme(document.documentElement.dataset.theme, false);
-document.getElementById("darkSw").onclick = () => setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
-document.getElementById("softSw").onclick = () => setTheme(document.documentElement.dataset.theme === "soft" ? "light" : "soft");
-
 "use strict";
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -349,6 +418,35 @@ const standalone = navigator.standalone || matchMedia("(display-mode: standalone
 const linkCfg = (() => { try { const c = JSON.parse(atob(decodeURIComponent((location.hash.match(/^#c=([^&]+)/) || [])[1]))); return c.repo && c.token ? c : null; } catch { return null; } })();
 if (linkCfg) { store.set("cfg", linkCfg); if (standalone) history.replaceState(null, "", location.pathname); }
 let cfg = store.get("cfg", null), S = store.get("state", null), outbox = store.get("outbox", []), error = null;
+
+// Theme: with "Sync theme with Mac" on (the default; stored as themeMatch), the phone shows the shared pick (S.theme, from
+// claude/theme.json) and a pick here is queued as a "theme" action that writes it, so the Mac follows. Off: each keeps its own.
+function phoneTheme() {
+  const pend = outbox.filter(a => a.action === "theme").pop(), t = pend ? pend.body.theme : S?.theme;  // a pick still on its way wins
+  if (!store.get("themeMatch", true) || !t) return;
+  try { localStorage.setItem("brain.theme", t); } catch {}
+  if (t !== BrainTheme.get()) BrainTheme.apply(t);
+}
+function drawThemes() {
+  const r = BrainTheme.resolve(BrainTheme.get()), F = BrainTheme.FAMILIES, match = store.get("themeMatch", true);
+  $("matchSw").classList.toggle("on", match); $("matchSw").setAttribute("aria-checked", match);
+  const fam = wild => Object.entries(F).filter(([, f]) => !!f.wild === wild).map(([k, f]) =>
+    `<button type="button" class="fam${k === r.family ? " on" : ""}" data-f="${k}"><span class="pv"><i></i><b>Aa</b></span>${f.label}</button>`).join("");
+  const f = F[r.family], modes = [...(f.auto ? [["auto", "Auto"]] : []), ...Object.entries(f.modes)];
+  $("themePick").innerHTML = `<label>Everyday</label><div class="fams">${fam(false)}</div><label>Unique</label><div class="fams">${fam(true)}</div>
+    <label>Mode</label><div class="modes">${modes.map(([m, l]) => `<button type="button" class="pill${m === r.mode ? " on" : ""}" data-m="${m}">${l}</button>`).join("")}</div>`;
+  $("themePick").querySelectorAll(".fam").forEach(b => BrainTheme.paint(b.querySelector(".pv"), b.dataset.f + "/" + r.mode));
+}
+$("themePick").onclick = e => {
+  const b = e.target.closest("button"); if (!b) return;
+  const r = BrainTheme.resolve(BrainTheme.get()), choice = b.dataset.f ? b.dataset.f + "/" + r.mode : r.family + "/" + b.dataset.m;
+  try { localStorage.setItem("brain.theme", choice); } catch {}
+  BrainTheme.apply(choice); drawThemes();
+  if (store.get("themeMatch", true)) act("theme", { theme: choice });
+};
+$("matchSw").onclick = () => { store.set("themeMatch", !store.get("themeMatch", true)); phoneTheme(); drawThemes(); };
+phoneTheme();
+(window.requestIdleCallback || setTimeout)(drawThemes);  // build the Settings picker early so its fonts are loaded before it opens
 const today = () => new Date().toLocaleDateString("en-CA");
 const daysFrom = d => Math.round((new Date(d + "T00:00") - new Date(today() + "T00:00")) / 864e5);
 
@@ -368,7 +466,7 @@ async function loadState() {
   const r = await gh("phone/state.json");
   if (r.status === 404) throw new Error("No phone/state.json yet. The notes repo's Brain action hasn't run.");
   if (!r.ok) throw new Error(`GitHub said ${r.status}.`);
-  S = await r.json(); store.set("state", S);
+  S = await r.json(); store.set("state", S); phoneTheme();
   for (const f of S.failed || []) if (outbox.some(o => o.id === f.id)) toast("Couldn't apply one change: " + f.error);
 }
 
@@ -378,10 +476,11 @@ function optimistic(a, S) {
   if (a.action === "nudge") { const n = S.nudges.find(x => x.id === b.id); if (n) n.status = b.action === "snooze" ? "snoozed" : b.action; }
   if (a.action === "idea") S.ideas = S.ideas.filter(l => l !== b.text);
   if (a.action === "habit") { const h = S.habits.find(x => x.id === b.id); if (h) h.status = b.status; }
+  if (a.action === "theme") S.theme = b.theme;
 }
 function act(action, body, msg) {
   const a = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, action, body, sent: false };
-  outbox.push(a); store.set("outbox", outbox);
+  outbox.push(a); store.set("outbox", outbox); reflow = true;
   if (S) optimistic(a, S);
   render(); if (msg) toast(msg); flush(); return a;
 }
@@ -427,13 +526,16 @@ function paint() {
 function render() {
   paint(); showAnswer();
   if (!S) return;
-  const view = JSON.parse(JSON.stringify(S));
+  const view = JSON.parse(JSON.stringify(S)), tiles = tilesOn();
   outbox.forEach(a => optimistic(a, view)); // unconfirmed changes stay applied on screen
+  document.body.classList.toggle("tiles", tiles); island(view);
   const h = new Date().getHours(), name = ((view.me?.meta?.name) || "").split(/\s+/)[0];
-  $("greet").innerHTML = `${h < 12 ? "Morning" : h < 18 ? "Afternoon" : "Evening"}${name ? ", " + esc(name) : ""} <span>· ${new Date().toLocaleDateString("en", { weekday: "short" })}</span>`;
   const t = today(), n = view.now || {};
   const up = (n.upcoming || []).filter(u => u.date >= t).slice(0, 6);
   const open = view.nudges.filter(x => x.status === "open" || (x.status === "snoozed" && x.snooze_until && x.snooze_until <= t));
+  const late = open.filter(x => x.due && daysFrom(x.due) < 0).length, nToday = up.filter(u => daysFrom(u.date) === 0).length;
+  $("dateNow").textContent = new Date().toLocaleDateString("en", { weekday: "short", month: "short", day: "numeric" });
+  $("greet").innerHTML = tiles ? "Brain" : `${h < 12 ? "Morning" : h < 18 ? "Afternoon" : "Evening"}${name ? ", " + esc(name) : ""} <span>· ${new Date().toLocaleDateString("en", { weekday: "short" })}</span>`;
   const projects = view.projects.filter(p => !p.archived && ["active", "paused"].includes(p.meta.status));
   const habits = view.habits;
   const nx = up[0], dn = nx ? daysFrom(nx.date) : null;
@@ -456,7 +558,7 @@ function render() {
     if (!lastHtml) { const hs = $("hero").firstChild; hs.classList.add("intro"); setTimeout(() => hs.classList.remove("intro"), 1100); }
   }
   const html = `
-    ${sec("next", "Up next", "", `${up.length > 1 ? up.slice(1).map(u => { const dd = daysFrom(u.date); return `<div class="next"><div><b>${esc(u.date.slice(8))}</b><small>${dd === 0 ? "today" : dd === 1 ? "tmrw" : esc(new Date(u.date + "T00:00").toLocaleDateString("en", { weekday: "short" }))}${u.time ? " " + esc(u.time) : ""}</small></div>
+    ${sec("next", "Up next", "", `${up.length > (tiles ? 0 : 1) ? up.slice(tiles ? 0 : 1).map(u => { const dd = daysFrom(u.date); return `<div class="next"><div><b>${esc(u.date.slice(8))}</b><small>${dd === 0 ? "today" : dd === 1 ? "tmrw" : esc(new Date(u.date + "T00:00").toLocaleDateString("en", { weekday: "short" }))}${u.time ? " " + esc(u.time) : ""}</small></div>
         <div><div class="t">${esc(u.title)}</div>${u.detail ? `<div class="d">${esc(u.detail)}</div>` : ""}</div></div>`; }).join("") : `<div class="empty">Nothing else coming up.</div>`}`)}
     ${sec("nudges", "Notes to self", open.length ? open.length + " open" : "", `${open.length ? open.map(x => { const dd = x.due ? daysFrom(x.due) : null; const due = dd === null ? "" : dd < 0 ? `${-dd}d overdue` : dd === 0 ? "today" : `in ${dd}d`;
         return `<div class="nudge"><h4>${esc(x.title)}${due ? `<span class="due">${due}</span>` : ""}</h4>${x.why ? `<p data-expand>${esc(x.why)}</p>` : ""}
@@ -480,10 +582,112 @@ function render() {
     ${(view.sessions || []).length ? sec("sessions", "Everything we've done", view.sessions.length, view.sessions.slice(0, showAllSessions ? 999 : 8).map(x => `<button class="row" data-open="${esc(x.path)}"><div><div class="t">${esc(x.title)}</div><div class="s">${esc(x.date)} · ${esc(x.tldr || "")}</div></div></button>`).join("")
         + (view.sessions.length > 8 ? `<button class="more" id="allSessions">${showAllSessions ? "Show fewer" : `Show all ${view.sessions.length}`}</button>` : "")) : ""}`;
   // Only rebuild when something changed, so the entrance animation doesn't replay on every refresh.
-  if (html === lastHtml) return;
-  const main = $("main"); main.innerHTML = lastHtml = html;
-  if (!introDone) { introDone = true; main.classList.add("intro"); setTimeout(() => main.classList.remove("intro"), 1300); }
+  if (html !== lastHtml) {
+    const main = $("main"); main.innerHTML = lastHtml = html;
+    if (!introDone && !tiles) { introDone = true; main.classList.add("intro"); setTimeout(() => main.classList.remove("intro"), 1300); }
+    if (pageKey) fillPage();
+  }
+  if (tiles) board(view, late, nToday);
 }
+
+/* ---------- adaptive tiles: app/tiles.js scores the sections; home lays them out two to a row and a tapped one grows into its section ---------- */
+const BT = window.BrainTiles, SEC_OF = { next: "next", people: "people", intern: "intern", nudges: "nudges", agents: "agents", routines: "routines", projects: "projects", ideas: "ideas", streak: "sessions", habits: "habits", knows: "knows" };
+let layout = store.get("layout", "tiles"), coverLen = store.get("cover", "medium"), order = null, lastBoard = "", reflow = true, pageKey = null, pageFrom = null, ITEMS = {}, hiddenAt = Date.now(), NEXT = null;
+const tilesOn = () => layout === "tiles" && !!BT && !!S;
+// Top of home: the next thing ahead with a live countdown, the cover headline (tap for the cover), four counts.
+function home(view, late, nToday) {
+  const nx = NEXT = hidden.has("next") ? null : BT.nextUp(view), n = view.now || {}, num = (id, v, l, k) => `<button class="tile" data-k="${k}"><b data-n="${v}" data-id="${id}">${esc(v)}</b>${l}</button>`;
+  const dn = nx && daysFrom(nx.date), day = nx && (dn === 0 ? "Today" : dn === 1 ? "Tmrw" : new Date(nx.date + "T00:00").toLocaleDateString("en", { weekday: "short", month: dn > 6 ? "short" : undefined, day: dn > 6 ? "numeric" : undefined }));
+  $("top").innerHTML = (hidden.has("next") ? "" : `<button class="tile cover nx" data-k="${nx ? nx.key : "next"}"><small>Next</small><b>${nx ? esc(nx.title) : "Nothing coming up"}</b>`
+      + `<span>${nx ? esc([day + (nx.time ? " " + nx.time : ""), nx.detail].filter(Boolean).join(" · ")) + (nx.to ? ` · in <span class="tick">${BT.countdown(nx.to - Date.now())}</span>` : "") : "Clear for now"}</span></button>`)
+    + (n.headline ? `<h2 class="hl" data-k="cover">${esc(n.headline).replace(/\*([^*]+)\*/g, "<em>$1</em>")}</h2>` : "")
+    + `<div class="sts">${num("late", late, "overdue", "nudges")}${num("today", nToday, "today", "next")}${num("agents", (view.agents || []).length, "agents", "agents")}${num("proj", ITEMS.projects?.count ?? 0, "projects", "projects")}</div>`;
+  countUp($("top"));
+}
+setInterval(() => {  // the countdown ticks; when it runs out, the next thing takes its place
+  const el = document.querySelector(".nx .tick"); if (!el || !NEXT?.to) return;
+  NEXT.to - Date.now() > 0 ? el.textContent = BT.countdown(NEXT.to - Date.now()) : render();
+}, 1000);
+// Numbers count up from what they last showed (0 the first time).
+const shown = {};
+function countUp(root) {
+  for (const b of root.querySelectorAll("[data-n]")) {
+    const to = +b.dataset.n, id = b.dataset.id, from = shown[id] ?? 0; shown[id] = to;
+    if (from === to || !Number.isFinite(to) || calm()) continue;
+    const t0 = performance.now(), step = t => { const k = Math.min(1, (t - t0) / 700); b.textContent = Math.round(from + (to - from) * (1 - (1 - k) ** 3)); if (k < 1 && b.isConnected) requestAnimationFrame(step); };
+    b.textContent = from; requestAnimationFrame(step);
+  }
+}
+// Tiles ease in as they scroll into view, once each.
+const seen = new Set(), io = "IntersectionObserver" in window && new IntersectionObserver(es => es.forEach(e => {
+  if (e.isIntersecting) { e.target.classList.add("in"); seen.add(e.target.dataset.k); io.unobserve(e.target); } }), { rootMargin: "0px 0px -6% 0px" });
+// Mix A: the most urgent section full width, then even pairs with a wide one every third row (a lone last one goes wide too).
+// Pieces only move on load, his own actions, a manual refresh or coming back after 10+ min; other refreshes just update what they say.
+function board(view, late, nToday) {
+  if (pageKey) return;  // re-flow after the open piece has shrunk back
+  const B = $("board"), g = view.graph;
+  ITEMS = Object.fromEntries(BT.items(view, { today: today(), graphSummary: g && { ...g, legend: g.legend || g.clusters } }).map(it => [it.key, it]));
+  home(view, late, nToday);
+  const keys = Object.keys(ITEMS).filter(k => k !== "cover" && !hidden.has(SEC_OF[k])), moved = reflow || !order || order.length !== keys.length || !order.every(k => keys.includes(k));
+  if (moved) { order = keys; reflow = false; }
+  const cells = []; for (let i = 0, r = 0; i < order.length; r++) cells.push(...(!r || r % 3 === 2 || i === order.length - 1 ? [[order[i++], 1]] : [[order[i++]], [order[i++]]]));
+  const html = cells.map(([k, wide], i) => { const it = ITEMS[k], n = typeof it.count === "number";
+    return `<button class="pt tile${wide ? " wide" : ""}${i ? "" : " hot"}${it.cleared ? " clear" : ""}" data-k="${k}" style="view-transition-name:pt-${k}"><small>${esc(it.title)}</small>`
+      + `<b${n && !it.cleared ? ` data-n="${it.count}" data-id="t-${k}"` : ""}>${it.cleared ? "✓" : esc(it.count)}</b><span>${esc(it.cleared ? "All clear" : it.spot ? it.spot.filter(Boolean).join(" · ") : it.summary || it.why)}</span></button>`; }).join("");
+  if (html === lastBoard) return;
+  const go = () => { B.innerHTML = lastBoard = html; countUp(B); B.querySelectorAll(".pt").forEach(t => seen.has(t.dataset.k) || !io ? t.classList.add("in") : io.observe(t)); };
+  moved && lastBoard && document.startViewTransition && !calm() ? document.startViewTransition(go) : go();
+}
+const P = $("page"), box = r => { for (const [k, v] of [["--l", r.left], ["--t", r.top], ["--w", r.width], ["--h", r.height]]) P.style.setProperty(k, v + "px"); };
+function openPage(key, el) {
+  const it = ITEMS[key]; if (!it || pageKey) return;
+  pageKey = key; pageFrom = el; $("pageT").textContent = it.title; $("pageM").textContent = it.cleared ? "all clear" : it.why;
+  P.classList.toggle("cover", key === "cover"); $("pageStrip").innerHTML = BT.strip(it); fillPage(); $("pageUi").scrollTop = 0;
+  P.style.transition = "none"; box(el.getBoundingClientRect()); P.offsetWidth; P.style.transition = "";
+  P.classList.add("on"); document.body.classList.add("pg");
+  requestAnimationFrame(() => box({ left: 0, top: 0, width: innerWidth, height: innerHeight }));
+}
+function closePage() {
+  if (!pageKey) return;
+  const el = pageFrom?.isConnected ? pageFrom : $("board").querySelector(`[data-k="${pageKey}"]`); if (el) box(el.getBoundingClientRect());
+  P.classList.remove("on"); document.body.classList.remove("pg"); pageKey = null;
+  setTimeout(() => { if (pageKey) return; document.querySelector(".deck").append($("mapTile")); $("mapTile").hidden = !G; $("pageUi").innerHTML = ""; lastHtml = ""; render(); }, calm() ? 0 : 520);
+}
+// The page holds the section's own UI from the feed (moved, not copied), so every button and swipe works as it does there.
+function fillPage() {
+  const k = pageKey, ui = $("pageUi"), it = ITEMS[k] || {};
+  if (k === "map") { $("mapTile").hidden = false; return ui.replaceChildren($("mapTile")); }
+  const s = SEC_OF[k] && $("main").querySelector(`header[data-sec="${SEC_OF[k]}"]`)?.closest(".tile");
+  if (s) return ui.replaceChildren(s);
+  const hv = it.hero;
+  ui.innerHTML = hv ? `<small>ISSUE ${esc(S.issue)} · <span class="cd">${coverIn()}</span></small><h3>${esc(hv.headline).replace(/\*([^*]+)\*/g, "<em>$1</em>")}</h3>${hv.dek ? `<p>${esc(hv.dek)}</p>` : ""}
+    ${hv.side.map(x => `<p class="side">${esc(x)}</p>`).join("")}<div class="acts">${hv.acts.filter(a => /\.md$/.test(a.arg)).map(a => `<button class="pill" data-open="${esc(a.arg)}">${esc(a.label)}</button>`).join("")}</div>`
+    : it.rows?.length ? it.rows.map(r => `<div class="row"><div><div class="t">${esc(r[0])}</div><div class="s">${esc(r[1])}</div></div></div>`).join("") : `<p class="empty">✓ All clear</p>`;
+}
+for (const id of ["board", "top"]) $(id).addEventListener("click", e => { const b = e.target.closest("[data-k]"); if (b) { tap(); openPage(b.dataset.k, b); } });
+addEventListener("keydown", e => { if (e.key === "Escape") closePage(); });
+addEventListener("resize", () => { if (tilesOn() && !pageKey) render(); });
+document.addEventListener("brain-theme", () => { if (tilesOn() && !pageKey) { lastBoard = ""; render(); } });  // new fonts, corners and map colours
+// Dynamic Island: agent runs at a glance; grows while something is filing or running, says Done, tap for the list.
+let iWork = 0, iDone = 0;
+function island(view) {
+  const runs = view.agents || [], work = outbox.filter(a => a.action === "capture").length + runs.filter(a => /queued|running/.test(a.status || "")).length;
+  if (iWork && !work) { iDone = Date.now() + 2400; setTimeout(render, 2500); }
+  iWork = work;
+  const txt = work ? `Working · ${work}` : Date.now() < iDone ? "Done ✓" : `${runs.length} agent${runs.length === 1 ? "" : "s"}`;
+  $("island").classList.toggle("work", !!work); $("itxt").textContent = txt; $("island").style.setProperty("--iw", 36 + txt.length * 7 + "px");
+  $("ilist").innerHTML = runs.slice(0, 6).map(a => `<div><b>${esc(a.text || a.file)}</b><span>${esc(a.status)}</span></div>`).join("") || "<div><b>No agent runs yet</b></div>";
+}
+$("island").onclick = e => { e.stopPropagation(); tap(); $("ilist").classList.toggle("on"); };
+document.addEventListener("click", e => { if (!e.target.closest("#ilist")) $("ilist").classList.remove("on"); });
+function drawLayPick() {
+  const p = (k, v, l, on) => `<button type="button" class="pill${on ? " on" : ""}" aria-pressed="${on}" data-lay="${k}" data-v="${v}">${l}</button>`;
+  $("layPick").innerHTML = p("layout", "tiles", "Tiles", layout === "tiles") + p("layout", "scroll", "Scroll", layout === "scroll");
+  $("covPick").innerHTML = ["short", "medium", "long"].map(v => p("cover", v, v[0].toUpperCase() + v.slice(1), coverLen === v)).join("");
+}
+document.addEventListener("click", e => { const b = e.target.closest("[data-lay]"); if (!b) return;
+  b.dataset.lay === "layout" ? layout = b.dataset.v : coverLen = b.dataset.v; store.set(b.dataset.lay, b.dataset.v);
+  reflow = true; lastHero = lastHtml = lastBoard = ""; tap(); drawLayPick(); render(); });
 // Routines: read-only status from codex/routines.json (the Mac refreshes it; run/pause live on the Mac).
 function routinesSec(R) {
   if (!R || !R.routines.length) return "";
@@ -534,7 +738,7 @@ const SECTIONS = [["next", "Up next"], ["nudges", "Notes to self"], ["projects",
 let hidden = new Set(store.get("hidden", []));
 function drawSecPick() { $("secPick").innerHTML = SECTIONS.map(([k, t]) => `<button type="button" class="pill${hidden.has(k) ? "" : " on"}" aria-pressed="${!hidden.has(k)}" data-sec-pick="${k}">${esc(t)}</button>`).join(""); }
 document.addEventListener("click", e => { const b = e.target.closest("[data-sec-pick]"); if (!b) return; const k = b.dataset.secPick;
-  hidden.has(k) ? hidden.delete(k) : hidden.add(k); store.set("hidden", [...hidden]); tap(); drawSecPick(); lastHero = ""; render(); });
+  hidden.has(k) ? hidden.delete(k) : hidden.add(k); store.set("hidden", [...hidden]); tap(); drawSecPick(); lastHero = ""; reflow = true; render(); });
 const CHEV = `<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>`;
 const sec = (key, title, n, body) => hidden.has(key) ? "" : `<section class="tile${folded.has(key) ? " collapsed" : ""}"><header data-sec="${key}" role="button" aria-expanded="${!folded.has(key)}"><h2>${esc(title)}</h2><span class="n">${esc(n)}</span>${CHEV}</header><div class="sb"><div>${body}</div></div></section>`;
 function fold(header) {
@@ -547,11 +751,11 @@ function fold(header) {
 // Android vibrates; iOS 18+ Safari gives a light tick when a switch-style checkbox is toggled via its label.
 function tap() { try { if (navigator.vibrate) navigator.vibrate(8); else $("hap").click(); } catch {} }
 let sw = null;
-$("main").addEventListener("touchstart", e => {
-  const card = e.target.closest(".nudge, .idea"); if (!card || card.dataset.leaving || e.target.closest("button")) return;
+document.addEventListener("touchstart", e => {  // cards live in the feed or, moved, in an open tile's page
+  const card = e.target.closest(".nudge, .idea"); if (!card || card.dataset.leaving || e.target.closest("button") || e.touches[0].clientX < 28) return;
   sw = { card, x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0, on: false };
 }, { passive: true });
-$("main").addEventListener("touchmove", e => {
+document.addEventListener("touchmove", e => {
   if (!sw) return;
   const dx = e.touches[0].clientX - sw.x, dy = e.touches[0].clientY - sw.y;
   if (!sw.on) { if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { sw = null; return; } if (Math.abs(dx) < 10) return; sw.on = true; sw.card.classList.add("swiping"); }
@@ -560,11 +764,11 @@ $("main").addEventListener("touchmove", e => {
   let hint = sw.card.querySelector(".swipe-hint");
   if (!hint) { hint = document.createElement("span"); hint.className = "swipe-hint"; sw.card.appendChild(hint); }
   hint.textContent = right ? "Done" : isNudge ? "Tomorrow" : "Dismiss";
-  hint.style.cssText = `${right ? "left" : "right"}:${Math.min(Math.abs(dx), 110) - 70}px;color:${right ? "var(--mint)" : "var(--amber)"};opacity:${Math.min(Math.abs(dx) / 90, 1)}`;
+  hint.style.cssText = `${right ? "left" : "right"}:${Math.min(Math.abs(dx), 110) - 70}px;color:${right ? "var(--good)" : "var(--accent)"};opacity:${Math.min(Math.abs(dx) / 90, 1)}`;
   sw.card.style.transform = `translateX(${dx}px) rotate(${dx / 60}deg)`;
   if (Math.abs(dx) > 90 && !sw.buzzed) { sw.buzzed = true; tap(); }
 }, { passive: true });
-$("main").addEventListener("touchend", () => {
+document.addEventListener("touchend", () => {
   if (!sw) return;
   const { card, dx, on } = sw; sw = null;
   if (!on) return;
@@ -585,7 +789,7 @@ document.querySelectorAll(".sheet > header").forEach(h => {
 // Back: swipe in from the left edge to close the open sheet, like iOS back (a home-screen app has no browser back gesture).
 let edge = null;
 addEventListener("touchstart", e => {
-  const t = e.touches[0], open = [...document.querySelectorAll(".sheet.on")].pop();
+  const t = e.touches[0], open = [...document.querySelectorAll("#page.on, .sheet.on")].pop();
   if (open && t.clientX < 28) edge = { sheet: open, x: t.clientX, y: t.clientY, dx: 0, t: Date.now(), on: false };
 }, { passive: true });
 addEventListener("touchmove", e => {
@@ -611,7 +815,7 @@ const calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 function confetti(from) {
   if (calm()) return;
   const r = from.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
-  const cs = getComputedStyle(document.documentElement), colors = ["--amber", "--mint", "--rose", "--sky", "--lilac"].map(v => cs.getPropertyValue(v).trim());
+  const cs = getComputedStyle(document.documentElement), colors = ["--accent", "--good", "--bad", "--info", "--extra"].map(v => cs.getPropertyValue(v).trim());
   for (let k = 0; k < 22; k++) {
     const c = document.createElement("span"); c.className = "confetti";
     c.style.cssText = `left:${x}px;top:${y}px;background:${colors[k % colors.length]}`;
@@ -738,8 +942,8 @@ async function openDoc(path) {
 
 /* ---------- sheets, capture, settings ---------- */
 function open(id) { $(id).classList.add("on"); }
-function close(id) { $(id).classList.remove("on"); }
-document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => close(b.closest(".sheet").id));
+function close(id) { if (id === "page") return closePage(); $(id).classList.remove("on"); }
+document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => close(b.closest(".sheet, #page").id));
 const TYPES = [["note", "Note"], ["idea", "Idea"], ["todo", "Todo"], ["person", "Person"], ["habit", "Habit for Codex"], ["routine", "Routine"]];
 // per type: prompt, icon paths, and the rotating "Try:" sparks under the form
 const CAP = {
@@ -811,7 +1015,7 @@ $("capGo").onclick = () => {
     $("openCapture").animate([{ transform: "scale(1)" }, { transform: "scale(1.18)" }, { transform: "scale(1)" }], { duration: 420, easing: spring() });
   });
 };
-$("openSettings").onclick = () => { $("repo").value = cfg?.repo || ""; $("token").value = cfg?.token || ""; drawSecPick(); open("settings"); };
+$("openSettings").onclick = () => { $("repo").value = cfg?.repo || ""; $("token").value = cfg?.token || ""; drawSecPick(); drawLayPick(); drawThemes(); open("settings"); };
 $("setForm").onsubmit = async e => {
   e.preventDefault();
   cfg = { repo: $("repo").value.trim().replace(/^https:\/\/github\.com\//, "").replace(/\/$/, ""), token: $("token").value.trim() };
@@ -824,7 +1028,7 @@ $("copyLink").onclick = async () => {
   catch { prompt("Your install link (it holds your key):", url); }
 };
 $("signOut").onclick = () => { try { localStorage.clear(); } catch {} cfg = null; S = null; outbox = []; location.reload(); };
-$("refresh").onclick = () => refresh(true);
+$("refresh").onclick = () => { reflow = true; refresh(true); };
 
 document.addEventListener("click", e => {
   const hd = e.target.closest("header[data-sec]"); if (hd) return fold(hd);
@@ -922,7 +1126,7 @@ function boot() {
   render(); refresh(); flush(); if (!G) loadGraph();
   if (linkCfg && !standalone) setTimeout(() => toast("Connected. Now tap Share, then Add to Home Screen"), 600);
 }
-document.addEventListener("visibilitychange", () => { if (!document.hidden) { refresh(); flush(); } });
+document.addEventListener("visibilitychange", () => { if (document.hidden) hiddenAt = Date.now(); else { if (Date.now() - hiddenAt > 6e5) reflow = true; refresh(); flush(); } });
 addEventListener("online", flush);
 boot();
 </script>

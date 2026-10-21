@@ -262,6 +262,8 @@ def state():
         "internships": internships(read("internships/tracker.md")),
         "agents": AGENTS.recent(),
         "routines": ROUTINES.load(),
+        "theme": saved_theme(),
+        "graph": graph_summary(),
         "predictions": predictions.stats(predictions.parse(read("codex/predictions.md"))),
         "has": {k: k in by_path for k in ("me.md", "now.md")},
     }
@@ -408,6 +410,21 @@ def act_idea(body):
     write("ideas.md", render_ideas(sections))
 
 
+def saved_theme():
+    """The desktop's theme pick ("family/mode", e.g. "riso/auto"); the phone follows it unless set itself."""
+    try:
+        return json.loads(read("claude/theme.json") or "{}").get("theme")
+    except ValueError:
+        return None
+
+
+def act_theme(body):
+    theme = body.get("theme")
+    if not isinstance(theme, str) or not re.fullmatch(r"[a-z]+/[a-z]+", theme):
+        raise ValueError("theme must look like family/mode")
+    write("claude/theme.json", json.dumps({"theme": theme}) + "\n")
+
+
 def act_project(body):
     rel = safe_rel(body.get("path"))
     if not rel or not rel.startswith("projects/"):
@@ -546,9 +563,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
             with open(asset, "rb") as f:
                 ctype = {".woff2": "font/woff2", ".woff": "font/woff", ".ttf": "font/ttf"}.get(os.path.splitext(asset)[1])
                 return self.send(200, f.read(), ctype or mimetypes.guess_type(asset)[0] or "application/octet-stream")
-        if url.path == "/theme.css":  # shared with the phone app
-            with open(os.path.join(HERE, "theme.css"), "rb") as f:
-                return self.send(200, f.read(), "text/css; charset=utf-8")
+        if url.path in ("/theme.css", "/theme.js", "/tiles.css", "/tiles.js"):  # shared with the phone app
+            with open(os.path.join(HERE, url.path[1:]), "rb") as f:
+                return self.send(200, f.read(), "text/css; charset=utf-8" if url.path.endswith("css") else "text/javascript; charset=utf-8")
         if not self.authed():
             return self.send(403, {"error": "forbidden"})
         try:
@@ -594,7 +611,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if not self.authed():
             return self.send(403, {"error": "forbidden"})
         routes = {"/api/nudge": act_nudge, "/api/habit": act_habit, "/api/capture": act_capture,
-                  "/api/idea": act_idea, "/api/project": act_project, "/api/habit-new": act_habit_new}
+                  "/api/idea": act_idea, "/api/project": act_project, "/api/habit-new": act_habit_new, "/api/theme": act_theme}
         path = urllib.parse.urlparse(self.path).path
         if path == "/api/routines":  # outside LOCK: suggestions can call Codex
             return self.routines(self.body())
@@ -631,6 +648,19 @@ def graph_get():
     ids = {n["id"] for n in nodes}
     links = [[l["source"], l["target"]] for l in g.get("links", []) if l["source"] in ids and l["target"] in ids]
     return {"nodes": nodes, "links": links, "built": datetime.datetime.fromtimestamp(os.path.getmtime(path)).date().isoformat()}
+
+
+def graph_summary():
+    """Map tile: node/link counts and the six biggest clusters as [name, count]; None without a graph."""
+    g = graph_get()
+    if not g:
+        return None
+    sizes, names = {}, {}
+    for n in g["nodes"]:
+        sizes[n["group"]] = sizes.get(n["group"], 0) + 1
+        names.setdefault(n["group"], n["groupName"].split(" / ")[0] or f"Cluster {n['group']}")
+    top = sorted(sizes, key=sizes.get, reverse=True)[:6]
+    return {"nodes": len(g["nodes"]), "links": len(g["links"]), "clusters": [[names[k], sizes[k]] for k in top]}
 
 
 def publish_graph():

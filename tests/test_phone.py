@@ -174,6 +174,16 @@ class ApplyQueueTest(unittest.TestCase):
         self.assertIn("routines", state)
         self.assertTrue(all(set(s) == {"path", "title", "date", "tldr"} for s in state["sessions"]))
 
+    def test_theme_pick_from_the_phone_becomes_the_shared_theme(self):
+        notes = notes_copy()
+        queue(notes, "1-theme", "theme", {"theme": "riso/paper"})
+        queue(notes, "2-bad", "theme", {"theme": "../../etc"})
+        state = self.run_phone(notes)
+        self.assertEqual(state["applied"], ["1-theme"])
+        self.assertEqual([f["id"] for f in state["failed"]], ["2-bad"])
+        self.assertEqual(json.loads(read(notes, "claude/theme.json")), {"theme": "riso/paper"})  # what the Mac follows
+        self.assertEqual(state["theme"], "riso/paper")
+
     def test_captures_are_parked_for_the_mac_not_run(self):
         notes = notes_copy()
         queue(notes, "1", "capture", {"kind": "idea", "text": "Parked idea"})
