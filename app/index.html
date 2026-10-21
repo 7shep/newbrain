@@ -152,7 +152,7 @@ body.paged .board, body.paged #grid { filter: brightness(.42) saturate(.8); }
 ::view-transition-old(*), ::view-transition-new(*) { height: 100%; width: 100%; object-fit: none; object-position: left top; animation-duration: .3s; }
 .tscrim { position: fixed; inset: 0; z-index: 16; display: none; }
 body.paged .tscrim { display: block; }
-.page { position: fixed; z-index: 17; display: flex; flex-direction: column; overflow: hidden; opacity: 0; pointer-events: none; background: var(--tile); border: 1px solid var(--line); border-radius: 28px; box-shadow: var(--tile-shadow);
+.page { position: fixed; z-index: 17; display: flex; flex-direction: column; overflow: hidden; opacity: 0; pointer-events: none; background: var(--panel, var(--tile)); border: 1px solid var(--line); border-radius: 28px; box-shadow: var(--tile-shadow);
   transition: left .55s var(--ease), top .55s var(--ease), width .55s var(--ease), height .55s var(--ease), opacity .12s .45s; }
 body.paged .page { opacity: 1; pointer-events: auto; transition: left .55s var(--ease), top .55s var(--ease), width .55s var(--ease), height .55s var(--ease), opacity .08s; }
 .page > * { transition: opacity .3s .15s; }
@@ -306,7 +306,7 @@ a.it-row:hover { background: var(--tile-2); }
 /* ---------- drawer ---------- */
 .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.55); opacity: 0; pointer-events: none; transition: opacity .3s var(--ease); z-index: 20; }
 .scrim.on { opacity: 1; pointer-events: auto; }
-.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(820px, 100%); background: var(--tile); border-left: 1px solid var(--line); z-index: 21;
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(820px, 100%); background: var(--panel, var(--tile)); border-left: 1px solid var(--line); z-index: 21;
   transform: translateX(104%); transition: transform .45s var(--ease); display: flex; flex-direction: column; }
 .drawer.on { transform: none; box-shadow: -30px 0 60px -20px rgba(0,0,0,.6); }
 .drawer header { display: flex; gap: 10px; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
