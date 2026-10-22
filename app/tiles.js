@@ -47,7 +47,7 @@ function items(S, o) {
   const soon = live.filter(r => { const d = dd(r.deadline); return d !== null && d >= 0 && d <= 7; });
   const nextDl = live.filter(r => dd(r.deadline) >= 0).sort((a, b) => a.deadline.localeCompare(b.deadline))[0];
   const iso = r => ISO.test(r.deadline || "") ? r.deadline : "9999";
-  mk("intern", "Internships", "case", Math.min(70, 10 + 15 * soon.length), { count: ins.length, cleared: !ins.length, why: `${soon.length} due this week`,
+  mk("intern", "Internships", "case", Math.min(70, 10 + 15 * soon.length), { count: live.length, cleared: !ins.length, why: `${soon.length} due this week`,
     summary: `${g("applied").length} applied, ${g("apply").length} to apply, ${g("check").length} to check.`,
     rows: [...g("apply"), ...g("check")].sort((a, b) => (a.group === b.group ? 0 : a.group === "apply" ? -1 : 1) || iso(a).localeCompare(iso(b))).map(r => [r.company, `${r.group} · ${r.deadline || "—"}`]),
     spot: nextDl ? [[nextDl.company, nextDl.role].filter(Boolean).join(" · "), `deadline ${nextDl.deadline}`] : null });
@@ -58,7 +58,7 @@ function items(S, o) {
   const dueTxt = n => { const d = due(n); return d === null ? "" : d < 0 ? `${-d}d overdue` : d === 0 ? "today" : `in ${d}d`; };
   mk("nudges", "Notes to self", "bell", Math.min(90, 15 * late.length + 5 * open.length), { count: open.length, cleared: !open.length, why: late.length ? `${late.length} overdue` : `${open.length} open`,
     summary: `${open.length} thing${open.length === 1 ? "" : "s"} you told yourself to do${late.length ? `, ${late.length} overdue` : ""}.`,
-    rows: open.map(n => [n.title, dueTxt(n)]), spot: late[0] ? [late[0].title, dueTxt(late[0])] : open[0] ? [open[0].title, dueTxt(open[0]) || "open"] : null });
+    rows: open.map(n => [n.title, dueTxt(n)]), spot: (n => n ? [n.title, dueTxt(n) || "open"] : null)(late[0] || open.filter(n => due(n) !== null).sort((a, b) => due(a) - due(b))[0] || open[0]) });
 
   // Claude's agents
   const runs = (S.agents || []).slice().sort((a, b) => String(b.queued || "").localeCompare(String(a.queued || "")));
@@ -98,7 +98,7 @@ function items(S, o) {
 
   // Map: only when the page has a graph summary {nodes, links, legend:[[name,count]]}
   const gs = o.graphSummary;
-  if (gs) mk("map", "Map", "map", 8, { count: gs.nodes || 0, legend: (gs.legend || []).slice(0, 6), why: `${gs.nodes || 0} notes · ${gs.links || 0} links`, summary: `${gs.nodes || 0} notes` });
+  if (gs) mk("map", "Map", "map", 8, { count: gs.nodes || 0, legend: (gs.legend || []).slice(0, 5), why: `${gs.nodes || 0} notes · ${gs.links || 0} links`, summary: `${gs.nodes || 0} notes` });
 
   // Inbox. ponytail: spec only scores the empty inbox (1); a full one gets 20 until it's tuned
   const inbox = (S.inbox || []).map(l => { const p = String(l).split(" · "); return p.length >= 3 ? [p.slice(2).join(" · "), p[1]] : [String(l), ""]; });

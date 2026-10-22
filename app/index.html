@@ -864,7 +864,7 @@ $("setClose").onclick = $("setScrim").onclick = () => settingsOpen(false);
 $("segCover").onclick = e => { const b = e.target.closest("button"); if (!b) return; coverLen = b.dataset.v; setPref("cover", coverLen); drawSettings(); renderBoard("act"); };
 $("segLayout").onclick = e => { const b = e.target.closest("button"); if (!b || b.dataset.v === layout) return; setLayout(b.dataset.v); drawSettings(); };
 
-// Dynamic Island: "N agents" at rest; stretches with a pulsing dot while one works; "Done ✓"; click drops the run list.
+// Dynamic Island: "Agents" at rest (a count read as N running); stretches with a pulsing dot while one works; "Done ✓"; click drops the run list.
 const island = $("island");
 let wasBusy = false, doneUntil = 0;
 function drawIsland() {
@@ -873,7 +873,7 @@ function drawIsland() {
   if (wasBusy && !busy) { doneUntil = Date.now() + 2600; setTimeout(drawIsland, 2700); }
   wasBusy = !!busy;
   const done = !busy && Date.now() < doneUntil, open = island.classList.contains("open");
-  const txt = busy ? `${busy > 1 ? busy + " agents · " : ""}${act[0].status === "running" ? "Working" : "Queued"}: ${act[0].text}` : done ? "Done ✓" : `${runs.length} agent${runs.length === 1 ? "" : "s"}`;
+  const txt = busy ? `${busy > 1 ? busy + " agents · " : ""}${act[0].status === "running" ? "Working" : "Queued"}: ${act[0].text}` : done ? "Done ✓" : "Agents";
   island.className = "island" + (busy ? " work" : "") + (open ? " open" : "");
   $("itxt").textContent = txt;
   island.dataset.w = Math.round(Math.min(420, 56 + txt.length * 7.4));

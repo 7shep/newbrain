@@ -295,9 +295,9 @@ def state():
 # ---------------------------------------------------------------- internships: every table row in internships/tracker.md
 def internship_group(status):
     s = status.lower()
-    if s.startswith("applied"):
+    if s.startswith(("applied", "emailed")):  # a cold email is an application waiting on a reply
         return "applied"
-    if s.startswith(("out", "dropped")):
+    if s.startswith(("out", "dropped", "skipped", "not a fit")):
         return "out"
     if s.startswith(("to apply", "prep")):
         return "apply"
