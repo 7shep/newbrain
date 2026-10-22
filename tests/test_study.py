@@ -150,7 +150,7 @@ class StudyIntegrationTest(unittest.TestCase):
     def test_installed_helper_round_trip_and_assets(self):
         srv=server.Server(('127.0.0.1',0),server.Handler)
         threading.Thread(target=srv.serve_forever,daemon=True).start()
-        helper=Path(__file__).resolve().parents[1]/'.agents/skills/study/scripts/study.py'
+        helper=Path(__file__).resolve().parents[1]/'.claude/skills/study/scripts/study.py'
         url='http://127.0.0.1:%d' % srv.server_address[1]
         def cli(action,*args):
             result=subprocess.run([sys.executable,str(helper),action,'--url',url,*args],capture_output=True,text=True,check=True,encoding='utf-8')

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Persist a Codex session from Stop or SessionEnd without model cooperation."""
+"""Persist a Claude Code session from Stop or SessionEnd without model cooperation."""
 import datetime as dt
 import json
 import os
@@ -12,7 +12,21 @@ ROOT = Path(__file__).resolve().parent
 NOTES = Path(os.environ.get("BRAIN_NOTES") or ROOT / "personal-notes").resolve()
 
 
+# User records that are Claude Code's own wrappers, not something typed.
+NOT_PROMPTS = ("<local-command", "<command-", "<task-notification", "<system-reminder", "Caveat: The messages below",
+               "[SYSTEM NOTIFICATION", "[Request interrupted")
+
+
+def _texts(content):
+    if isinstance(content, str):
+        return [content]
+    if not isinstance(content, list) or any(isinstance(b, dict) and b.get("type") == "tool_result" for b in content):
+        return []
+    return [b.get("text", "") for b in content if isinstance(b, dict) and b.get("type") == "text"]
+
+
 def extract(path, session_id):
+    """Typed prompts, and for each the last text Claude wrote before the next prompt (its final response)."""
     prompts, replies = [], []
     with path.open(encoding="utf-8", errors="replace") as stream:
         for line in stream:
@@ -20,28 +34,17 @@ def extract(path, session_id):
                 record = json.loads(line)
             except ValueError:
                 continue
-            payload = record.get("payload") or {}
-            if record.get("type") == "session_meta":
-                actual_id = payload.get("id") or payload.get("session_id")
-                if actual_id != session_id:
-                    return [], []
-            if record.get("type") != "response_item" or payload.get("type") != "message":
+            if not isinstance(record, dict) or record.get("isSidechain") or record.get("isMeta"):
                 continue
-            role = payload.get("role")
-            if role not in ("user", "assistant"):
+            message = record.get("message") if isinstance(record.get("message"), dict) else {}
+            text = "\n".join(_texts(message.get("content"))).strip()
+            if not text:
                 continue
-            if role == "assistant" and payload.get("phase") != "final_answer":
-                continue
-            parts = [item.get("text", "") for item in payload.get("content", [])
-                     if item.get("type") in ("input_text", "output_text")]
-            message = "\n".join(parts).strip()
-            if role == "user":
-                # Codex may prepend its environment and AGENTS.md as a separate content part.
-                message = "\n".join(part for part in parts if not part.startswith("# AGENTS.md instructions")).strip()
-                if message:
-                    prompts.append(message)
-            elif message:
-                replies.append(message)
+            if record.get("type") == "user" and not text.startswith(NOT_PROMPTS):
+                prompts.append(text)
+                replies.append("")
+            elif record.get("type") == "assistant" and prompts:
+                replies[-1] = text
     return prompts, replies
 
 
@@ -75,23 +78,23 @@ def save(event):
     if not prompts:
         return False
     date = dt.datetime.fromtimestamp(path.stat().st_ctime).date().isoformat()
-    title = " ".join(prompts[0].split())[:70].rstrip(" .,:;") or "Codex session"
+    title = " ".join(prompts[0].split())[:70].rstrip(" .,:;") or "Claude session"
     title = title.replace("\n", " ")
     project = project_for(cwd)
-    note = NOTES / "sessions" / f"{date}-codex-{session_id[:8]}.md"
+    note = NOTES / "sessions" / f"{date}-claude-{session_id[:8]}.md"
     note.parent.mkdir(parents=True, exist_ok=True)
     if note.exists() and "generated-by: brain_save_session.py" not in note.read_text(encoding="utf-8"):
         return False
-    synopsis = " ".join((replies[-1] if replies else prompts[-1]).split())[:400]
+    synopsis = " ".join((replies[-1] or prompts[-1]).split())[:400]
     sections = ["---", f"date: {date}", f"title: {title}", f"projects: [{project}]",
                 "status: info", f"session: {session_id}", f"cwd: {cwd}",
                 "generated-by: brain_save_session.py", "---", "", f"# {title}", "",
                 f"**TL;DR:** {synopsis}", "", "## Requests and final responses", ""]
     for index, prompt in enumerate(prompts):
         sections.extend([f"### Request {index + 1}", "", prompt[:2000], ""])
-        if index < len(replies):
+        if replies[index]:
             sections.extend(["**Response:**", "", replies[index][:3000], ""])
-    sections.extend(["## Where things live", "", f"- Codex session ID: `{session_id}`", ""])
+    sections.extend(["## Where things live", "", f"- Claude Code session ID: `{session_id}`", ""])
     temp = note.with_suffix(".tmp")
     temp.write_text("\n".join(sections), encoding="utf-8")
     os.replace(temp, note)
@@ -108,7 +111,7 @@ def main():
         if NOTES.is_dir():
             save(event)
     except (OSError, ValueError, subprocess.TimeoutExpired):
-        pass  # A note hook must never interrupt Codex.
+        pass  # A note hook must never interrupt Claude Code.
     if event.get("hook_event_name") == "Stop":
         print("{}")
 

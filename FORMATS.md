@@ -1,6 +1,6 @@
 # Brain file formats
 
-The app (`app/server.py`) parses these. Codex writes them. Keep to the shapes exactly;
+The app (`app/server.py`) parses these. Claude writes them. Keep to the shapes exactly;
 free markdown is fine inside bodies. Dates are absolute `YYYY-MM-DD`.
 All names below are fictional examples.
 
@@ -38,7 +38,7 @@ links: [mailto:priya@example.com]
 ```
 
 ## `nudges.md` — reminders for you
-Codex adds one only when it clearly helps. Status `no` is permanent: never re-add that nudge.
+Claude adds one only when it clearly helps. Status `no` is permanent: never re-add that nudge.
 ```
 # Nudges
 
@@ -53,12 +53,12 @@ Codex adds one only when it clearly helps. Status `no` is permanent: never re-ad
 - created: 2026-09-14
 ```
 
-## `codex/habits.md` — how Codex adapts to you
+## `claude/habits.md` — how Claude adapts to you
 `on` habits are followed every session. `off` ones show under "Past habits". `proposed` ones wait for you to decide.
 A habit typed into the app's brainstorm box is saved as `proposed` with a `source:` starting `brainstorm` —
-the SessionStart hook asks Codex to talk it through with you and refine it.
+the SessionStart hook asks Claude to talk it through with you and refine it.
 ```
-# Codex's habits
+# Claude's habits
 
 ## H-001 · Lead with the answer, keep it short
 - status: on              # on | off | proposed
@@ -67,8 +67,8 @@ the SessionStart hook asks Codex to talk it through with you and refine it.
 - source: conversation, 2026-09-04
 ```
 
-## `codex/predictions.md` — how well Codex knows you
-Codex logs a line whenever it bets on what you'll want, and marks it once you answer. Kinds: `recommend` (an option
+## `claude/predictions.md` — how well Claude knows you
+Claude logs a line whenever it bets on what you'll want, and marks it once you answer. Kinds: `recommend` (an option
 it marked Recommended), `guess` (a stated guess about what you meant), `draft` (something it wrote that you kept or
 rewrote), `habit` (a habit made it act and you went along or pushed back). Confidence is 50–100%. Brain turns this into
 a score and a calibration chart (the score chip in the top bar).
@@ -79,19 +79,18 @@ a score and a calibration chart (the score chip in the top bar).
 - 2026-09-27 · 60% · recommend · bet: Todos only · got: Everything · miss
 ```
 
-## `codex/routines.json` — your routines (written by Brain, don't edit)
-Brain reads local Codex automation metadata when its cached copy is over 10 minutes old.
-The phone reads this snapshot after notes sync. Suggestions come from a once-a-day read-only
-Codex pass over the notes. Schedule controls and run history remain in the Codex app.
+## `claude/routines.json` — your routines (written by Brain, don't edit)
+Brain asks Claude Code for your routines (when the app opens and the copy is over 10 minutes old) and keeps the
+answer here so the phone can show it. `why_pause` and `suggestions` come from a once-a-day pass over your notes.
 ```json
-{"provider": "codex", "read_only": true, "checked": "2026-10-19T13:54:50", "error": "", "suggested": "2026-10-19",
- "routines": [{"id": "daily-review", "name": "Morning update", "schedule": "FREQ=DAILY;BYHOUR=7",
-               "enabled": true, "last_run": "", "ok": null, "next_run": "", "why_pause": "", "read_only": true}],
+{"checked": "2026-10-19T13:54:50", "error": "", "suggested": "2026-10-19",
+ "routines": [{"id": "trig_…", "name": "Morning update", "schedule": "Daily 7am", "enabled": true,
+               "last_run": "2026-10-19 07:02", "ok": true, "next_run": "2026-10-20 07:00", "why_pause": ""}],
  "suggestions": [{"title": "Sunday week plan", "schedule": "Sundays 6pm", "text": "Every Sunday at 6pm, plan my week"}]}
 ```
 
 ## `now.md` — the cover story
-Codex rewrites after real work. Headline is punchy, magazine-style, true. `*word*` renders italic.
+Claude rewrites after real work. Headline is punchy, magazine-style, true. `*word*` renders italic.
 ```
 ---
 headline: The site is live. *Now* the club has to show up.
@@ -105,14 +104,14 @@ updated: 2026-09-14
 ```
 
 ## Habit freshness
-Session notes list the habits Codex applied (`habits: [H-001, H-014]` in the frontmatter). The app sorts habits by
+Session notes list the habits Claude applied (`habits: [H-001, H-014]` in the frontmatter). The app sorts habits by
 days since last use (or a manual `- used: YYYY-MM-DD` on the habit), counting from 2026-10-01 at the earliest, stalest
 first, and fades ones idle 21+ days so they can be switched off.
 
 ## `ideas.md`
 Open ideas are the bullets before any section. The app moves an idea to `## Done` or `## Dismissed`
 (appending `(done YYYY-MM-DD)`), and can restore it. An optional verdict after the date, `[try]`, `[maybe]` or
-`[skip]`, sorts the open list: try, maybe, untagged, skip. Codex adds it when saving an idea.
+`[skip]`, sorts the open list: try, maybe, untagged, skip. Claude adds it when saving an idea.
 ```
 # Ideas
 - 2026-09-14 · Idea text — optional note (project: slug)
@@ -125,7 +124,7 @@ Open ideas are the bullets before any section. The app moves an idea to `## Done
 ```
 
 ## `inbox.md` — quick captures from the app
-The app appends; Codex files each line into the right note at the start of the next session and deletes it.
+The app appends; Claude files each line into the right note at the start of the next session and deletes it.
 ```
 # Inbox
 - 2026-09-14 19:02 · idea · text
@@ -136,7 +135,7 @@ Kinds: `note`, `idea`, `todo`, `person`, `routine`. Routine captures produce an 
 Project pages: frontmatter `name, status (active|paused|done|abandoned), updated, paths: [...], links: [...], summary`,
 optional `archived: YYYY-MM-DD` (set by the app's hide button; hidden projects appear under "Show hidden"),
 then `**TL;DR:**` and sections. Session notes: see `session-template.md`. A session's `session:` id (first 8 chars
-of the Codex session id) powers the app's "resume chat" button.
+of the Claude Code session id) powers the app's "resume chat" button.
 
 ## `internships/tracker.md`
 
@@ -165,9 +164,9 @@ Task text is one line (1–300 characters), up to 100 tasks per day. The 16-char
 
 ## Study sessions and Tutor Genome
 
-`study/state.json` is versioned storage written by the authenticated study API. It contains `revision`, `sessions`, `observations`, and `changes`. Sessions have an immutable ID, course/topic, UTC start/end, last check-in, and Discord adapter result. Evidence links to a session and records topic, outcome (`independent`, `hinted`, `struggled`), actual reasoning, source, creation time, and optional retraction time. `study/log.md` is generated from it. Use the panel or `$study` helper to change data; see [study sessions](docs/study.md).
+`study/state.json` is versioned storage written by the authenticated study API. It contains `revision`, `sessions`, `observations`, and `changes`. Sessions have an immutable ID, course/topic, UTC start/end, last check-in, and Discord adapter result. Evidence links to a session and records topic, outcome (`independent`, `hinted`, `struggled`), actual reasoning, source, creation time, and optional retraction time. `study/log.md` is generated from it. Use the panel or the `/study` skill to change data; see [study sessions](docs/study.md).
 
-## `codex/day-planner.md` (optional)
+## `claude/day-planner.md` (optional)
 
 An editable Markdown note containing a fenced `json` object enables automatic daily checklists.
 Required fields are `enabled`, `study_days` (1–14), `study_minutes` (15–480),

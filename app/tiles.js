@@ -74,10 +74,10 @@ function items(S, o) {
     summary: `${open.length} thing${open.length === 1 ? "" : "s"} you told yourself to do${late.length ? `, ${late.length} overdue` : ""}.`,
     rows: open.map(n => [n.title, dueTxt(n)]), spot: late[0] ? [late[0].title, dueTxt(late[0])] : open[0] ? [open[0].title, dueTxt(open[0]) || "open"] : null });
 
-  // Codex's agents
+  // Claude's agents
   const runs = (S.agents || []).slice().sort((a, b) => String(b.queued || "").localeCompare(String(a.queued || "")));
   const busy = runs.filter(r => /queued|running|failed/.test(r.status || "")).length;
-  mk("agents", "Codex's agents", "bot", busy ? Math.min(70, 20 * busy) : 5, { count: runs.length, cleared: !runs.length, why: busy ? `${busy} active` : "all done",
+  mk("agents", "Claude's agents", "bot", busy ? Math.min(70, 20 * busy) : 5, { count: runs.length, cleared: !runs.length, why: busy ? `${busy} active` : "all done",
     summary: "What your captures turned into.", rows: runs.map(r => [r.text || r.file || "", `${r.status} · ${String(r.finished || r.queued || "").slice(11, 16)}`]),
     spot: runs[0] ? [runs[0].text || "", String(runs[0].report || runs[0].status || "").slice(0, 160)] : null });
 
@@ -102,13 +102,13 @@ function items(S, o) {
   const days = Array.from({ length: 14 }, (_, i) => seen.has(new Date(T - (13 - i) * 864e5).toISOString().slice(0, 10)) ? 1 : 0);
   mk("streak", "Streak", "fire", 12, { count: `${S.streak || 0}d`, days, why: `${S.streak || 0} day${S.streak === 1 ? "" : "s"}`, summary: "last 14 days" });
 
-  // Habits: only while Codex has some waiting for a yes/no
+  // Habits: only while Claude has some waiting for a yes/no
   const prop = (S.habits || []).filter(h => h.status === "proposed");
   if (prop.length) mk("habits", "Habits", "spark", 5 + 20 * prop.length, { count: prop.length, why: `${prop.length} to decide`, summary: `${prop.length} new habit${prop.length === 1 ? "" : "s"} to decide.`, rows: prop.map(h => [h.title, "to decide"]) });
 
-  // How well Codex knows you: only once Codex has logged bets (codex/predictions.md)
+  // How well Claude knows you: only once Claude has logged bets (claude/predictions.md)
   const pr = S.predictions;
-  if (pr && pr.n) mk("knows", "How well Codex knows you", "aim", 6, { count: pr.score, why: `${pr.n} bets`, summary: `Says ${pr.avg_conf}% sure, right ${pr.hit_rate}%.` });
+  if (pr && pr.n) mk("knows", "How well Claude knows you", "aim", 6, { count: pr.score, why: `${pr.n} bets`, summary: `Says ${pr.avg_conf}% sure, right ${pr.hit_rate}%.` });
 
   // Map: only when the page has a graph summary {nodes, links, legend:[[name,count]]}
   const gs = o.graphSummary;

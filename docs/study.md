@@ -2,11 +2,11 @@
 
 Open the Study sessions tile in Brain. Enter a course and topic and choose Start session. The panel shows elapsed time and records start/end timestamps when Stop session is used. History includes exact local timestamps, duration, and a control to correct an end time. Only one session can run at a time, and retries do not duplicate it.
 
-Brain checks in every 30 seconds while the desktop page is open. The Codex skill also checks in during tutoring. If the server restarts or no check-in arrives for 150 seconds, the timer is held at the last check-in. Choose “I kept studying” to confirm the gap or enter your actual finish time and stop. Closing a tab cannot silently count a long absence as study. A suspended tab or computer sleep can also trigger review. Phone shows the last synced snapshot read-only; it does not queue timer controls whose timing would be ambiguous.
+Brain checks in every 30 seconds while the desktop page is open. The `/study` skill also checks in during tutoring. If the server restarts or no check-in arrives for 150 seconds, the timer is held at the last check-in. Choose “I kept studying” to confirm the gap or enter your actual finish time and stop. Closing a tab cannot silently count a long absence as study. A suspended tab or computer sleep can also trigger review. Phone shows the last synced snapshot read-only; it does not queue timer controls whose timing would be ambiguous.
 
 ## Tutoring
 
-Install the tracked `.agents/skills/study` folder in `~/.codex/skills/study` for use outside the repository. Restart Codex if the skill is not yet listed. Start a session in Brain, choose Copy tutoring prompt, and paste it into Codex. Alternatively invoke `$study` and ask it to start a session. A timer cannot automatically alter the instructions of an existing conversation; invoking the skill activates tutoring in that conversation.
+The skill lives in `.claude/skills/study`, so Claude Code lists it as `/study` in this repository; copy that folder to `~/.claude/skills/study` to use it elsewhere. Start a session in Brain, choose Copy tutoring prompt, and paste it into Claude Code. Alternatively run `/study` and ask it to start a session. A timer cannot automatically alter the instructions of an existing conversation; invoking the skill activates tutoring in that conversation.
 
 The skill reads the relevant learner profile, asks one question at a time, checks reasoning, and uses graduated hints. It records examples from actual attempts. The panel's Tutor Genome lets you inspect or retract evidence and add your own observation. To correct an observation, retract it and add a corrected one. Retracted entries remain in the audit history but no longer affect the profile.
 

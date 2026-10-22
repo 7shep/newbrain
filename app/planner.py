@@ -7,7 +7,7 @@ from pathlib import Path
 
 import daily
 
-CONFIG = "codex/day-planner.md"
+CONFIG = "claude/day-planner.md"
 COURSE = re.compile(r"\b([A-Z]{3,4})\s*(\d{3})\b", re.I)
 ASSESSMENT = re.compile(r"\b(quiz|test|midterm|exam)\b", re.I)
 ASSIGNMENT = re.compile(r"\b(assignment|homework|due)\b", re.I)

@@ -9,6 +9,7 @@ injected into the page, and the Host header must be local, so other websites can
 the notes.
 """
 import datetime
+import glob
 import http.server
 import json
 import mimetypes
@@ -32,18 +33,18 @@ NOTES = os.path.abspath(os.path.expanduser(os.environ.get("BRAIN_NOTES") or os.p
 os.environ["BRAIN_NOTES"] = NOTES
 sys.path.insert(0, BRAIN)
 import build  # noqa: E402  (INDEX.md generator + frontmatter parser)
-from agents import Agents, codex_command  # noqa: E402  (headless agent per capture, when agents/ exists)
-from codex_routines import Routines  # noqa: E402  (Codex automations snapshot)
+from agents import Agents  # noqa: E402  (headless agent per capture, when agents/ exists)
+from routines import Routines  # noqa: E402  (Claude Code routines, cached in claude/routines.json)
 from sync import Sync  # noqa: E402  (git pull/commit/push for the phone app, when phone/ exists)
-import predictions  # noqa: E402  (how well Codex knows you: codex/predictions.md)
+import predictions  # noqa: E402  (how well Claude knows you: claude/predictions.md)
 import daily  # daily checklist operations
 import planner
 import study
 import study_discord
-import stats  # noqa: E402  (usage stats from Codex transcripts)
+import stats  # noqa: E402  (usage stats from Claude Code transcripts)
 
 TOKEN = secrets.token_urlsafe(24)
-CODEX_HOME = os.path.abspath(os.path.expanduser(os.environ.get("CODEX_HOME") or "~/.codex"))
+CLAUDE_PROJECTS = os.path.expanduser("~/.claude/projects")
 LOCK = threading.RLock()
 AGENTS = Agents(NOTES)
 ROUTINES = Routines(NOTES)
@@ -152,13 +153,9 @@ def set_fields(text, item_id, updates):
 def session_index():
     """short id → (full uuid, cwd recorded in the transcript)."""
     out = {}
-    for folder in ("sessions", "archived_sessions"):
-        for root, _, names in os.walk(os.path.join(CODEX_HOME, folder)):
-            for name in names:
-                if name.endswith(".jsonl"):
-                    f = os.path.join(root, name)
-                    sid = name[:-6]
-                    out[sid[:8]] = {"uuid": sid, "cwd": None, "file": f}
+    for f in glob.glob(os.path.join(CLAUDE_PROJECTS, "*", "*.jsonl")):
+        sid = os.path.basename(f)[:-6]
+        out[sid[:8]] = {"uuid": sid, "cwd": None, "file": f}
     return out
 
 
@@ -183,7 +180,7 @@ def resume_for(short_ids, fallback_cwd, idx):
         if hit:
             cwd = transcript_cwd(hit["file"]) or os.path.expanduser(fallback_cwd or "~")
             return {"uuid": hit["uuid"], "cwd": cwd,
-                    "command": ('cd /d "%s" && codex resume %s' if os.name == "nt" else 'cd "%s" && codex resume %s') % (cwd, hit["uuid"])}
+                    "command": ('cd /d "%s" && claude --resume %s' if os.name == "nt" else 'cd "%s" && claude --resume %s') % (cwd, hit["uuid"])}
     return None
 
 
@@ -214,7 +211,7 @@ def _daily_state():
                 write(rel, planner.initial_text(NOTES, date))
                 text = read(rel)
         except (ValueError, OSError, TypeError, KeyError) as exc:
-            return {"date": date, "tasks": [], "plan_note": "Check codex/day-planner.md: " + str(exc)}
+            return {"date": date, "tasks": [], "plan_note": "Check claude/day-planner.md: " + str(exc)}
     note = next((line for line in text.splitlines() if line.startswith("Plan: ")), "")
     return {"date": date, "tasks": daily.parse(text), **({"plan_note": note} if note else {})}
 
@@ -303,7 +300,7 @@ def state():
     for n in nudges:  # a snooze that has run out is open again
         if n.get("status") == "snoozed" and n.get("snooze_until") and n["snooze_until"] <= t:
             n["status"] = "open"
-    habits = habit_freshness(parse_blocks(read("codex/habits.md")), sessions, t)
+    habits = habit_freshness(parse_blocks(read("claude/habits.md")), sessions, t)
 
     now_meta, now_body = build.parse_frontmatter(read("now.md"))
     upcoming = upcoming_items(now_body, t)
@@ -324,7 +321,7 @@ def state():
         "nudges": nudges, "habits": habits, "projects": projects, "people": people,
         "sessions": session_out[:60], "inbox": inbox, "ideas": sorted(ideas["open"][::-1], key=idea_rank), "ideas_closed": {"done": len(ideas["done"]), "dismissed": len(ideas["dismissed"])},
         "notes": [slim(d) for d in docs if d["kind"] == "note" and not d["path"].startswith("people/")
-                  and d["path"] not in ("me.md", "now.md", "nudges.md", "ideas.md", "inbox.md", "codex/habits.md")],
+                  and d["path"] not in ("me.md", "now.md", "nudges.md", "ideas.md", "inbox.md", "claude/habits.md")],
         "internships": internships(read("internships/tracker.md")),
         "agents": AGENTS.recent(),
         "routines": ROUTINES.load(),
@@ -332,7 +329,7 @@ def state():
         "study": study_state(),
         "theme": saved_theme(),
         "graph": graph_summary(),
-        "predictions": predictions.stats(predictions.parse(read("codex/predictions.md"))),
+        "predictions": predictions.stats(predictions.parse(read("claude/predictions.md"))),
         "has": {k: k in by_path for k in ("me.md", "now.md")},
     }
 
@@ -404,29 +401,28 @@ def habit_freshness(habits, sessions, t):
 
 
 HABIT_AREAS = ["studying and exams", "internship applications", "networking and outreach", "running his club",
-               "sleep, health and breaks", "money and spending", "how Codex writes code for him", "his notes and memory",
-               "email and messages", "planning his week", "side projects", "how Codex talks to him",
+               "sleep, health and breaks", "money and spending", "how Claude writes code for him", "his notes and memory",
+               "email and messages", "planning his week", "side projects", "how Claude talks to him",
                "catching mistakes before they ship", "saving him time on repetitive chores"]  # one at random per idea, for variety
 
 
 def habit_idea():
-    """A fresh habit suggestion from Codex (Haiku, no tools), grounded in who the person is, what's going on, and the
+    """A fresh habit suggestion from Claude (Haiku, no tools), grounded in who the person is, what's going on, and the
     habits he already has, so it doesn't repeat one. ~5s."""
-    titles = [h["title"] for h in parse_blocks(read("codex/habits.md"))]
+    titles = [h["title"] for h in parse_blocks(read("claude/habits.md"))]
     _, me = build.parse_frontmatter(read("me.md"))
     _, now = build.parse_frontmatter(read("now.md"))
-    prompt = ("You suggest habits for Codex, an AI assistant that works with this person every day through Codex."
-              " A habit is a standing rule for how Codex behaves.\n\nAbout them:\n" + me[:2500] +
+    prompt = ("You suggest habits for Claude, an AI assistant that works with this person every day through Claude Code."
+              " A habit is a standing rule for how Claude behaves.\n\nAbout them:\n" + me[:2500] +
               "\n\nWhat's going on now:\n" + now[:2500] +
-              "\n\nHabits Codex already has (don't repeat or rephrase any):\n- " + "\n- ".join(titles) +
+              "\n\nHabits Claude already has (don't repeat or rephrase any):\n- " + "\n- ".join(titles) +
               "\n\nSuggest ONE new, specific, useful habit about " + random.choice(HABIT_AREAS) + ", written as the person"
               " would ask for it, imperative, under 14 words. Reply with only the habit, no quotes.")
-    command = codex_command(NOTES)
-    command[-1:-1] = ["--disable", "shell_tool"]
-    out = subprocess.run(command, input=prompt, cwd=NOTES, capture_output=True, text=True, timeout=60)
+    out = subprocess.run([shutil.which("claude") or "claude", "-p", "--model", "haiku", "--setting-sources", "",
+                          "--tools", ""], input=prompt, capture_output=True, text=True, timeout=60)
     idea = (out.stdout.strip().splitlines() or [""])[-1].strip().strip('"')
     if out.returncode or not idea:
-        raise RuntimeError("Codex didn't answer")
+        raise RuntimeError("Claude didn't answer")
     return {"idea": idea[:160]}
 
 
@@ -514,12 +510,12 @@ def act_habit_new(body):
     why = " ".join(str(body.get("why") or "").split())[:600]
     if not title:
         raise ValueError("empty")
-    text = read("codex/habits.md") or "# Codex's habits\n"
+    text = read("claude/habits.md") or "# Claude's habits\n"
     ids = [int(m) for m in re.findall(r"^## H-(\d+) ·", text, re.M)]
     block = ("\n## H-%03d · %s\n- status: proposed\n- why: %s\n- since: %s\n"
-             "- source: brainstorm — typed in the app; Codex: talk it through with the user next session and refine it\n"
+             "- source: brainstorm — typed in the app; Claude: talk it through with the user next session and refine it\n"
              % ((max(ids) if ids else 0) + 1, title, why or "(to discuss)", today()))
-    write("codex/habits.md", text.rstrip("\n") + "\n" + block)
+    write("claude/habits.md", text.rstrip("\n") + "\n" + block)
     AGENTS.submit("habit", title + (": " + why if why else ""))
 
 
@@ -542,7 +538,7 @@ def act_habit(body):
     status = body.get("status")
     if status not in ("on", "off", "proposed"):
         raise ValueError("bad status")
-    write("codex/habits.md", set_fields(read("codex/habits.md"), body.get("id"), {"status": status}))
+    write("claude/habits.md", set_fields(read("claude/habits.md"), body.get("id"), {"status": status}))
 
 
 def act_capture(body):
@@ -572,7 +568,7 @@ def file_put(body):
         raise PermissionError("path")
     full = os.path.join(NOTES, rel)
     if os.path.exists(full) and body.get("mtime") is not None and abs(os.path.getmtime(full) - float(body["mtime"])) > 0.001:
-        return 409, {"error": "This file changed on disk since you opened it (Codex may have edited it). Reload to see the new version."}
+        return 409, {"error": "This file changed on disk since you opened it (Claude may have edited it). Reload to see the new version."}
     write(rel, str(body.get("text", "")))
     rebuild_index()
     return 200, {"ok": True, "mtime": os.path.getmtime(full)}
@@ -646,7 +642,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if url.path == "/api/file":
                 return self.send(200, file_get(urllib.parse.parse_qs(url.query)))
             if url.path == "/api/stats":
-                return self.send(200, stats.collect(CODEX_HOME, NOTES))
+                return self.send(200, stats.collect(CLAUDE_PROJECTS, NOTES))
             if url.path == "/api/habit-idea":
                 return self.send(200, habit_idea())
             if url.path == "/api/graph":
@@ -675,7 +671,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self.send(500, {"error": str(e)})
         if SYNC.enabled() and snap:
             with LOCK:
-                SYNC.commit(["codex/routines.json"], "brain: routines")
+                SYNC.commit(["claude/routines.json"], "brain: routines")
         return self.send(200, {"routines": snap})
 
     def do_POST(self):
@@ -684,7 +680,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         routes = {"/api/nudge": act_nudge, "/api/habit": act_habit, "/api/capture": act_capture,
                   "/api/idea": act_idea, "/api/project": act_project, "/api/habit-new": act_habit_new, "/api/theme": act_theme, "/api/daily": act_daily, "/api/study": act_study}
         path = urllib.parse.urlparse(self.path).path
-        if path == "/api/routines":  # outside LOCK: suggestions can call Codex
+        if path == "/api/routines":  # slow (a claude call), so outside LOCK
             return self.routines(self.body())
         try:
             with LOCK:

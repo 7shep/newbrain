@@ -39,33 +39,26 @@ def read(notes, rel):
 
 class AskTest(unittest.TestCase):
     def run_ask(self, notes, response=None, fail=False):
-        # Substitute only the CLI process: test the real queue, prompt, flags, response validation and capture.
+        # Substitute only the API call: test the real queue, prompt, response validation and capture.
         code = r"""
 import json, os, sys
 from unittest.mock import patch
-from types import SimpleNamespace
 sys.path.insert(0, sys.argv[1])
 sys.argv = ["phone.py", sys.argv[2]]
 import phone
 
-def fake(command, **kw):
-    assert command[-1] == "-" and "read-only" in command
-    assert "--ignore-user-config" in command and "--ignore-rules" in command
-    disabled = [command[i+1] for i, value in enumerate(command[:-1]) if value == "--disable"]
-    assert all(f in disabled for f in ["hooks", "apps", "plugins", "multi_agent", "shell_tool"])
-    assert "--output-schema" in command and "--ephemeral" in command
-    assert "now.md" in kw["input"] and "question" in kw["input"]
-    assert kw["cwd"] != phone.NOTES
-    if os.environ.get("TEST_CODEX_FAIL") == "1":
-        return SimpleNamespace(returncode=1)
-    path = command[command.index("--output-last-message") + 1]
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(os.environ["TEST_CODEX_RESPONSE"])
-    return SimpleNamespace(returncode=0)
-with patch.object(phone.subprocess, "run", side_effect=fake):
+def fake(tier, system, payload, schema):
+    if os.environ.get("TEST_CLAUDE_FAIL") == "1":
+        raise ValueError("Claude voice answer failed; check ANTHROPIC_API_KEY")
+    if schema is phone.CLASSIFY_SCHEMA:
+        return {"tiers": [{"id": q["id"], "tier": "everyday"} for q in payload["questions"]]}
+    assert tier == "everyday" and "now.md" in payload["notes"]
+    response = json.loads(os.environ["TEST_CLAUDE_RESPONSE"])
+    return {"answers": [{**response, "id": q["id"]} for q in payload["questions"]]}
+with patch.object(phone, "ask_claude", side_effect=fake):
     phone.main()
 """
-        env = {**os.environ, "TEST_CODEX_RESPONSE": json.dumps(response), "TEST_CODEX_FAIL": str(int(fail))}
+        env = {**os.environ, "TEST_CLAUDE_RESPONSE": json.dumps(response), "TEST_CLAUDE_FAIL": str(int(fail))}
         result = subprocess.run([sys.executable, "-c", code, os.path.join(BRAIN, "app"), notes],
                                 capture_output=True, text=True, env=env)
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -89,7 +82,7 @@ with patch.object(phone.subprocess, "run", side_effect=fake):
         self.assertEqual(state["failed"], [])
         self.assertEqual(read(notes, "inbox.md"), before)
 
-    def test_invalid_answer_or_cli_failure_does_not_block_capture(self):
+    def test_invalid_answer_or_api_failure_does_not_block_capture(self):
         for reply, fail in [({"answer": "", "capture": "unexpected"}, False), (None, True)]:
             with self.subTest(reply=reply, fail=fail):
                 notes = notes_copy()
@@ -121,7 +114,7 @@ with patch.object(phone.subprocess, "run", side_effect=fake):
                     self.assertEqual(state["failed"], [])
                     self.assertEqual(state["answers"][0]["a"], "Noted.")
 
-    def test_prepare_writes_only_fixture_context_for_the_action(self):
+    def test_prepare_and_answer_write_files_for_the_apply_step(self):
         notes = notes_copy()
         queue(notes, "q1", "ask", {"id": "a1", "text": "what is next?"})
         work = tempfile.mkdtemp()
@@ -132,18 +125,70 @@ sys.path.insert(0, sys.argv[1])
 work = sys.argv[3]
 sys.argv = ["phone.py", sys.argv[2]]
 import phone
-phone.__file__ = work + "/app/phone.py"
+phone.WORK = work
 phone.prepare_asks()
+from unittest.mock import patch
+def fake(tier, system, payload, schema):
+    if schema is phone.CLASSIFY_SCHEMA:
+        return {"tiers": [{"id": "a1", "tier": "everyday"}]}
+    assert '"a1"' in json.dumps(payload) and "now.md" in payload["notes"]
+    return {"answers": [{"id": "a1", "answer": "Nothing yet.", "capture": None}]}
+import json
+with patch.object(phone, "ask_claude", side_effect=fake):
+    phone.WORK = work
+    phone.answer_asks()
 """
         result = subprocess.run([sys.executable, "-c", code, os.path.join(BRAIN, "app"), notes, work],
                                 capture_output=True, text=True, env={**os.environ, "GITHUB_OUTPUT": output})
         self.assertEqual(result.returncode, 0, result.stderr)
-        with open(os.path.join(work, "phone-ask-prompt.txt"), encoding="utf-8") as f:
-            prompt = f.read()
-        self.assertIn('"id": "a1"', prompt)
-        self.assertIn('"now.md"', prompt)
+        with open(os.path.join(work, "phone-ask-questions.json"), encoding="utf-8") as f:
+            prepared = json.load(f)
+        self.assertEqual(prepared["questions"], [{"id": "a1", "question": "what is next?"}])
+        self.assertIn("now.md", prepared["notes"])
         self.assertIn("has_questions=true", Path(output).read_text())
         self.assertTrue(os.path.exists(os.path.join(notes, "phone", "queue", "q1.json")))
+        with open(os.path.join(work, "phone-ask-answers.json"), encoding="utf-8") as f:
+            self.assertEqual(json.load(f)["answers"], [{"id": "a1", "answer": "Nothing yet.", "capture": None, "tier": "everyday"}])
+
+    def test_each_question_goes_to_its_tier_model(self):
+        # A stand-in anthropic package records every request; nothing leaves the machine.
+        code = r"""
+import json, sys, types
+from types import SimpleNamespace as NS
+sys.path.insert(0, sys.argv[1])
+sys.argv = ["phone.py", sys.argv[2]]
+calls = []
+def create(**kw):
+    calls.append(kw)
+    qs = json.loads(kw["messages"][0]["content"])["questions"]
+    if kw["output_config"]["format"]["schema"]["required"] == ["tiers"]:
+        out = {"tiers": [{"id": "q1", "tier": "everyday"}, {"id": "q2", "tier": "coding"},
+                         {"id": "q3", "tier": "intense"}, {"id": "q4", "tier": "bogus"}]}
+    else:
+        out = {"answers": [{"id": q["id"], "answer": "ok", "capture": None} for q in qs]}
+    return NS(stop_reason="end_turn", content=[NS(type="text", text=json.dumps(out))])
+fake = types.ModuleType("anthropic")
+fake.APIError = Exception
+fake.Anthropic = lambda: NS(beta=NS(messages=NS(create=create)))
+sys.modules["anthropic"] = fake
+import phone
+qs = [{"id": i, "question": "x"} for i in ("q1", "q2", "q3", "q4")]
+answers = phone.answer_questions(qs, {"now.md": ""})
+print(json.dumps({"answers": answers, "calls": [
+    {"model": c["model"], "effort": c["output_config"]["effort"], "fallbacks": c.get("fallbacks"),
+     "ids": [q["id"] for q in json.loads(c["messages"][0]["content"])["questions"]]} for c in calls]}))
+"""
+        result = subprocess.run([sys.executable, "-c", code, os.path.join(BRAIN, "app"), notes_copy()],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        out = json.loads(result.stdout.strip().splitlines()[-1])
+        self.assertEqual(out["calls"], [
+            {"model": "claude-haiku-5-5", "effort": "low", "fallbacks": None, "ids": ["q1", "q2", "q3", "q4"]},
+            {"model": "claude-haiku-5-5", "effort": "low", "fallbacks": None, "ids": ["q1"]},
+            {"model": "claude-sonnet-5-5", "effort": "medium", "fallbacks": "default", "ids": ["q2", "q4"]},
+            {"model": "claude-opus-5-5", "effort": "high", "fallbacks": "default", "ids": ["q3"]}])
+        self.assertEqual({a["id"]: a["tier"] for a in out["answers"]},
+                         {"q1": "everyday", "q2": "coding", "q4": "coding", "q3": "intense"})
 
 
 class ApplyQueueTest(unittest.TestCase):
@@ -168,7 +213,7 @@ class ApplyQueueTest(unittest.TestCase):
         self.assertEqual(next(n for n in state["nudges"] if n["id"] == "N-001")["status"], "done")
         self.assertIn("Plant tracker sends a weekly photo collage of growth (done", read(notes, "ideas.md"))
         self.assertEqual(next(h for h in state["habits"] if h["id"] == "H-002")["status"], "off")
-        self.assertIn("Ask before long builds", read(notes, "codex/habits.md"))
+        self.assertIn("Ask before long builds", read(notes, "claude/habits.md"))
         self.assertIn("sessions", state)
         self.assertIn("people", state)
         self.assertIn("routines", state)

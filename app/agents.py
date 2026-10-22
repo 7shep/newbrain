@@ -1,4 +1,4 @@
-"""Headless read-only Codex agents for things added in Brain (spec: docs/specs/2026-09-27-headless-agents.md).
+"""Headless Claude Code agents for things added in Brain (spec: docs/specs/2026-09-27-headless-agents.md).
 
 Off unless the notes folder has an agents/ folder. One job at a time. Each job is a markdown file in
 agents/ that is rewritten as it moves queued -> running -> done/failed, so its state survives restarts.
@@ -14,34 +14,41 @@ import threading
 import time
 
 TIMEOUT = 20 * 60
-CODEX_PROMPT = (
-    "Alex added this in Brain ({kind}): {text}\n\n"
-    "Read INDEX.md and the relevant project page in this notes folder. Analyze this capture only. "
-    "Do not edit files, execute changes, send messages, or use external services. "
-    "If it is only a thought to keep, identify the exact note where it belongs and propose the text to add. "
-    "If it is a task, give Alex a short concrete plan and identify any decision needed. "
-    "End with at most 3 lines for the Brain Agents report."
+# The whole permission boundary: --setting-sources project + dontAsk means nothing outside this list
+# runs, including allow rules from the user's own settings. Outward actions are drafts only.
+ALLOWED = [
+    "Read", "Glob", "Grep", "Edit", "Write", "WebSearch", "WebFetch",
+    "Bash(ls:*)", "Bash(cat:*)", "Bash(grep:*)", "Bash(git status:*)", "Bash(git log:*)", "Bash(git diff:*)",
+    "mcp__claude_ai_Gmail__search_threads", "mcp__claude_ai_Gmail__get_thread",
+    "mcp__claude_ai_Gmail__get_message", "mcp__claude_ai_Gmail__create_draft",
+    "mcp__claude_ai_Google_Calendar__list_events", "mcp__claude_ai_Google_Calendar__search_events",
+    "mcp__claude_ai_Google_Calendar__create_event",
+]
+PROMPT = (
+    "Alex just added this in Brain ({kind}): {text}\n\n"
+    "Read INDEX.md in this notes folder and the relevant project page first. If it's only a thought to keep, "
+    "file it where it belongs in this notes folder and stop. If it's a task, do it. Anything that would leave this machine "
+    "(email, texts, git push, a live site) becomes a draft (a Gmail draft, or text in your report), never "
+    "an action. Don't git commit. End with a report of at most 3 lines: what you did, and any files "
+    "changed or drafts made."
 )
 
 
-def codex_command(notes):
-    """Read-only Codex runner, independent of interactive settings and connectors."""
-    command = [shutil.which("codex") or "codex", "--ask-for-approval", "never", "exec",
-               "--ignore-user-config", "--ignore-rules", "--ephemeral",
-               "--disable", "hooks", "--disable", "apps", "--disable", "plugins",
-               "--disable", "multi_agent", "--disable", "browser_use", "--disable", "computer_use",
-               "--cd", notes, "--sandbox", "read-only", "-c", 'web_search="disabled"',
-               "-c", 'mcp_servers={}', "-c", 'project_doc_max_bytes=0',
-               "--skip-git-repo-check"]
-    model = os.environ.get("BRAIN_CODEX_MODEL", "").strip()
-    if model:
-        command += ["--model", model]
-    return command + ["-"]
+def _projects():
+    """["--add-dir", ~/Projects] when that folder exists; claude rejects a missing one."""
+    path = os.path.expanduser("~/Projects")
+    return ["--add-dir", path] if os.path.isdir(path) else []
+
+
+# The prompt goes on stdin (see Agents.run), never as an argument: on Windows an npm install is a
+# .cmd shim, and cmd.exe cuts a command-line argument off at its first newline. which() finds those shims.
+def claude_command(notes):
+    return [shutil.which("claude") or "claude", "--setting-sources", "project", "--permission-mode", "dontAsk",
+            *_projects(), "--allowedTools", *ALLOWED, "-p"]
 
 
 def default_command(notes):
-    """Codex is the only built-in runner; BRAIN_AGENT=codex remains compatible."""
-    return codex_command(notes)
+    return claude_command(notes)
 
 
 def _write_atomic(path, text):
@@ -63,12 +70,11 @@ def now():
 
 
 class Agents:
-    def __init__(self, notes, command=None, timeout=TIMEOUT):
+    def __init__(self, notes, command=None, timeout=TIMEOUT, routine_command=None):
         self.notes = notes
+        self.routine_command = routine_command  # None: routines.create_command(), built when a routine job runs
         self.dir = os.path.join(notes, "agents")
         self.command = command or default_command(notes)
-        self.runner = "codex-read-only" if command is None else "custom"
-        self.prompt = CODEX_PROMPT
         self.timeout = timeout
         self.jobs = queue.Queue()
         self.lock = threading.Lock()
@@ -116,7 +122,7 @@ class Agents:
         slug = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:40] or "item"
         stamp = datetime.datetime.now().strftime("%Y-%m-%d-%H%M%S")
         path = os.path.join(self.dir, "%s-%s.md" % (stamp, slug))
-        self._write(path, {"status": "queued", "type": kind, "runner": self.runner, "queued": now()}, text)
+        self._write(path, {"status": "queued", "type": kind, "queued": now()}, text)
         self.jobs.put((path, kind, text))
         with self.lock:
             if not self.worker or not self.worker.is_alive():
@@ -125,7 +131,7 @@ class Agents:
         return path
 
     # ------------------------------------------------------------ phone captures
-    # Captures applied on GitHub (no local CLI there) are parked in agents/pending/; the Mac runs them
+    # Captures applied on GitHub (no claude there) are parked in agents/pending/; the Mac runs them
     # after its next pull.
     def _park(self, kind, text):
         pending = os.path.join(self.dir, "pending")
@@ -163,7 +169,7 @@ class Agents:
         for path in self._files()[:n]:
             meta, text, report = self._read(path)
             out.append({"file": "agents/" + os.path.basename(path), "status": meta.get("status", "failed"),
-                        "type": meta.get("type", ""), "runner": meta.get("runner", ""), "queued": meta.get("queued", ""),
+                        "type": meta.get("type", ""), "queued": meta.get("queued", ""),
                         "finished": meta.get("finished", ""), "text": text, "report": report})
         return out
 
@@ -177,13 +183,13 @@ class Agents:
             self.run(*job)
 
     def run(self, path, kind, text):
-        meta = {"status": "running", "type": kind, "runner": self.runner,
-                "queued": self._read(path)[0].get("queued", now()), "started": now()}
+        meta = {"status": "running", "type": kind, "queued": self._read(path)[0].get("queued", now()), "started": now()}
         self._write(path, meta, text)
-        command, prompt = self.command, self.prompt.format(kind=kind, text=text)
-        if kind == "routine":
-            prompt += ("\nThis is a routine proposal. Describe its schedule and self-contained prompt for "
-                       "the user to create in Codex Automations. Do not create or enable an automation.")
+        command, prompt = self.command, PROMPT.format(kind=kind, text=text)
+        if kind == "routine":  # its own prompt, and RemoteTrigger is the only tool; other kinds never get it
+            import routines  # here, not at the top: routines imports this module
+            command = self.routine_command or routines.create_command()
+            prompt = routines.CREATE_PROMPT.format(text=text)
         try:
             p = subprocess.run(command, input=prompt, cwd=self.notes,
                                capture_output=True, encoding="utf-8", errors="replace", timeout=self.timeout)
@@ -193,7 +199,5 @@ class Agents:
             status, report = "failed", "Stopped after %d minutes." % (self.timeout // 60)
         except FileNotFoundError:
             status, report = "failed", "The %s command wasn't found." % os.path.basename(command[0])
-        except RuntimeError as e:
-            status, report = "failed", str(e)
         meta.update(status=status, finished=now())
         self._write(path, meta, text, report[:2000])

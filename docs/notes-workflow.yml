@@ -34,37 +34,14 @@ jobs:
       - name: Prepare voice questions
         id: voice
         run: python .brain/app/phone.py . --prepare-asks
-      - name: Configure isolated voice runner
-        if: steps.voice.outputs.has_questions == 'true'
-        run: |
-          mkdir -p "$RUNNER_TEMP/brain-phone-codex" "$RUNNER_TEMP/brain-phone-context"
-          cat > "$RUNNER_TEMP/brain-phone-codex/config.toml" <<'CONFIG'
-          web_search = "disabled"
-          project_doc_max_bytes = 0
-          [mcp_servers]
-          [features]
-          hooks = false
-          apps = false
-          plugins = false
-          multi_agent = false
-          shell_tool = false
-          browser_use = false
-          computer_use = false
-          CONFIG
-      - name: Answer voice questions with Codex
+      - name: Answer voice questions with Claude
         if: steps.voice.outputs.has_questions == 'true'
         continue-on-error: true # A voice failure must not block captures or other phone actions.
-        uses: openai/codex-action@v1
-        with:
-          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          codex-home: ${{ runner.temp }}/brain-phone-codex
-          working-directory: ${{ runner.temp }}/brain-phone-context
-          sandbox: read-only
-          safety-strategy: drop-sudo
-          prompt-file: .brain/phone-ask-prompt.txt
-          output-file: .brain/phone-ask-answers.json
-          output-schema-file: .brain/phone-ask-schema.json
-          codex-args: '["--ephemeral"]'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }} # only this step sees the key
+        run: |
+          pip install -q anthropic
+          python .brain/app/phone.py . --answer-asks
       - run: python .brain/app/phone.py . --answers-file .brain/phone-ask-answers.json
       - name: Commit and push
         run: |

@@ -1,6 +1,6 @@
 ---
 name: wild
-description: Use when Alex invokes /wild or $wild, or asks to go wild, go crazy, generate over-the-top or unhinged ideas, or brainstorm wild ideas. Generate maximum-range ideas grounded in his interests, mutate the strangest, and land on two picks.
+description: Use when Alex invokes /wild, or asks to go wild, go crazy, generate over-the-top or unhinged ideas, or brainstorm wild ideas. Generate maximum-range ideas grounded in his interests, mutate the strangest, and land on two picks.
 ---
 
 # Wild — Alex's edition

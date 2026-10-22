@@ -1,4 +1,4 @@
-"""Run: python3 -m unittest discover -s tests   (from the brain folder). No real Codex calls."""
+"""Run: python3 -m unittest discover -s tests   (from the brain folder). No real claude calls."""
 import os
 import sys
 import tempfile
@@ -8,7 +8,7 @@ import unittest
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "app"))
 from agents import Agents  # noqa: E402
 
-# Stands in for Codex: prints a report built from the prompt (on stdin); "sleep" in the prompt stalls it.
+# Stands in for claude: prints a report built from the prompt (on stdin); "sleep" in the prompt stalls it.
 FAKE = [sys.executable, "-c",
         "import sys,time; sys.stdin.reconfigure(encoding='utf-8'); p=sys.stdin.read(); time.sleep(3 if 'sleep' in p else 0.05); "
         "sys.exit(2) if 'boom' in p else print('did: ' + p.split(': ',1)[1].splitlines()[0])"]
@@ -70,8 +70,8 @@ class AgentsTest(unittest.TestCase):
         self.assertEqual(runs["sleep forever"]["status"], "failed")
         self.assertIn("Stopped after", runs["sleep forever"]["report"])
 
-    def test_missing_codex_fails_cleanly(self):
-        a = Agents(self.notes, command=["/no/such/codex"])
+    def test_missing_claude_fails_cleanly(self):
+        a = Agents(self.notes, command=["/no/such/claude"])
         a.submit("note", "x")
         run = wait(a, 1)[0]
         self.assertEqual(run["status"], "failed")
@@ -98,17 +98,14 @@ class AgentsTest(unittest.TestCase):
         self.assertEqual(run["status"], "failed")
         self.assertIn("restarted", run["report"])
 
-    def test_routine_kind_remains_a_read_only_proposal(self):
-        echo = [sys.executable, "-c", "import sys; print(sys.stdin.read())"]
-        a = Agents(self.notes, command=echo)
+    def test_routine_kind_uses_its_own_command_and_prompt(self):
+        a = Agents(self.notes, command=FAKE, routine_command=FAKE_ROUTINE)
         a.submit("routine", "every sunday plan my week")
         report = wait(a, 1)[0]["report"]
-        self.assertIn("every sunday plan my week", report)
-        self.assertIn("Do not create or enable an automation", report)
-        self.assertIn("Do not edit files", report)
+        self.assertIn("routine: Set up a Claude Code routine for this request: every sunday plan my week", report)
 
     def test_other_kinds_never_get_the_routine_command(self):
-        a = Agents(self.notes, command=FAKE)
+        a = Agents(self.notes, command=FAKE, routine_command=FAKE_ROUTINE)
         a.submit("todo", "buy milk")
         self.assertNotIn("routine:", wait(a, 1)[0]["report"])
 

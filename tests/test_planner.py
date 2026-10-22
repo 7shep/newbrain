@@ -18,7 +18,7 @@ class PlannerTest(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.notes = Path(self.tmp.name)
-        (self.notes / 'codex').mkdir()
+        (self.notes / 'claude').mkdir()
         (self.notes / 'daily').mkdir()
         self.config = dict(enabled=True, study_days=4, study_minutes=120,
                            assignment_minutes=60, gym_days=4, gym_minutes=45,

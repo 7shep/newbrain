@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Global Codex SessionStart hook for Alex's local Brain."""
+"""Global Claude Code SessionStart hook for Alex's local Brain."""
 import contextlib
 import io
 import json

@@ -1,6 +1,6 @@
 ---
 name: are-you-done
-description: Use when Alex asks "are you done", "anything left", "what's left", "did we miss anything", "backcheck", or types /are-you-done, and before claiming a multi-part session is finished. Backchecks the whole session for anything still undone, unverified or waiting on Alex, then does what Codex can do now and lists only what's actually left for him.
+description: Use when Alex asks "are you done", "anything left", "what's left", "did we miss anything", "backcheck", or types /are-you-done, and before claiming a multi-part session is finished. Backchecks the whole session for anything still undone, unverified or waiting on Alex, then does what Claude can do now and lists only what's actually left for him.
 ---
 
 # Are you done?

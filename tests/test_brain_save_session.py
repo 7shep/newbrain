@@ -1,4 +1,4 @@
-"""Automatic Codex transcript note capture."""
+"""Automatic Claude Code transcript note capture."""
 import json
 import os
 import subprocess
@@ -21,12 +21,16 @@ class SaveSessionTest(unittest.TestCase):
                 encoding="utf-8")
             other = base / "other"
             other.mkdir()
-            transcript = base / "rollout.jsonl"
+            transcript = base / "session.jsonl"
             session_id = "01a0eed0-852b-7460-bc98-07ff18758ae8"
             entries = [
-                {"type": "session_meta", "payload": {"id": session_id}},
-                {"type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "Fix the sample"}]}},
-                {"type": "response_item", "payload": {"type": "message", "role": "assistant", "phase": "final_answer", "content": [{"type": "output_text", "text": "Fixed the sample."}]}},
+                {"type": "user", "isMeta": True, "message": {"role": "user", "content": "<local-command-caveat>x"}},
+                {"type": "user", "message": {"role": "user", "content": "Fix the sample"}},
+                {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "Looking."}]}},
+                {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "name": "Edit", "input": {}}]}},
+                {"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "content": "ok"}]}},
+                {"type": "assistant", "isSidechain": True, "message": {"role": "assistant", "content": [{"type": "text", "text": "Subagent chatter."}]}},
+                {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "Fixed the sample."}]}},
             ]
             transcript.write_text("\n".join(json.dumps(entry) for entry in entries), encoding="utf-8")
             event = {"hook_event_name": "Stop", "session_id": session_id,
@@ -40,7 +44,11 @@ class SaveSessionTest(unittest.TestCase):
             saved = list((notes / "sessions").glob("*.md"))
             self.assertEqual(len(saved), 1)
             self.assertIn("projects: [sample]", saved[0].read_text(encoding="utf-8"))
-            self.assertIn("Fixed the sample.", saved[0].read_text(encoding="utf-8"))
+            body = saved[0].read_text(encoding="utf-8")
+            self.assertIn("Fixed the sample.", body)
+            self.assertNotIn("Looking.", body)
+            self.assertNotIn("Subagent chatter.", body)
+            self.assertIn("-claude-01a0eed0.md", saved[0].name)
             self.assertIn("Fix the sample", (notes / "INDEX.md").read_text(encoding="utf-8"))
 
 

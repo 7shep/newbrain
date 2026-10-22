@@ -5,15 +5,11 @@ $env:BRAIN_NOTES = $notes
 Remove-Item Env:TERM -ErrorAction SilentlyContinue
 Set-Location -LiteralPath $notes
 
-$codex = (Get-Command codex.cmd -ErrorAction SilentlyContinue).Source
-if (-not $codex) {
-    $candidate = Join-Path $env:APPDATA 'npm\codex.cmd'
-    if (Test-Path -LiteralPath $candidate) { $codex = $candidate }
-}
-if (-not $codex) {
-    Write-Host 'Codex CLI is missing. Install it with: npm install -g @openai/codex' -ForegroundColor Red
+$claude = (Get-Command claude -ErrorAction SilentlyContinue).Source
+if (-not $claude) {
+    Write-Host 'Claude Code is missing. Install it from https://claude.com/claude-code' -ForegroundColor Red
     return
 }
 Write-Host "Brain notes: $notes"
-Write-Host 'Codex will load the Brain session hook and inbox now.'
-& $codex
+Write-Host 'Claude Code will load the Brain session hook and inbox now.'
+& $claude

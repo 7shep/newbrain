@@ -3,8 +3,8 @@ app/.brain.pid
 app/.brain.log
 __pycache__/
 *.pyc
-.claude/
-.codex/
+.claude/*
+!.claude/skills/
 .DS_Store
 # generated from the example notes when you try it
 example/INDEX.md
@@ -14,8 +14,7 @@ app/.stats-cache.json
 # Local personal notes (never commit to the public app repo)
 personal-notes/
 
-# Temporary private voice context produced for the Codex GitHub Action
-/phone-ask-prompt.txt
-/phone-ask-schema.json
+# Temporary voice-question files written by app/phone.py --prepare-asks / --answer-asks
+/phone-ask-questions.json
 /phone-ask-answers.json
 .superpowers/
