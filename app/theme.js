@@ -4,6 +4,7 @@
   const FAMILIES = {
     classic: { label: "Classic", modes: { light: "Light", softlight: "Soft light", dark: "Dark", softdark: "Soft dark" }, auto: ["light", "dark"] },
     brain: { label: "Brain", modes: { light: "Light", softlight: "Soft light", dark: "Dark", softdark: "Soft dark" }, auto: ["light", "dark"] },
+    pride: { label: "Pride", modes: { light: "Light", dark: "Dark" }, auto: ["light", "dark"] },
     phosphor: { label: "Phosphor", wild: true, modes: { green: "Green", amber: "Amber" } },
     riso: { label: "Riso", wild: true, modes: { paper: "Paper", ink: "Ink" }, auto: ["paper", "ink"] },
     swiss: { label: "Swiss", wild: true, modes: { light: "Light", dark: "Dark" }, auto: ["light", "dark"] },
@@ -12,10 +13,11 @@
   const LEGACY = { dark: "classic/dark", light: "classic/light", soft: "classic/softlight" };
   const sysLight = matchMedia("(prefers-color-scheme: light)");
 
-  // "riso/auto" -> { family: "riso", mode: "auto", id: "riso-paper", tone: "light" }. Anything unknown -> classic/auto.
+  // "riso/auto" -> { family: "riso", mode: "auto", id: "riso-paper", tone: "light" }. Anything unknown -> pride/auto,
+  // Alex's default, so a fresh browser or phone starts on it before the shared pick arrives.
   function resolve(choice) {
     let [family, mode] = String(LEGACY[choice] || choice || "").split("/");
-    const f = FAMILIES[family] || FAMILIES[(family = "classic")];
+    const f = FAMILIES[family] || FAMILIES[(family = "pride")];
     if (mode === "auto" ? !f.auto : !f.modes[mode]) mode = f.auto ? "auto" : Object.keys(f.modes)[0];
     const m = mode === "auto" ? f.auto[sysLight.matches ? 0 : 1] : mode;
     return { family, mode, id: family + "-" + m, tone: DARK.has(m) ? "dark" : "light" };

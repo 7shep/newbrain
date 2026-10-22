@@ -77,6 +77,25 @@
   --grain: none; --tile-shadow: 0 1px 2px rgba(0,0,0,.04), 0 2px 8px rgba(0,0,0,.03);
 }
 
+/* ---------- Pride: plum neutrals, a rainbow strip across the top of the page and the cover ---------- */
+[data-family="pride"] {
+  --rainbow: linear-gradient(90deg, #e40303 0 16.67%, #ff8c00 0 33.33%, #ffed00 0 50%, #008026 0 66.67%, #24408e 0 83.33%, #732982 0);
+  --bg-image: var(--rainbow) top / 100% 5px no-repeat;
+  --cover: var(--rainbow) top / 100% 10px no-repeat, var(--cover-solid); --cover-ink: #ffffff;
+}
+[data-theme="pride-light"] {
+  --bg: #f6f3f7; --tile: #ffffff; --tile-2: #f8f5f9; --tile-3: rgba(40,20,50,.06); --line: #e6dfea; --ink: #1d1724; --muted: #5f566a; --dim: #958ca0;
+  --accent: #8a2fc0; --accent-ink: #ffffff; --good: #1f8a4c; --good-ink: #ffffff; --bad: #d1293d; --info: #1f63c6; --extra: #e2621b;
+  --cover-solid: #2a1d3a; --tile-shadow: 0 1px 2px rgba(50,20,70,.05), 0 8px 24px rgba(50,20,70,.05);
+}
+[data-theme="pride-dark"] {
+  --bg: #121016; --tile: #1a171f; --tile-2: #221e28; --tile-3: #2b2632; --line: #2e2935; --ink: #efeaf3; --muted: #a39cab; --dim: #6f6878;
+  --accent: #c77dff; --accent-ink: #16081f; --good: #5fd38d; --good-ink: #04140a; --bad: #ff7a7a; --info: #7fb2ff; --extra: #ffb347;
+  --cover-solid: #2a1d3a;
+}
+/* The page's strip sits above the sticky top bar, which would otherwise cover --bg-image's (that one is for pickers). */
+[data-family="pride"] body::before { content: ""; position: fixed; inset: 0 0 auto; height: 5px; background: var(--rainbow); z-index: 16; pointer-events: none; }
+
 /* ---------- Phosphor: green-screen terminal (dark only) ---------- */
 [data-theme="phosphor-green"] {
   --bg: #050a06; --tile: #0a140c; --tile-2: #0f1f12; --tile-3: #15291a; --line: #1b3a20; --ink: #b8ffc4; --muted: #5fae6c; --dim: #3b7346;
