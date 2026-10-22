@@ -5,6 +5,7 @@ Usage: python3 build.py   (notes folder = parent of this folder, or $BRAIN_NOTES
 Stdlib only. Safe to run any time; the output is fully regenerated.
 """
 import datetime
+import glob
 import os
 import re
 
@@ -69,6 +70,22 @@ def load_notes():
                 "body": body,
             })
     return docs
+
+
+def decisions_due(notes, today):
+    """Lines under a page's "## Key decisions" heading whose `check-by: YYYY-MM-DD` has arrived.
+    A replaced decision moves to "## Superseded decisions", which is never read here."""
+    out = []
+    for path in sorted(glob.glob(os.path.join(notes, "projects", "*.md"))):
+        with open(path, encoding="utf-8", errors="replace") as f:
+            text = f.read()
+        sec = re.search(r"^## Key decisions[^\n]*\n(.*?)(?=^## |\Z)", text, re.M | re.S)
+        for line in (sec.group(1) if sec else "").splitlines():
+            m = re.search(r"check-by:\s*(\d{4}-\d{2}-\d{2})", line)
+            if line.startswith("- ") and m and m.group(1) <= today:
+                what = re.sub(r"\*\*|\s*\(?check-by:[^)]*\)?\s*$", "", line[2:]).strip()
+                out.append({"what": what, "check_by": m.group(1), "path": os.path.relpath(path, notes)})
+    return sorted(out, key=lambda d: d["check_by"])
 
 
 def as_list(v):

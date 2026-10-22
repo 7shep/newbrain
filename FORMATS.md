@@ -136,3 +136,12 @@ Project pages: frontmatter `name, status (active|paused|done|abandoned), updated
 optional `archived: YYYY-MM-DD` (set by the app's hide button; hidden projects appear under "Show hidden"),
 then `**TL;DR:**` and sections. Session notes: see `session-template.md`. A session's `session:` id (first 8 chars
 of the Claude Code session id) powers the app's "resume chat" button.
+
+**Decisions stay fresh.** Under a project's `## Key decisions`, each decision is one dated line, and may end with
+`check-by: YYYY-MM-DD`: the day it should be re-checked against reality. From that day it shows on Brain's
+"Decisions to re-check" tile and in Claude's session-start context, until Claude re-verifies it with you and bumps
+the date. A decision that gets replaced moves (not deleted) to `## Superseded decisions` as
+`- ~~old line~~ (superseded by YYYY-MM-DD)`, so history stays but nobody acts on it as current.
+
+    ## Key decisions
+    - 2026-10-02: Brain keeps its one-page dashboard. check-by: 2026-12-01

@@ -283,6 +283,7 @@ def state():
                   and d["path"] not in ("me.md", "now.md", "nudges.md", "ideas.md", "inbox.md", "claude/habits.md")],
         "internships": internships(read("internships/tracker.md")),
         "tiles": custom_tiles(),
+        "decisions": build.decisions_due(NOTES, t),
         "agents": AGENTS.recent(),
         "routines": ROUTINES.load(),
         "theme": saved_theme(),

@@ -104,6 +104,11 @@ function items(S, o) {
   const inbox = (S.inbox || []).map(l => { const p = String(l).split(" · "); return p.length >= 3 ? [p.slice(2).join(" · "), p[1]] : [String(l), ""]; });
   mk("inbox", "Inbox", "inbox", inbox.length ? 20 : 1, { count: inbox.length, cleared: !inbox.length, why: inbox.length ? `${inbox.length} to file` : "empty", summary: `${inbox.length} to file.`, rows: inbox });
 
+  // Decisions to re-check: only while some check-by date has arrived; opens the oldest one's project page
+  const dec = S.decisions || [];
+  if (dec.length) mk("decisions", "Decisions to re-check", "aim", 30 + 10 * dec.length, { count: dec.length, path: dec[0].path, why: `${dec.length} past check-by`,
+    summary: `${dec.length} decision${dec.length === 1 ? "" : "s"} to re-check.`, rows: dec.map(d => [d.what, `since ${d.check_by.slice(5)}`]), spot: [dec[0].what, `check-by ${dec[0].check_by}`] });
+
   // Custom tiles: one per tiles/*.md, opened as that note
   (S.tiles || []).forEach(t => mk("t:" + t.slug, t.title, ICONS[t.icon] ? t.icon : "doc", 20, { count: t.rows.length, path: t.path,
     why: `${t.rows.length} item${t.rows.length === 1 ? "" : "s"}`, summary: t.summary || (t.rows[0] ? t.rows[0][0] : "Nothing yet."), rows: t.rows, spot: t.rows[0] || null }));

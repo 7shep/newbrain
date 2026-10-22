@@ -81,6 +81,12 @@ def context():
     if ranked:
         lines.append("Open nudges, most overdue first (the top one is the biggest gap; raise it with %s early): " % name
                      + " | ".join(ranked[:5]))
+    import build  # same folder; for decisions_due
+    due = build.decisions_due(NOTES, today)
+    if due:
+        lines.append("Decisions past their check-by date: re-verify each with %s, then bump check-by or move it to "
+                     "'## Superseded decisions' (superseded by <date>): " % name
+                     + " | ".join("%s (%s)" % (d["what"][:90], d["path"]) for d in due[:5]))
     cal = calibration()
     if cal:
         lines.append(cal)
