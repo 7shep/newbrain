@@ -44,6 +44,36 @@ TASK_PROMPT = (
 )
 SPAWN_ONLY = ".spawn-only"  # in agents/: runs started from the tile only; captures don't start agents
 
+# The weekly internship run, only ever started from the tile's button: the apply-internships skill, headless,
+# in Alex's Chrome. Its own boundary: Chrome,
+# reading the notes, and writing only under internships/. No shell, web, mail or calendar.
+INTERNSHIPS = "internships"
+INTERNSHIPS_TIMEOUT = 60 * 60
+INTERNSHIPS_MODEL = "claude-sonnet-5-5"
+INTERNSHIPS_ALLOWED = ["Read", "Glob", "Grep", "Edit(internships/**)", "Write(internships/**)", "mcp__claude-in-chrome"]
+INTERNSHIPS_TEXT = "Weekly internship run (/apply-internships)"
+INTERNSHIPS_SKILL = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                 ".claude", "skills", "apply-internships", "SKILL.md")
+INTERNSHIPS_PROMPT = (
+    "Brain started you headless for Alex's weekly internship run. Nobody is watching this session, so you can't "
+    "ask questions: when something needs Alex, skip it and put it in the report. You're in Alex's notes folder, "
+    "so the skill's `personal-notes/` paths are relative to here (personal-notes/internships/ is ./internships/). "
+    "The skill's rules hold without exception: never click Submit, never type a signature, never create accounts "
+    "or enter passwords. Don't git commit. Your final message is Alex's hand-off (step 6), kept short.\n\n"
+    "The skill:\n\n{skill}"
+)
+
+
+def internships_command():
+    return [shutil.which("claude") or "claude", "--setting-sources", "project", "--permission-mode", "dontAsk",
+            "--model", INTERNSHIPS_MODEL, "--chrome", "--allowedTools", *INTERNSHIPS_ALLOWED, "-p"]
+
+
+def internships_prompt():
+    with open(INTERNSHIPS_SKILL, encoding="utf-8") as f:
+        skill = f.read()
+    return INTERNSHIPS_PROMPT.format(skill=re.sub(r"\A---\n.*?\n---\n+", "", skill, flags=re.S))
+
 
 def _projects():
     """["--add-dir", ~/Projects] when that folder exists; claude rejects a missing one."""
@@ -81,9 +111,12 @@ def now():
 
 
 class Agents:
-    def __init__(self, notes, command=None, timeout=TIMEOUT, routine_command=None):
+    def __init__(self, notes, command=None, timeout=TIMEOUT, routine_command=None, internships_command=None,
+                 internships_timeout=INTERNSHIPS_TIMEOUT):
         self.notes = notes
         self.routine_command = routine_command  # None: routines.create_command(), built when a routine job runs
+        self.internships_command = internships_command  # None: internships_command() when that job runs
+        self.internships_timeout = internships_timeout
         self.dir = os.path.join(notes, "agents")
         self.command = command or default_command(notes)
         self.timeout = timeout
@@ -104,8 +137,15 @@ class Agents:
         _write_atomic(path, body)
 
     def _read(self, path):
-        with open(path, encoding="utf-8", errors="replace") as f:
-            raw = f.read()
+        for attempt in range(20):  # Windows refuses the open while _write_atomic replaces the file
+            try:
+                with open(path, encoding="utf-8", errors="replace") as f:
+                    raw = f.read()
+                break
+            except PermissionError:
+                if attempt == 19:
+                    raise
+                time.sleep(0.05)
         m = re.match(r"---\n(.*?)\n---\n", raw, re.S)
         meta = dict(re.findall(r"^(\w+): (.*)$", m.group(1), re.M)) if m else {}
         text = re.search(r"## Input\n(.*?)(?:\n## Report\n|\Z)", raw, re.S)
@@ -131,7 +171,7 @@ class Agents:
             return None
         return self._queue(kind, text)
 
-    def spawn(self, text):
+    def spawn(self, text, kind="task"):
         """Start an agent on a task typed in Brain, whether or not captures start agents."""
         if not text.strip():
             return None
@@ -139,7 +179,17 @@ class Agents:
             os.makedirs(self.dir)
             with open(os.path.join(self.dir, SPAWN_ONLY), "w", encoding="utf-8") as f:
                 f.write("Agents here were started from Brain's Agents tile. Delete this file to have every capture start one too.\n")
-        return self._queue("task", text)
+        return self._queue(kind, text)
+
+    # ------------------------------------------------------------ the internship run (button only)
+    def internships(self):
+        """Queue the internship run unless one is already queued or running. Never parked for later."""
+        if os.environ.get("BRAIN_AGENTS") == "pending":
+            return None
+        if os.path.isdir(self.dir) and any(r["type"] == INTERNSHIPS and r["status"] in ("queued", "running")
+                                           for r in self.recent(50)):
+            return None
+        return self.spawn(INTERNSHIPS_TEXT, INTERNSHIPS)
 
     def _queue(self, kind, text):
         if os.environ.get("BRAIN_AGENTS") == "pending":
@@ -189,6 +239,8 @@ class Agents:
                 os.remove(path)
             except OSError:
                 continue
+            if kind == INTERNSHIPS:
+                continue  # only the Mac's button starts it, with Alex there; never a parked job
             if self.spawn(text) if kind == "task" else self.submit(kind, text):
                 n += 1
         return n
@@ -221,13 +273,22 @@ class Agents:
             import routines  # here, not at the top: routines imports this module
             command = self.routine_command or routines.create_command()
             prompt = routines.CREATE_PROMPT.format(text=text)
+        timeout = self.timeout
+        if kind == INTERNSHIPS:  # its own model, Chrome, a narrower allowlist and an hour
+            command, timeout = self.internships_command or internships_command(), self.internships_timeout
+        try:
+            if kind == INTERNSHIPS:
+                prompt = internships_prompt()
+        except OSError as e:
+            meta.update(status="failed", finished=now())
+            return self._write(path, meta, text, "Couldn't read the apply-internships skill: %s" % e)
         try:
             p = subprocess.run(command, input=prompt, cwd=self.notes,
-                               capture_output=True, encoding="utf-8", errors="replace", timeout=self.timeout)
+                               capture_output=True, encoding="utf-8", errors="replace", timeout=timeout)
             status = "done" if p.returncode == 0 else "failed"
             report = (p.stdout.strip() or p.stderr.strip() or "(no output)")
         except subprocess.TimeoutExpired:
-            status, report = "failed", "Stopped after %d minutes." % (self.timeout // 60)
+            status, report = "failed", "Stopped after %d minutes." % (timeout // 60)
         except FileNotFoundError:
             status, report = "failed", "The %s command wasn't found." % os.path.basename(command[0])
         meta.update(status=status, finished=now())

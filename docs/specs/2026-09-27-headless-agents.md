@@ -45,5 +45,8 @@ Agents never commit. The next interactive session commits notes, as now. `agents
 ## Starting an agent directly (added 2026-10-22)
 The Agents tile has a task box (and the ⌘K palette an **Agent** kind; the phone's Capture an **Agent task** type). `/api/agent` queues a job of type `task` with its own prompt: the text is the task. This works without the opt-in folder: the first one creates `agents/` with an `agents/.spawn-only` marker, and while that marker exists captures still don't start agents. Same runner, queue and allowlist as above. The phone parks tasks in `agents/pending/` like captures. With no runs, the tile offers to start one instead of saying "All clear".
 
+## Internship run (added 2026-10-22)
+A **Run internships** button in the Agents tile (shown when `internships/tracker.md` exists) posts `/api/agent {"preset": "internships"}` and queues a job of type `internships`: the `.claude/skills/apply-internships/SKILL.md` instructions as the prompt, `--model claude-sonnet-5-5 --chrome`, a 60-minute timeout, and its own allowlist (`Read`, `Glob`, `Grep`, `Edit(internships/**)`, `Write(internships/**)`, `mcp__claude-in-chrome`). One at a time: a second click while one is queued or running is refused. Button only, by design: no schedule, and it is never parked from the phone or drained from `agents/pending/`, so Alex is at the computer while it drives his browser. It never submits an application (the skill's rule, restated in the prompt).
+
 ## Out of scope
 Approving drafts from inside Brain, parallel agents, per-type permissions, cancelling a running job.

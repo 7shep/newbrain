@@ -442,7 +442,7 @@ a.it-row:hover { background: var(--tile-2); }
   <section class="tile nudges"><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1112 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"/></svg><h2>Notes to self</h2><span class="n" id="nudgeCount"></span></header><div id="nudges"></div></section>
   <section class="tile projects"><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h6l2 2h10v10H3z"/></svg><h2>Projects</h2><span class="n" id="projCount"></span></header><div id="projects"></div></section>
   <section class="tile intern"><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M3 13h18"/></svg><h2>Internships</h2><span class="n" id="internCount"></span><button class="add" data-open="internships/tracker.md">Open tracker</button></header><div class="it" id="intern"></div></section>
-  <section class="tile agents" id="agentsTile" hidden><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 3v4M9 12h.01M15 12h.01M9 16h6"/></svg><h2>Agents</h2><span class="n" id="agentCount"></span></header>
+  <section class="tile agents" id="agentsTile" hidden><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 3v4M9 12h.01M15 12h.01M9 16h6"/></svg><h2>Agents</h2><span class="n" id="agentCount"></span><button class="add" id="runInternships" hidden title="Runs /apply-internships headless on Sonnet in your Chrome. It fills applications and never submits.">Run internships</button></header>
     <form class="agent-new" id="agentForm"><div style="flex:1"><textarea id="agentText" rows="2" aria-label="Task for a new agent" placeholder="What should an agent do? e.g. Read my ML notes and draft a study plan for the midterm"></textarea><small>Runs headless in your notes folder. Outside actions become drafts. ⌘↵ to start.</small></div><button class="pill yes" type="submit">Start agent</button></form>
     <div id="agents"></div></section>
   <section class="tile routines" id="routinesTile" hidden><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2M3 4l3 3M21 4l-3 3"/></svg><h2>Routines</h2><span class="n" id="routineCount"></span><button class="add" data-ract="refresh">Refresh</button></header><div id="routines"></div></section>
@@ -1003,6 +1003,9 @@ function renderAgents() {
   drawIsland();  // null runs: agents are off (no agents/ folder)
   $("agentsTile").hidden = !runs;
   if (!runs) return;
+  const interning = runs.some(r => r.type === "internships" && (r.status === "queued" || r.status === "running"));
+  $("runInternships").hidden = !(S.internships || []).length;
+  $("runInternships").disabled = interning; $("runInternships").textContent = interning ? "Internships running…" : "Run internships";
   $("agentCount").textContent = busy ? `${busy} working` : "";
   const label = { queued: "queued", running: "running", done: "done", failed: "failed" };
   $("agents").innerHTML = runs.length ? runs.map(r => `<div class="run ${esc(r.status)}${openRuns.has(r.file) ? " open" : ""}" data-run="${esc(r.file)}" title="Click for the report">
@@ -1023,6 +1026,10 @@ $("agentForm").onsubmit = async e => {
   try { await spawnAgent(text); $("agentText").value = ""; } catch (err) { toast(err.message); }
 };
 $("agentText").addEventListener("keydown", e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); $("agentForm").requestSubmit(); } });
+$("runInternships").onclick = async () => {
+  try { await api("/api/agent", { preset: "internships" }); toast("Internship run started. Keep Chrome open; it fills forms and never submits."); await load(); }
+  catch (err) { toast(err.message); }
+};
 const openRuns = new Set();
 let agentPoll = null;
 document.addEventListener("click", e => {

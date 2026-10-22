@@ -138,6 +138,43 @@ class AgentsTest(unittest.TestCase):
         a.submit("todo", "buy milk")
         self.assertNotIn("routine:", wait(a, 1)[0]["report"])
 
+    def test_internships_get_their_own_command_prompt_and_timeout(self):
+        echo = [sys.executable, "-c", "import sys; sys.stdin.reconfigure(encoding='utf-8'); print('intern: ' + sys.stdin.read()[:60])"]
+        a = Agents(self.notes, command=FAKE, internships_command=echo)
+        a.internships()
+        run = wait(a, 1)[0]
+        self.assertEqual((run["type"], run["status"]), ("internships", "done"))
+        self.assertIn("intern: Brain started you headless", run["report"])
+
+    def test_internships_command_is_sonnet_with_chrome_and_a_narrow_allowlist(self):
+        import agents
+        cmd = agents.internships_command()
+        self.assertEqual(cmd[cmd.index("--model") + 1], "claude-sonnet-5-5")
+        self.assertIn("--chrome", cmd)
+        self.assertIn("Write(internships/**)", cmd)
+        for tool in ("Write", "Edit", "WebFetch", "Bash(ls:*)", "mcp__claude_ai_Gmail__create_draft"):
+            self.assertNotIn(tool, cmd)
+        self.assertIn("never click Submit", agents.internships_prompt())
+
+    def test_one_internship_run_at_a_time(self):
+        slow = [sys.executable, "-c", "import time; time.sleep(2)"]
+        a = Agents(self.notes, command=FAKE, internships_command=slow, internships_timeout=5)
+        self.assertTrue(a.internships())
+        self.assertIsNone(a.internships())
+        wait(a, 1)
+
+    def test_internship_run_is_never_parked_or_drained(self):
+        notes = tempfile.mkdtemp()
+        a = Agents(notes, command=FAKE)
+        os.environ["BRAIN_AGENTS"] = "pending"
+        try:
+            self.assertIsNone(a.internships())
+        finally:
+            del os.environ["BRAIN_AGENTS"]
+        a._park("internships", "x")
+        self.assertEqual(a.drain_pending(), 0)
+        self.assertEqual(a.recent(), [])
+
 
 if __name__ == "__main__":
     unittest.main()

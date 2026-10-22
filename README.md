@@ -229,6 +229,12 @@ into the box, or press ⌘K / Ctrl+K and pick **Agent**. On the phone, pick **Ag
 Mac after its next pull. If `agents/` doesn't exist, the first one creates it with an `agents/.spawn-only` marker, so
 your captures still don't start agents on their own; delete the marker to turn that on too.
 
+If your notes have `internships/tracker.md`, the Agents tile also has a **Run internships** button. It runs the
+`apply-internships` skill headless on Sonnet 5.5 in your Chrome (`claude -p --chrome`), with up to an hour and a narrower
+allowlist: Chrome, reading the notes, and writing only under `internships/`. Like the interactive skill, it fills
+applications and leaves each tab ready, and never submits. It only starts from that button on the computer: there's no
+schedule, and the phone can't start it, so you're around while it uses your browser.
+
 The agent's permissions are an allowlist, not a denylist. It runs with `--setting-sources project --permission-mode
 dontAsk`, so your own Claude settings can't widen it and anything off the list is refused. It can read, edit notes and
 project files, search the web, create Gmail drafts and add calendar events. It can't send email or texts, commit,

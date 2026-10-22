@@ -559,7 +559,16 @@ def act_capture(body):
 
 
 def act_agent(body):
-    """Start a headless agent on a task typed in the Agents tile (or the palette's Agent kind)."""
+    """Start a headless agent on a task typed in the Agents tile (or the palette's Agent kind),
+    or {"preset": "internships"} for the internship run (the tile's button, on the Mac only)."""
+    if body.get("preset") == "internships":
+        if os.environ.get("BRAIN_AGENTS") == "pending":
+            raise ValueError("The internship run starts from Brain on the Mac, not the phone.")
+        if not os.path.exists(os.path.join(NOTES, "internships", "tracker.md")):
+            raise ValueError("No internships/tracker.md in these notes.")
+        if not AGENTS.internships():
+            raise ValueError("The internship run is already queued or running.")
+        return
     text = str(body.get("text") or "").strip()[:4000]
     if not text:
         raise ValueError("empty")
