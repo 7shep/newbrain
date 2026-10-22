@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 
@@ -294,6 +295,17 @@ class SyncTest(unittest.TestCase):
         self.assertEqual(pulled, [1])
         self.assertTrue(s.pull())  # within the minute: skipped, hook not re-run
         self.assertEqual(pulled, [1])
+
+    def test_background_timer_pulls_without_a_page_asking(self):
+        pulled = threading.Event()
+        s = Sync(self.mac, on_pulled=pulled.set)
+        self.remote_change("inbox.md", "- queued while away\n")
+        s.start(every=0.05)
+        try:
+            self.assertTrue(pulled.wait(10))
+        finally:
+            s.stopped.set()
+        self.assertIn("queued while away", read(self.mac, "inbox.md"))
 
     def test_commit_only_takes_brains_files_and_pushes(self):
         s = Sync(self.mac)

@@ -1,7 +1,8 @@
 """Keeps the notes folder in step with its GitHub repo, for the phone app (docs/specs/2026-09-27-phone-app.md).
 
-On only when the notes folder is a git repo with a phone/ folder. Pulls when Brain starts and when the page
-asks for fresh state (at most once a minute). Commits only the files Brain itself wrote, then pushes in the
+On only when the notes folder is a git repo with a phone/ folder. Pulls when Brain starts, when the page
+asks for fresh state, and every minute in the background so phone agent tasks start with no tab open (at most
+once a minute either way). Commits only the files Brain itself wrote, then pushes in the
 background. A pull that can't rebase cleanly is aborted and reported, never auto-resolved.
 """
 import os
@@ -9,7 +10,7 @@ import subprocess
 import threading
 import time
 
-GAP = 60  # seconds between pulls triggered by page loads
+GAP = 60  # seconds between pulls triggered by page loads or the background timer
 
 
 class Sync:
@@ -19,6 +20,17 @@ class Sync:
         self.last = 0.0
         self.error = None
         self.lock = threading.Lock()
+        self.stopped = threading.Event()
+
+    def start(self, every=GAP):
+        """Pull every `every` seconds on a daemon thread, so a phone agent task starts while no Brain tab is open."""
+        def loop():
+            while not self.stopped.wait(every):
+                try:
+                    self.pull()
+                except Exception as e:  # never let one bad pull end the timer
+                    self.error = "Background sync failed: %s" % e
+        threading.Thread(target=loop, daemon=True).start()
 
     def enabled(self):
         return os.path.isdir(os.path.join(self.notes, "phone")) and os.path.isdir(os.path.join(self.notes, ".git"))

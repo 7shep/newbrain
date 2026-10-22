@@ -790,6 +790,7 @@ def main():
     TOUCHED.clear()  # the startup index rebuild isn't worth a commit on its own
     publish_graph()
     AGENTS.recover()
+    SYNC.start()  # keep pulling with no tab open, so tasks queued from the phone start on their own
     if "--no-open" not in sys.argv:
         threading.Timer(0.4, lambda: subprocess.run(["open", url]) if sys.platform == "darwin" else webbrowser.open(url)).start()
     try:

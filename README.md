@@ -226,8 +226,9 @@ top bar turns amber while one is working. Click it for the reports.
 
 You can also start an agent on any task yourself, with or without that folder: open **Claude's agents** and type it
 into the box, or press ⌘K / Ctrl+K and pick **Agent**. On the phone, pick **Agent task** in Capture; it starts on the
-Mac after its next pull. If `agents/` doesn't exist, the first one creates it with an `agents/.spawn-only` marker, so
-your captures still don't start agents on their own; delete the marker to turn that on too.
+Mac within about a minute while Brain is running (or when Brain next starts). If `agents/` doesn't exist, the first
+one creates it with an `agents/.spawn-only` marker, so your captures still don't start agents on their own; delete
+the marker to turn that on too.
 
 If your notes have `internships/tracker.md`, the Agents tile also has a **Run internships** button. It runs the
 `apply-internships` skill headless on Sonnet 5.5 in your Chrome (`claude -p --chrome`), with up to an hour and a narrower
@@ -257,7 +258,8 @@ desktop app uses (so the two can't disagree), then rebuilds `phone/state.json`, 
 takes about 30 seconds, and the phone shows your change straight away in the meantime. A capture from your phone
 gets its background agent the next time your laptop pulls.
 
-On your laptop, Brain pulls from GitHub when it starts, when you reload the page and when a Claude session starts.
+On your laptop, Brain pulls from GitHub when it starts, every minute while it's running (even with no Brain tab open),
+when you reload the page and when a Claude session starts.
 It commits and pushes only the notes it changed itself. If the phone and laptop ever change the same note in a way
 git can't combine, it stops and says "Sync paused" instead of guessing.
 
