@@ -104,8 +104,15 @@ class Agents:
         _write_atomic(path, body)
 
     def _read(self, path):
-        with open(path, encoding="utf-8", errors="replace") as f:
-            raw = f.read()
+        for attempt in range(20):  # Windows refuses the open while _write_atomic is replacing the file
+            try:
+                with open(path, encoding="utf-8", errors="replace") as f:
+                    raw = f.read()
+                break
+            except PermissionError:
+                if attempt == 19:
+                    raise
+                time.sleep(0.05)
         m = re.match(r"---\n(.*?)\n---\n", raw, re.S)
         meta = dict(re.findall(r"^(\w+): (.*)$", m.group(1), re.M)) if m else {}
         text = re.search(r"## Input\n(.*?)(?:\n## Report\n|\Z)", raw, re.S)
