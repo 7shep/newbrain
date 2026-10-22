@@ -558,6 +558,14 @@ def act_capture(body):
     AGENTS.submit(kind, text)
 
 
+def act_agent(body):
+    """Start a headless agent on a task typed in the Agents tile (or the palette's Agent kind)."""
+    text = str(body.get("text") or "").strip()[:4000]
+    if not text:
+        raise ValueError("empty")
+    AGENTS.spawn(text)
+
+
 def file_get(query):
     rel = safe_rel(query.get("path", [""])[0])
     if not rel:
@@ -682,7 +690,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
         if not self.authed():
             return self.send(403, {"error": "forbidden"})
-        routes = {"/api/nudge": act_nudge, "/api/habit": act_habit, "/api/capture": act_capture,
+        routes = {"/api/nudge": act_nudge, "/api/habit": act_habit, "/api/capture": act_capture, "/api/agent": act_agent,
                   "/api/idea": act_idea, "/api/project": act_project, "/api/habit-new": act_habit_new, "/api/theme": act_theme, "/api/daily": act_daily, "/api/study": act_study}
         path = urllib.parse.urlparse(self.path).path
         if path == "/api/routines":  # slow (a claude call), so outside LOCK

@@ -37,7 +37,36 @@ class AgentsTest(unittest.TestCase):
         notes = tempfile.mkdtemp()
         a = Agents(notes, command=FAKE)
         self.assertIsNone(a.submit("note", "hello"))
-        self.assertIsNone(a.recent())
+        self.assertEqual(a.recent(), [])
+        self.assertFalse(os.path.exists(os.path.join(notes, "agents")))
+
+    def test_spawn_works_without_opting_captures_in(self):
+        notes = tempfile.mkdtemp()
+        a = Agents(notes, command=FAKE)
+        a.spawn("look into this")
+        run = wait(a, 1)[0]
+        self.assertEqual((run["type"], run["status"]), ("task", "done"))
+        self.assertIn("did: look into this", run["report"])
+        self.assertFalse(a.enabled())  # the first spawn doesn't make every capture start an agent
+        self.assertIsNone(a.submit("note", "just a thought"))
+        self.assertEqual(len(a.recent()), 1)
+
+    def test_spawn_gets_the_task_prompt(self):
+        echo = [sys.executable, "-c", "import sys; sys.stdin.reconfigure(encoding='utf-8'); print(sys.stdin.read().splitlines()[0])"]
+        a = Agents(self.notes, command=echo)
+        a.spawn("summarize my week")
+        self.assertIn("Agents tile with this task: summarize my week", wait(a, 1)[0]["report"])
+
+    def test_parked_tasks_run_even_when_captures_are_off(self):
+        notes = tempfile.mkdtemp()
+        a = Agents(notes, command=FAKE)
+        os.environ["BRAIN_AGENTS"] = "pending"
+        try:
+            a.spawn("from the phone")
+        finally:
+            del os.environ["BRAIN_AGENTS"]
+        self.assertEqual(a.drain_pending(), 1)
+        self.assertEqual(wait(a, 1)[0]["text"], "from the phone")
 
     def test_runs_in_order_one_at_a_time_and_reports(self):
         a = Agents(self.notes, command=FAKE)

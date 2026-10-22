@@ -1,6 +1,8 @@
 """Headless Claude Code agents for things added in Brain (spec: docs/specs/2026-09-27-headless-agents.md).
 
-Off unless the notes folder has an agents/ folder. One job at a time. Each job is a markdown file in
+Captures start agents only when the notes folder has an agents/ folder (without the SPAWN_ONLY marker).
+An agent started on purpose from the Agents tile (spawn) always runs; the first one creates agents/ with
+that marker, so it doesn't also opt every capture in. One job at a time. Each job is a markdown file in
 agents/ that is rewritten as it moves queued -> running -> done/failed, so its state survives restarts.
 """
 import datetime
@@ -32,6 +34,15 @@ PROMPT = (
     "an action. Don't git commit. End with a report of at most 3 lines: what you did, and any files "
     "changed or drafts made."
 )
+# An agent Alex started on purpose: the text is the task itself.
+TASK_PROMPT = (
+    "Alex started you from Brain's Agents tile with this task: {text}\n\n"
+    "You're in Alex's notes folder; read INDEX.md first if the notes are relevant. Do the task. Anything that would "
+    "leave this machine (email, texts, git push, a live site) becomes a draft (a Gmail draft, or text in your "
+    "report), never an action. Don't git commit. End with a short report: what you did or found, and any files "
+    "changed or drafts made."
+)
+SPAWN_ONLY = ".spawn-only"  # in agents/: runs started from the tile only; captures don't start agents
 
 
 def _projects():
@@ -81,7 +92,8 @@ class Agents:
         self.worker = None
 
     def enabled(self):
-        return os.path.isdir(self.dir)
+        """Whether captures start agents (spawn() always works)."""
+        return os.path.isdir(self.dir) and not os.path.exists(os.path.join(self.dir, SPAWN_ONLY))
 
     # ------------------------------------------------------------ files
     def _write(self, path, meta, text, report=""):
@@ -106,7 +118,7 @@ class Agents:
     # ------------------------------------------------------------ api
     def recover(self):
         """Runs left queued/running by a previous Brain can never finish: mark them failed."""
-        if not self.enabled():
+        if not os.path.isdir(self.dir):
             return
         for path in self._files():
             meta, text, report = self._read(path)
@@ -117,6 +129,19 @@ class Agents:
     def submit(self, kind, text):
         if not self.enabled() or not text.strip():
             return None
+        return self._queue(kind, text)
+
+    def spawn(self, text):
+        """Start an agent on a task typed in Brain, whether or not captures start agents."""
+        if not text.strip():
+            return None
+        if not os.path.isdir(self.dir):
+            os.makedirs(self.dir)
+            with open(os.path.join(self.dir, SPAWN_ONLY), "w", encoding="utf-8") as f:
+                f.write("Agents here were started from Brain's Agents tile. Delete this file to have every capture start one too.\n")
+        return self._queue("task", text)
+
+    def _queue(self, kind, text):
         if os.environ.get("BRAIN_AGENTS") == "pending":
             return self._park(kind, text)
         slug = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:40] or "item"
@@ -145,7 +170,7 @@ class Agents:
     def drain_pending(self):
         """Start an agent for each parked capture. Returns how many it started."""
         pending = os.path.join(self.dir, "pending")
-        if not self.enabled() or not os.path.isdir(pending):
+        if not os.path.isdir(pending):
             return 0
         n = 0
         for name in sorted(os.listdir(pending)):
@@ -155,16 +180,22 @@ class Agents:
             try:
                 with open(path, encoding="utf-8") as f:
                     job = json.load(f)
-                os.remove(path)
             except (OSError, ValueError):
                 continue
-            if self.submit(job.get("kind", "note"), str(job.get("text", ""))):
+            kind, text = job.get("kind", "note"), str(job.get("text", ""))
+            if kind != "task" and not self.enabled():
+                continue  # a capture parked before captures were switched off waits for them
+            try:
+                os.remove(path)
+            except OSError:
+                continue
+            if self.spawn(text) if kind == "task" else self.submit(kind, text):
                 n += 1
         return n
 
     def recent(self, n=10):
-        if not self.enabled():
-            return None
+        if not os.path.isdir(self.dir):
+            return []
         out = []
         for path in self._files()[:n]:
             meta, text, report = self._read(path)
@@ -185,7 +216,7 @@ class Agents:
     def run(self, path, kind, text):
         meta = {"status": "running", "type": kind, "queued": self._read(path)[0].get("queued", now()), "started": now()}
         self._write(path, meta, text)
-        command, prompt = self.command, PROMPT.format(kind=kind, text=text)
+        command, prompt = self.command, (TASK_PROMPT if kind == "task" else PROMPT).format(kind=kind, text=text)
         if kind == "routine":  # its own prompt, and RemoteTrigger is the only tool; other kinds never get it
             import routines  # here, not at the top: routines imports this module
             command = self.routine_command or routines.create_command()

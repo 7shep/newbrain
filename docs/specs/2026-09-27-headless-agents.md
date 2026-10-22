@@ -42,5 +42,8 @@ Agents never commit. The next interactive session commits notes, as now. `agents
 - Unit tests with `claude` swapped for a fake command: queue order, one at a time, status file transitions, timeout marks failed, restart recovery, opt-in off queues nothing.
 - One live run: capture a trivial note, watch it go queued → running → done, and read the report.
 
+## Starting an agent directly (added 2026-10-22)
+The Agents tile has a task box (and the ⌘K palette an **Agent** kind; the phone's Capture an **Agent task** type). `/api/agent` queues a job of type `task` with its own prompt: the text is the task. This works without the opt-in folder: the first one creates `agents/` with an `agents/.spawn-only` marker, and while that marker exists captures still don't start agents. Same runner, queue and allowlist as above. The phone parks tasks in `agents/pending/` like captures. With no runs, the tile offers to start one instead of saying "All clear".
+
 ## Out of scope
 Approving drafts from inside Brain, parallel agents, per-type permissions, cancelling a running job.

@@ -75,11 +75,13 @@ function items(S, o) {
     summary: `${open.length} thing${open.length === 1 ? "" : "s"} you told yourself to do${late.length ? `, ${late.length} overdue` : ""}.`,
     rows: open.map(n => [n.title, dueTxt(n)]), spot: late[0] ? [late[0].title, dueTxt(late[0])] : open[0] ? [open[0].title, dueTxt(open[0]) || "open"] : null });
 
-  // Claude's agents
+  // Claude's agents: never "all clear"; with no runs it offers to start one
   const runs = (S.agents || []).slice().sort((a, b) => String(b.queued || "").localeCompare(String(a.queued || "")));
-  const busy = runs.filter(r => /queued|running|failed/.test(r.status || "")).length;
-  mk("agents", "Claude's agents", "bot", busy ? Math.min(70, 20 * busy) : 5, { count: runs.length, cleared: !runs.length, why: busy ? `${busy} active` : "all done",
-    summary: "What your captures turned into.", rows: runs.map(r => [r.text || r.file || "", `${r.status} · ${String(r.finished || r.queued || "").slice(11, 16)}`]),
+  const busy = runs.filter(r => /queued|running/.test(r.status || "")).length, failed = runs.filter(r => r.status === "failed").length;
+  mk("agents", "Claude's agents", "bot", busy || failed ? Math.min(70, 20 * (busy + failed)) : 5, { count: runs.length,
+    why: busy ? `${busy} working` : failed ? `${failed} failed` : runs.length ? "all done" : "none yet",
+    summary: busy ? `${busy} working now. Open to start another.` : runs.length ? "Open to start a headless agent on anything." : "Start a headless Claude agent on any task.",
+    rows: runs.map(r => [r.text || r.file || "", `${r.status} · ${String(r.finished || r.queued || "").slice(11, 16)}`]),
     spot: runs[0] ? [runs[0].text || "", String(runs[0].report || runs[0].status || "").slice(0, 160)] : null });
 
   // Routines

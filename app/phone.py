@@ -6,7 +6,7 @@ Run by the notes repo's GitHub Action (see docs/specs/2026-09-27-phone-app.md):
 
 The phone never edits notes. It drops one JSON file per action into phone/queue/, and this applies each with
 the same functions the Mac app uses, so both write notes identically. A bad action is moved to phone/failed/
-with its error instead of blocking the rest. Captures don't run agents here: they're parked in
+with its error instead of blocking the rest. Captures and agent tasks don't run agents here: they're parked in
 agents/pending/ for the Mac.
 """
 import datetime
@@ -198,6 +198,7 @@ def act_ask(body):
 ACTIONS = {
     "ask": act_ask,
     "capture": server.act_capture,
+    "agent": server.act_agent,  # parked in agents/pending/ like a capture; the Mac runs it
     "nudge": server.act_nudge,
     "idea": server.act_idea,
     "habit": server.act_habit,

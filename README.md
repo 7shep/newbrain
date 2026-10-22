@@ -25,7 +25,7 @@ act on them.
 - **Everything we've done:** one self-contained note per session, in a full-width timeline.
 - **People & me:** your profile and contacts, in the People tile on the board.
 - **On your phone:** a home-screen app with the cover, Up next, Notes to self, projects, ideas, habits and capture. It works with your laptop off, using a private GitHub repo as the backend. [Set it up →](#on-your-phone)
-- **Background agents:** anything you capture can start a headless Claude Code agent that files it or does it. [More →](#background-agents-optional)
+- **Background agents:** start a headless Claude Code agent on any task from the Agents tile, or let anything you capture start one that files it or does it. [More →](#background-agents-optional)
 - **Stats:** prompts sent, sessions, subagents, tool calls, tokens and storage, with 30-day charts, read straight from Claude Code's transcripts (`~/.claude/projects`).
 - **How well Claude knows you:** Claude logs each bet it makes about what you'll want (a recommended option, a guess, a draft), and Brain scores its calibration.
 - **Routines:** your Claude Code routines (scheduled cloud agents) with their schedule and last run; run, pause or resume one from the Mac, see which look unnecessary, and pick from suggested new ones in Capture (Routine). The phone shows them read-only.
@@ -223,6 +223,11 @@ Create an `agents/` folder in your notes and anything you capture in the app (a 
 proposal) also starts a headless Claude Code agent (`claude -p`). It files the thought where it belongs, or does the
 task, writes a short report and exits. Runs go one at a time with a 20-minute limit, and a small "agents" chip in the
 top bar turns amber while one is working. Click it for the reports.
+
+You can also start an agent on any task yourself, with or without that folder: open **Claude's agents** and type it
+into the box, or press ⌘K / Ctrl+K and pick **Agent**. On the phone, pick **Agent task** in Capture; it starts on the
+Mac after its next pull. If `agents/` doesn't exist, the first one creates it with an `agents/.spawn-only` marker, so
+your captures still don't start agents on their own; delete the marker to turn that on too.
 
 The agent's permissions are an allowlist, not a denylist. It runs with `--setting-sources project --permission-mode
 dontAsk`, so your own Claude settings can't widen it and anything off the list is refused. It can read, edit notes and

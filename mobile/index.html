@@ -227,7 +227,7 @@ button, .row, header[data-sec] { -webkit-touch-callout: none; }
 /* capture: each type has its own colour, icon and prompt; the parts rise in when the sheet opens */
 #capture { --acc: var(--accent); --acc-ink: var(--accent-ink); }
 #capture[data-type="idea"] { --acc: var(--extra); } #capture[data-type="todo"] { --acc: var(--good); }
-#capture[data-type="person"] { --acc: var(--info); } #capture[data-type="habit"] { --acc: var(--bad); }
+#capture[data-type="person"] { --acc: var(--info); } #capture[data-type="habit"] { --acc: var(--bad); } #capture[data-type="agent"] { --acc: var(--accent); }
 #capture .types button[aria-pressed="true"] { background: var(--acc); border-color: var(--acc); color: var(--acc-ink); }
 #capture textarea { transition: border-color .35s; } #capture textarea:focus { border-color: var(--acc); }
 #capture .go { background: var(--acc); color: var(--acc-ink); transition: transform .18s var(--ease), background-color .35s, box-shadow .35s; }
@@ -576,7 +576,7 @@ function render() {
     ${internSec(view.internships)}
     ${sec("people", "People", (view.people || []).length, `${(view.people || []).map(p => `<button class="row" data-open="${esc(p.path)}"><div><div class="t">${esc(p.title)}</div><div class="s">${esc(p.meta.follow_up ? "Next: " + p.meta.follow_up : (p.meta.relation || p.tldr || ""))}</div></div></button>`).join("") || `<div class="empty">No people pages yet.</div>`}`)}
     ${view.me?.exists ? sec("me", "Me", "", `${view.me.meta?.tagline ? `<div class="t">${esc(view.me.meta.tagline)}</div>` : ""}${(view.me.snapshot || []).map(x => `<div class="s" style="margin-top:8px">${esc(x)}</div>`).join("")}<div class="acts"><button class="pill yes" data-open="${esc(view.me.path)}">Open me.md</button></div>`) : ""}
-    ${(view.agents || []).length ? sec("agents", "Agents", view.agents.length, view.agents.slice(0, 6).map(a => `<div class="job"><small>${esc(a.status)} · ${esc((a.finished || a.queued || "").slice(5))}</small><h4>${esc(a.text)}</h4>${a.report ? `<p data-expand>${esc(a.report)}</p>` : ""}</div>`).join("")) : ""}
+    ${sec("agents", "Agents", (view.agents || []).length || "", (view.agents || []).slice(0, 6).map(a => `<div class="job"><small>${esc(a.status)} · ${esc((a.finished || a.queued || "").slice(5))}</small><h4>${esc(a.text)}</h4>${a.report ? `<p data-expand>${esc(a.report)}</p>` : ""}</div>`).join("") || `<div class="empty">No runs yet. Tap + → Agent task, and your Mac starts one.</div>`)}
     ${routinesSec(view.routines)}
     ${sec("ideas", "Ideas", view.ideas.length ? view.ideas.length + " open" : "", `${view.ideas.length ? view.ideas.slice(0, showAllIdeas ? 999 : 5).map(l => { const m = l.match(/^(\d{4}-\d{2}-\d{2}) · (.*?)(?: \(project: [\w-]+\))?$/);
         return `<div class="idea"><small>${esc(m ? m[1] : "")}</small><div class="t">${esc(m ? m[2] : l)}</div>
@@ -680,7 +680,7 @@ document.addEventListener("brain-theme", () => { if (tilesOn() && !pageKey) { la
 // Dynamic Island: agent runs at a glance; grows while something is filing or running, says Done, tap for the list.
 let iWork = 0, iDone = 0;
 function island(view) {
-  const runs = view.agents || [], work = outbox.filter(a => a.action === "capture").length + runs.filter(a => /queued|running/.test(a.status || "")).length;
+  const runs = view.agents || [], work = outbox.filter(a => a.action === "capture" || a.action === "agent").length + runs.filter(a => /queued|running/.test(a.status || "")).length;
   if (iWork && !work) { iDone = Date.now() + 2400; setTimeout(render, 2500); }
   iWork = work;
   const txt = work ? `Working · ${work}` : Date.now() < iDone ? "Done ✓" : `${runs.length} agent${runs.length === 1 ? "" : "s"}`;
@@ -953,7 +953,7 @@ async function openDoc(path) {
 function open(id) { $(id).classList.add("on"); }
 function close(id) { if (id === "page") return closePage(); $(id).classList.remove("on"); }
 document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => close(b.closest(".sheet, #page").id));
-const TYPES = [["note", "Note"], ["idea", "Idea"], ["todo", "Todo"], ["person", "Person"], ["habit", "Habit for Claude"], ["routine", "Routine"]];
+const TYPES = [["note", "Note"], ["idea", "Idea"], ["todo", "Todo"], ["person", "Person"], ["habit", "Habit for Claude"], ["routine", "Routine"], ["agent", "Agent task"]];
 // per type: prompt, icon paths, and the rotating "Try:" sparks under the form
 const CAP = {
   note: ["What's on your mind?", '<path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h5"/>', ["something you noticed today", "a line from class worth keeping", "what's stuck in your head"]],
@@ -961,6 +961,7 @@ const CAP = {
   todo: ["What needs doing?", '<path d="M4 12l5 5L20 6"/>', ["the thing you keep forgetting", "an email you owe someone", "what's due this week"]],
   person: ["Who'd you meet, and what's worth remembering?", '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>', ["someone new from today", "what a friend just told you", "who to follow up with"]],
   routine: ["What should run on a schedule?", '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', ["every Sunday at 6pm, plan my week", "weekday mornings, list who's waiting on a reply", "Fridays, sum up what changed in my internships"]],
+  agent: ["What should a headless agent do?", '<rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 3v4M9 12h.01M15 12h.01"/>', ["research something and write up what you find", "tidy a project page", "draft a reply you've been putting off"]],
   habit: ["What should Claude start doing?", '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/>', ["something Claude got wrong today", "how you want replies to sound", "a rule Claude should always follow"]],
 };
 let capType = "note", sparkI = 0, sparkT = null;
@@ -993,6 +994,12 @@ function drawRecent() {  // last few inbox captures, newest first ("date · kind
       + `<p class="spark">Set up when your computer is on, and created paused.</p>`;
     return;
   }
+  if (capType === "agent") {
+    const runs = (S?.agents || []).slice(0, 3);
+    $("capRecent").innerHTML = (runs.length ? "<h4>Recent agents</h4>" + runs.map((a, i) => `<div class="r" style="animation-delay:${.34 + i * .06}s"><small>${esc(a.status)}</small><span>${esc(a.text)}</span></div>`).join("") : "")
+      + `<p class="spark">Starts on your Mac the next time it's on.</p>`;
+    return;
+  }
   const items = (S?.inbox || []).slice(-3).reverse().map(l => l.split(" · "));
   $("capRecent").innerHTML = items.length ? "<h4>Recently captured</h4>" + items.map(([, k, ...t], i) =>
     `<div class="r" style="animation-delay:${.34 + i * .06}s"><small>${esc(t.length ? k : "")}</small><span>${esc(t.length ? t.join(" · ") : k)}</span></div>`).join("") : "";
@@ -1016,6 +1023,7 @@ $("openCapture").onclick = () => {
 $("capGo").onclick = () => {
   const text = $("capText").value.trim(); if (!text) return;
   if (capType === "habit") act("habit-new", { title: text, why: "" }, "Habit proposed");
+  else if (capType === "agent") act("agent", { text }, "Agent queued for your Mac");
   else act("capture", { kind: capType, text }, "Captured");
   $("capText").value = ""; $("capGo").classList.remove("ready"); close("capture");
   if (calm()) return;
