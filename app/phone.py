@@ -13,7 +13,10 @@ import datetime
 import glob
 import json
 import os
+import shutil
+import subprocess
 import sys
+import tempfile
 
 NOTES = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else ".")
 PREPARE_ASKS = "--prepare-asks" in sys.argv
@@ -27,9 +30,9 @@ import server  # noqa: E402
 
 # Each voice question goes to the lightest model that can handle it. A Haiku call sorts them first.
 TIERS = {
-    "everyday": ("claude-haiku-5-5", "low"),    # lookups in the notes, reminders, captures, quick advice
-    "coding": ("claude-sonnet-5-5", "medium"),  # straightforward programming questions
-    "intense": ("claude-opus-5-5", "high"),     # multi-step planning, hard reasoning, difficult code
+    "everyday": ("haiku", "low"),     # lookups in the notes, reminders, captures, quick advice
+    "coding": ("sonnet", "medium"),   # straightforward programming questions
+    "intense": ("opus", "high"),      # multi-step planning, hard reasoning, difficult code
 }
 CLASSIFIER = "everyday"
 UNSURE = "coding"  # when the classifier fails or skips a question: the middle tier
@@ -95,28 +98,32 @@ def validate_answer(reply):
 
 
 def ask_claude(tier, system, payload, schema):
-    """One Claude API call (ANTHROPIC_API_KEY) on the tier's model, whose reply is JSON matching schema; no tools."""
-    try:
-        import anthropic  # only voice answers need it
-    except ImportError:
-        raise ValueError("Voice answers need the anthropic package: pip install anthropic") from None
+    """One headless `claude -p` call on the tier's model, whose reply is JSON matching schema; no tools.
+    It runs on the Claude plan claude is logged in with: your Claude Code login on the Mac, and on GitHub the
+    CLAUDE_CODE_OAUTH_TOKEN secret made by `claude setup-token`."""
     model, effort = TIERS[tier]
-    # Haiku has no server-side refusal fallback; Sonnet and Opus fall back to another model on a refusal.
-    extra = {} if "haiku" in model else {"betas": ["server-side-fallback-2026-07-01"], "fallbacks": "default"}
+    # One-line system prompt: on Windows an npm-installed claude is a .cmd shim, and cmd.exe cuts arguments at a newline.
+    command = [shutil.which("claude") or "claude", "-p", "--model", model, "--effort", effort,
+               "--system-prompt", " ".join(system.split()), "--json-schema", json.dumps(schema),
+               "--output-format", "json", "--tools", "", "--setting-sources", "", "--strict-mcp-config",
+               "--no-session-persistence"]
+    # An empty working folder, so no CLAUDE.md or project settings load; the notes arrive on stdin.
+    with tempfile.TemporaryDirectory(prefix="brain-ask-") as work:
+        try:
+            p = subprocess.run(command, input=json.dumps(payload, ensure_ascii=False), cwd=work,
+                               capture_output=True, encoding="utf-8", errors="replace", timeout=180)
+        except FileNotFoundError:
+            raise ValueError("Voice answers need Claude Code (the claude command)") from None
+        except subprocess.TimeoutExpired:
+            raise ValueError("Claude voice answer timed out") from None
     try:
-        r = anthropic.Anthropic().beta.messages.create(
-            model=model, max_tokens=16000, system=system, **extra,
-            output_config={"effort": effort, "format": {"type": "json_schema", "schema": schema}},
-            messages=[{"role": "user", "content": json.dumps(payload, ensure_ascii=False)}])
-    except anthropic.APIError:
-        # Don't echo API diagnostics or credentials into the phone's state.
-        raise ValueError("Claude voice answer failed; check ANTHROPIC_API_KEY") from None
-    if r.stop_reason != "end_turn":
-        raise ValueError("Claude didn't finish the voice answer (%s)" % r.stop_reason)
-    try:
-        return json.loads("".join(b.text for b in r.content if b.type == "text"))
+        out = json.loads(p.stdout)
     except ValueError:
-        raise ValueError("Claude did not return a valid voice answer") from None
+        out = {}
+    if p.returncode or not isinstance(out, dict) or out.get("is_error") or not isinstance(out.get("structured_output"), dict):
+        # Don't echo CLI diagnostics or credentials into the phone's state.
+        raise ValueError("Claude voice answer failed; check the Claude login or CLAUDE_CODE_OAUTH_TOKEN")
+    return out["structured_output"]
 
 
 def classify(questions):

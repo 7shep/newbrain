@@ -288,12 +288,14 @@ Each question goes to the lightest model that can handle it. A quick Haiku call 
 Questions in the same tier share one call, and a question the sorter misses goes to Sonnet. The tiers and their
 models live in `TIERS` at the top of `app/phone.py`.
 
-Copy the updated [workflow template](docs/notes-workflow.yml) to the private notes repo and add an
-`ANTHROPIC_API_KEY` repository secret. The workflow checks out `7shep/newbrain`, prepares the questions, answers
-them through the Claude API in a step that is the only one to see the secret, then applies answers and ordinary
-phone actions through Python. With no secret or an invalid answer, the question fails visibly while other queued
-actions continue. Normal captures and reminders need no secret. A local queue run (`python3 app/phone.py
-personal-notes`) answers through the API too, using `ANTHROPIC_API_KEY` from your environment.
+Answers run on your Claude plan, not an API key: each call is a headless `claude -p` with no tools, so it counts
+toward your plan's usage like any Claude Code session. To enable them while your laptop is off, run
+`claude setup-token` once, then add the token it prints as a `CLAUDE_CODE_OAUTH_TOKEN` repository secret in the
+private notes repo and copy the updated [workflow template](docs/notes-workflow.yml) there. The workflow checks out
+`7shep/newbrain`, prepares the questions, installs Claude Code and answers them in a step that is the only one to see
+the secret, then applies answers and ordinary phone actions through Python. With no secret or an invalid answer, the
+question fails visibly while other queued actions continue. Normal captures and reminders need no secret. A local
+queue run (`python3 app/phone.py personal-notes`) uses your existing Claude Code login.
 
 ### Internships and morning context
 

@@ -49,7 +49,7 @@ import phone
 
 def fake(tier, system, payload, schema):
     if os.environ.get("TEST_CLAUDE_FAIL") == "1":
-        raise ValueError("Claude voice answer failed; check ANTHROPIC_API_KEY")
+        raise ValueError("Claude voice answer failed; check the Claude login or CLAUDE_CODE_OAUTH_TOKEN")
     if schema is phone.CLASSIFY_SCHEMA:
         return {"tiers": [{"id": q["id"], "tier": "everyday"} for q in payload["questions"]]}
     assert tier == "everyday" and "now.md" in payload["notes"]
@@ -151,42 +151,40 @@ with patch.object(phone, "ask_claude", side_effect=fake):
             self.assertEqual(json.load(f)["answers"], [{"id": "a1", "answer": "Nothing yet.", "capture": None, "tier": "everyday"}])
 
     def test_each_question_goes_to_its_tier_model(self):
-        # A stand-in anthropic package records every request; nothing leaves the machine.
+        # A stand-in for the claude command records every call; nothing leaves the machine.
         code = r"""
-import json, sys, types
+import json, sys
 from types import SimpleNamespace as NS
+from unittest.mock import patch
 sys.path.insert(0, sys.argv[1])
 sys.argv = ["phone.py", sys.argv[2]]
+import phone
 calls = []
-def create(**kw):
-    calls.append(kw)
-    qs = json.loads(kw["messages"][0]["content"])["questions"]
-    if kw["output_config"]["format"]["schema"]["required"] == ["tiers"]:
+def run(command, **kw):
+    flag = lambda name: command[command.index(name) + 1]
+    calls.append({"model": flag("--model"), "effort": flag("--effort"), "tools": flag("--tools"),
+                  "ids": [q["id"] for q in json.loads(kw["input"])["questions"]]})
+    assert "\n" not in flag("--system-prompt") and kw["cwd"] != phone.NOTES
+    qs = json.loads(kw["input"])["questions"]
+    if json.loads(flag("--json-schema"))["required"] == ["tiers"]:
         out = {"tiers": [{"id": "q1", "tier": "everyday"}, {"id": "q2", "tier": "coding"},
                          {"id": "q3", "tier": "intense"}, {"id": "q4", "tier": "bogus"}]}
     else:
         out = {"answers": [{"id": q["id"], "answer": "ok", "capture": None} for q in qs]}
-    return NS(stop_reason="end_turn", content=[NS(type="text", text=json.dumps(out))])
-fake = types.ModuleType("anthropic")
-fake.APIError = Exception
-fake.Anthropic = lambda: NS(beta=NS(messages=NS(create=create)))
-sys.modules["anthropic"] = fake
-import phone
-qs = [{"id": i, "question": "x"} for i in ("q1", "q2", "q3", "q4")]
-answers = phone.answer_questions(qs, {"now.md": ""})
-print(json.dumps({"answers": answers, "calls": [
-    {"model": c["model"], "effort": c["output_config"]["effort"], "fallbacks": c.get("fallbacks"),
-     "ids": [q["id"] for q in json.loads(c["messages"][0]["content"])["questions"]]} for c in calls]}))
+    return NS(returncode=0, stdout=json.dumps({"is_error": False, "structured_output": out}))
+with patch.object(phone.subprocess, "run", side_effect=run):
+    answers = phone.answer_questions([{"id": i, "question": "x"} for i in ("q1", "q2", "q3", "q4")], {"now.md": ""})
+print(json.dumps({"answers": answers, "calls": calls}))
 """
         result = subprocess.run([sys.executable, "-c", code, os.path.join(BRAIN, "app"), notes_copy()],
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         out = json.loads(result.stdout.strip().splitlines()[-1])
         self.assertEqual(out["calls"], [
-            {"model": "claude-haiku-5-5", "effort": "low", "fallbacks": None, "ids": ["q1", "q2", "q3", "q4"]},
-            {"model": "claude-haiku-5-5", "effort": "low", "fallbacks": None, "ids": ["q1"]},
-            {"model": "claude-sonnet-5-5", "effort": "medium", "fallbacks": "default", "ids": ["q2", "q4"]},
-            {"model": "claude-opus-5-5", "effort": "high", "fallbacks": "default", "ids": ["q3"]}])
+            {"model": "haiku", "effort": "low", "tools": "", "ids": ["q1", "q2", "q3", "q4"]},
+            {"model": "haiku", "effort": "low", "tools": "", "ids": ["q1"]},
+            {"model": "sonnet", "effort": "medium", "tools": "", "ids": ["q2", "q4"]},
+            {"model": "opus", "effort": "high", "tools": "", "ids": ["q3"]}])
         self.assertEqual({a["id"]: a["tier"] for a in out["answers"]},
                          {"q1": "everyday", "q2": "coding", "q4": "coding", "q3": "intense"})
 

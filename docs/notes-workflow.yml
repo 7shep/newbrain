@@ -38,9 +38,9 @@ jobs:
         if: steps.voice.outputs.has_questions == 'true'
         continue-on-error: true # A voice failure must not block captures or other phone actions.
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }} # only this step sees the key
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }} # from `claude setup-token`; only this step sees it
         run: |
-          pip install -q anthropic
+          npm install -g -q @anthropic-ai/claude-code
           python .brain/app/phone.py . --answer-asks
       - run: python .brain/app/phone.py . --answers-file .brain/phone-ask-answers.json
       - name: Commit and push
