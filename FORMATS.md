@@ -166,3 +166,23 @@ Task text is one line (1–300 characters), up to 100 tasks per day. The 16-char
 ## Study sessions and Tutor Genome
 
 `study/state.json` is versioned storage written by the authenticated study API. It contains `revision`, `sessions`, `observations`, and `changes`. Sessions have an immutable ID, course/topic, UTC start/end, last check-in, and Discord adapter result. Evidence links to a session and records topic, outcome (`independent`, `hinted`, `struggled`), actual reasoning, source, creation time, and optional retraction time. `study/log.md` is generated from it. Use the panel or `$study` helper to change data; see [study sessions](docs/study.md).
+
+## `codex/day-planner.md` (optional)
+
+An editable Markdown note containing a fenced `json` object enables automatic daily checklists.
+Required fields are `enabled`, `study_days` (1–14), `study_minutes` (15–480),
+`assignment_minutes` (15–480), `gym_days` (0–7), `gym_minutes` (15–180),
+and `laundry_weekday` (Monday = 0, Sunday = 6). Optional `courses` maps normalized
+course codes such as `STAT252` to `study_days`, `study_minutes`, or
+`quiz_material_weekday` overrides. The latter limits Friday quiz study to the
+material release day onward; other test types retain the normal study window.
+
+The planner reads assessment and assignment dates from `now.md` → `## Upcoming`.
+It creates today's checklist only if that file does not exist, on desktop or during
+phone state generation. It preserves checked tasks, removals and manual additions.
+One study item per course represents the configured daily study duration. Assignments
+appear the day before and, if unfinished, on their due date. Gym days are selected
+from the lighter remaining days of the Monday–Sunday week, counting completed gym
+tasks in earlier daily files. Missing days are not treated as completed workouts.
+A `Plan: ...` paragraph in the daily file explains estimates and stale calendar data;
+the daily API returns it as optional `plan_note`. Checklist operations preserve it.

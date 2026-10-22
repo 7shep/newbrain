@@ -26,6 +26,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Refresh planning deadlines
+        continue-on-error: true # Saved dates still work if the calendar is unavailable.
+        env:
+          BRAIN_CALENDAR_SOURCES: ${{ secrets.BRAIN_CALENDAR_SOURCES }}
+        run: python .brain/calendar_sync.py .
       - name: Prepare voice questions
         id: voice
         run: python .brain/app/phone.py . --prepare-asks

@@ -98,9 +98,10 @@ def occurrences(event, start, end):
 def sync(notes, today=None):
     notes = Path(notes)
     config = notes / "calendar_sources.json"
-    if not config.exists():
+    source = os.environ.get("BRAIN_CALENDAR_SOURCES")
+    if not config.exists() and not source:
         return "Calendar sync awaits a private iCal URL."
-    urls = json.loads(config.read_text(encoding="utf-8")).get("urls", [])
+    urls = json.loads(source if source else config.read_text(encoding="utf-8")).get("urls", [])
     if not urls:
         return "Calendar sync awaits a private iCal URL."
     start = today or dt.date.today()
@@ -135,7 +136,7 @@ def sync(notes, today=None):
             date_text += display_when.strftime(" %H:%M")
         location = re.sub(r"\s+", " ", event.get("LOCATION", "")).strip()
         lines.append("- %s · %s%s" % (date_text, title, " · " + location if location else ""))
-        if len(lines) == 8:
+        if len(lines) == 200:
             break
     now = notes / "now.md"
     original = now.read_text(encoding="utf-8")

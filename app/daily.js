@@ -70,6 +70,7 @@
     }
     if (view.date !== date) { root.querySelector("input[name=task]").value = ""; view.signature = ""; }
     view.date = date; view.data = forDay(data, date); view.send = send;
+    root.querySelector(".daily-reset").textContent = view.data.plan_note || "Starts fresh every day. Unfinished tasks stay with that day.";
     const tasks = view.data.tasks, done = tasks.filter(t => t.done).length;
     root.querySelector(".daily-summary").textContent = tasks.length ? `${done} of ${tasks.length} done today` : "A fresh page for today. Add your first task.";
     const signature = JSON.stringify(tasks);

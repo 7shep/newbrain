@@ -37,13 +37,14 @@ from codex_routines import Routines  # noqa: E402  (Codex automations snapshot)
 from sync import Sync  # noqa: E402  (git pull/commit/push for the phone app, when phone/ exists)
 import predictions  # noqa: E402  (how well Codex knows you: codex/predictions.md)
 import daily  # daily checklist operations
+import planner
 import study
 import study_discord
 import stats  # noqa: E402  (usage stats from Codex transcripts)
 
 TOKEN = secrets.token_urlsafe(24)
 CODEX_HOME = os.path.abspath(os.path.expanduser(os.environ.get("CODEX_HOME") or "~/.codex"))
-LOCK = threading.Lock()
+LOCK = threading.RLock()
 AGENTS = Agents(NOTES)
 ROUTINES = Routines(NOTES)
 SYNC = Sync(NOTES, on_pulled=AGENTS.drain_pending)
@@ -199,8 +200,23 @@ def streak(dates):
 
 
 def daily_state():
+    with LOCK:
+        return _daily_state()
+
+
+def _daily_state():
     date = today()
-    return {"date": date, "tasks": daily.parse(read("daily/%s.md" % date))}
+    rel = "daily/%s.md" % date
+    text = read(rel)
+    if not os.path.exists(os.path.join(NOTES, rel)):
+        try:
+            if planner.settings(NOTES):
+                write(rel, planner.initial_text(NOTES, date))
+                text = read(rel)
+        except (ValueError, OSError, TypeError, KeyError) as exc:
+            return {"date": date, "tasks": [], "plan_note": "Check codex/day-planner.md: " + str(exc)}
+    note = next((line for line in text.splitlines() if line.startswith("Plan: ")), "")
+    return {"date": date, "tasks": daily.parse(text), **({"plan_note": note} if note else {})}
 
 
 def act_daily(body):
@@ -208,7 +224,8 @@ def act_daily(body):
         raise ValueError("Daily task actions must be an object")
     current = daily_state()
     tasks = daily.apply(current["tasks"], body, current["date"])
-    write("daily/%s.md" % current["date"], daily.render(current["date"], tasks))
+    write("daily/%s.md" % current["date"], daily.render(current["date"], tasks)
+          + ("\n" + current["plan_note"] + "\n" if current.get("plan_note") else ""))
 
 
 def study_state():

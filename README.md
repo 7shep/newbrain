@@ -327,3 +327,25 @@ schedule controls stay in the Codex app; Brain does not edit automation files.
 Routine captures produce proposals under the existing read-only background agent permissions.
 The upstream Claude connector remains in `app/routines.py`; this fork uses
 `app/codex_routines.py`. No Claude installation is needed.
+
+### Automatic daily checklists
+
+Add `codex/day-planner.md` to your private notes to enable the planner described in
+[FORMATS.md](FORMATS.md). A fresh daily list contains schoolwork based on upcoming
+tests and deadlines, weekly gym visits, and laundry, without assigning time slots.
+Change the note's course overrides when a class needs more or less preparation.
+Existing daily lists stay intact; new rules apply to the next fresh list.
+
+The private notes workflow already runs daily at 09:00 UTC (4am Toronto in winter,
+5am in summer), even with the laptop off. It generates the daily checklist and phone
+state. Desktop also generates a missing list when opened. GitHub may delay scheduled
+runs. No AI subscription or background-agent permission change is needed.
+
+For unattended deadline refresh, add a **private notes repository Actions secret**
+called `BRAIN_CALENDAR_SOURCES`, containing `{"urls":["<Google secret iCal URL>"]}`.
+Include every calendar whose deadlines should inform the plan. The updated workflow
+refreshes `now.md` before generating the list; no calendar events are changed.
+Local refresh still supports the ignored `calendar_sources.json` file. With neither
+source configured, the planner uses saved upcoming dates and visibly flags a calendar
+that has not refreshed today. Never commit the source URLs. A same-day checklist is
+not rebuilt automatically after calendar or preference changes, preserving your edits.
