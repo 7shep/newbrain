@@ -663,7 +663,7 @@ function fillPage() {
   const hv = it.hero;
   ui.innerHTML = hv ? `<small>ISSUE ${esc(S.issue)} · <span class="cd">${coverIn()}</span></small><h3>${esc(hv.headline).replace(/\*([^*]+)\*/g, "<em>$1</em>")}</h3>${hv.dek ? `<p>${esc(hv.dek)}</p>` : ""}
     ${hv.side.map(x => `<p class="side">${esc(x)}</p>`).join("")}<div class="acts">${hv.acts.filter(a => /\.md$/.test(a.arg)).map(a => `<button class="pill" data-open="${esc(a.arg)}">${esc(a.label)}</button>`).join("")}</div>`
-    : it.rows?.length ? it.rows.map(r => `<div class="row"><div><div class="t">${esc(r[0])}</div><div class="s">${esc(r[1])}</div></div></div>`).join("") : `<p class="empty">✓ All clear</p>`;
+    : it.rows?.length ? it.rows.map(r => `<div class="row"><div><div class="t">${esc(r[0])}</div><div class="s">${esc(r[1])}</div></div></div>`).join("") : `<p class="empty">${k.startsWith("t:") ? "Nothing yet." : "✓ All clear"}</p>`;
 }
 for (const id of ["board", "top"]) $(id).addEventListener("click", e => { const b = e.target.closest("[data-k]"); if (b) { tap(); openPage(b.dataset.k, b); } });
 addEventListener("keydown", e => { if (e.key === "Escape") closePage(); });
