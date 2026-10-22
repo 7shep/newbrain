@@ -193,6 +193,30 @@ def streak(dates):
     return n
 
 
+REFRESHED = {}  # tile path -> last time its refresh command ran
+
+
+def custom_tiles():
+    """tiles/*.md: one tile each. Frontmatter title/icon/refresh; each "- a · b" line is a row.
+    refresh is a shell command (cwd = notes) that rewrites the file; it runs at most every 5 min."""
+    out = []
+    for path in sorted(glob.glob(os.path.join(NOTES, "tiles", "*.md"))):
+        rel = os.path.relpath(path, NOTES)
+        meta, _ = build.parse_frontmatter(read(rel))
+        cmd = meta.get("refresh")
+        if cmd and datetime.datetime.now().timestamp() - REFRESHED.get(rel, 0) > 300:
+            REFRESHED[rel] = datetime.datetime.now().timestamp()
+            try:
+                subprocess.run(cmd, shell=True, cwd=NOTES, timeout=15, capture_output=True)
+            except subprocess.TimeoutExpired:
+                pass
+        meta, body = build.parse_frontmatter(read(rel))
+        rows = [[p.strip() for p in (l[2:].split(" · ", 1) + [""])[:2]] for l in body.splitlines() if l.startswith("- ")]
+        out.append({"slug": os.path.basename(path)[:-3], "path": rel, "title": meta.get("title") or os.path.basename(path)[:-3],
+                    "icon": meta.get("icon", "doc"), "summary": meta.get("summary", ""), "rows": rows})
+    return out
+
+
 def state():
     docs = build.load_notes()
     idx = session_index()
@@ -258,6 +282,7 @@ def state():
         "notes": [slim(d) for d in docs if d["kind"] == "note" and not d["path"].startswith("people/")
                   and d["path"] not in ("me.md", "now.md", "nudges.md", "ideas.md", "inbox.md", "claude/habits.md")],
         "internships": internships(read("internships/tracker.md")),
+        "tiles": custom_tiles(),
         "agents": AGENTS.recent(),
         "routines": ROUTINES.load(),
         "theme": saved_theme(),

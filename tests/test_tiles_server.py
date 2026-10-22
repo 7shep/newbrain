@@ -67,3 +67,18 @@ class GraphSummaryTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CustomTilesTest(unittest.TestCase):
+    def test_each_md_in_tiles_is_a_tile_and_refresh_rewrites_it(self):
+        d = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, d)
+        os.makedirs(os.path.join(d, "tiles"))
+        with open(os.path.join(d, "tiles", "music.md"), "w") as f:
+            f.write("---\ntitle: Recently played\nicon: music\nrefresh: printf -- '---\\ntitle: Recently played\\n---\\n- Nights · Frank Ocean\\n' > tiles/music.md\n---\n- old\n")
+        old, server.NOTES = server.NOTES, d
+        self.addCleanup(setattr, server, "NOTES", old)
+        server.REFRESHED.clear()
+        (t,) = server.custom_tiles()
+        self.assertEqual((t["slug"], t["title"], t["path"]), ("music", "Recently played", "tiles/music.md"))
+        self.assertEqual(t["rows"], [["Nights", "Frank Ocean"]])

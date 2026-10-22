@@ -797,6 +797,7 @@ const SECTIONS = { cover: "#cover", next: ".tile.next", nudges: ".tile.nudges", 
   routines: "#routinesTile", ideas: ".tile.ideas", inbox: ".tile.ideas", habits: ".tile.habits", streak: ".tile.timeline", people: "#peopleTile", knows: "#knowsTile" };
 function openTile(k, from) {
   if (k === "map") return $("mapTile").hidden ? toast("No map yet. Run graphify to build one.") : $("mapFull").click();
+  if (k.startsWith("t:")) return openDoc(tileList.find(i => i.key === k).path);  // a custom tile's page is its note
   const sec = document.querySelector(SECTIONS[k]), it = tileList.find(i => i.key === k);
   if (sec) openPage(from, it ? it.title : k, it ? it.why : "", sec, k);
 }

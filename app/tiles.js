@@ -5,7 +5,7 @@
 (function () {
 const ROW = 28, GAP = 14, U = ROW + GAP, need = px => Math.max(1, Math.ceil(px / U));
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const ICONS = { doc: '<path d="M6 3h9l4 4v14H6z"/>', cal: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>', bell: '<path d="M6 8a6 6 0 1112 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"/>',
+const ICONS = { music: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>', doc: '<path d="M6 3h9l4 4v14H6z"/>', cal: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>', bell: '<path d="M6 8a6 6 0 1112 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"/>',
   bot: '<rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 3v4M9 12h.01M15 12h.01"/>', ppl: '<circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6"/>', case: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5h6v2"/>',
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', fold: '<path d="M3 7h6l2 2h10v10H3z"/>', bulb: '<path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z"/>',
   fire: '<path d="M12 3s5 5 5 10a5 5 0 01-10 0c0-3 2-4 2-4s0 3 3 3c0-4 0-9 0-9z"/>', inbox: '<path d="M3 13l3-8h12l3 8v6H3zM3 13h5l1 3h6l1-3h5"/>',
@@ -104,6 +104,10 @@ function items(S, o) {
   const inbox = (S.inbox || []).map(l => { const p = String(l).split(" · "); return p.length >= 3 ? [p.slice(2).join(" · "), p[1]] : [String(l), ""]; });
   mk("inbox", "Inbox", "inbox", inbox.length ? 20 : 1, { count: inbox.length, cleared: !inbox.length, why: inbox.length ? `${inbox.length} to file` : "empty", summary: `${inbox.length} to file.`, rows: inbox });
 
+  // Custom tiles: one per tiles/*.md, opened as that note
+  (S.tiles || []).forEach(t => mk("t:" + t.slug, t.title, ICONS[t.icon] ? t.icon : "doc", 20, { count: t.rows.length, cleared: !t.rows.length, path: t.path,
+    why: `${t.rows.length} item${t.rows.length === 1 ? "" : "s"}`, summary: t.summary || (t.rows[0] ? t.rows[0][0] : "Nothing yet."), rows: t.rows, spot: t.rows[0] || null }));
+
   // Cover last: it scores 90 when nothing else is due
   const n = S.now || {}, proj = (S.projects || []).find(p => p.slug === n.project);
   const quiet = !up.some(u => dd(u.date) <= 0) && !open.some(n => due(n) !== null && due(n) <= 0) && !soon.length;
@@ -113,7 +117,8 @@ function items(S, o) {
   mk("cover", S.issue ? `Issue ${S.issue}` : "Cover", "doc", quiet ? 90 : 80, { count: S.issue || "", summary: head.replace(/\*/g, ""), why: "today's cover",
     hero: { headline: head, side, dek: n.dek || "", acts } });
 
-  return ORDER.filter(k => all[k]).sort((a, b) => all[b].score - all[a].score || ORDER.indexOf(a) - ORDER.indexOf(b)).map(k => all[k]);
+  const rank = k => ORDER.includes(k) ? ORDER.indexOf(k) : ORDER.length;  // custom tiles sort after the built-ins on a tie
+  return Object.keys(all).sort((a, b) => all[b].score - all[a].score || rank(a) - rank(b)).map(k => all[k]);
 }
 
 // ---------- templates: shapes true to what an item holds, each part sized to its text ----------
