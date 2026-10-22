@@ -173,7 +173,7 @@ def markdown(data):
     for s in reversed(data['sessions']):
         seconds = duration(s) if s['ended_at'] else None
         lines.append('| %s / %s | %s | %s | %s |' % (clean(s['course']), clean(s['topic']), s['started_at'], s['ended_at'] or 'In progress — confirm interruptions in Brain', '%dm %02ds' % (seconds // 60, seconds % 60) if seconds is not None else 'Running'))
-    lines += ['', '# Tutor Genome', '', 'Generated from study/state.json. Add or retract evidence in Brain or with /study; this view is rebuilt.', '']
+    lines += ['', '# Tutor Genome', '', 'Generated from study/state.json. Add or retract evidence in Brain; this view is rebuilt.', '']
     for node in genome(data):
         lines += ['## %s / %s' % (node['course'], node['topic']), '', '**%s** · %s confidence · %d observations' % (node['status'], node['confidence'], node['count']), '']
         for e in node['evidence']:

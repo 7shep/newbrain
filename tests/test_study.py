@@ -3,7 +3,6 @@ import datetime as dt
 import http.client
 import json
 import sys
-import subprocess
 import tempfile
 import threading
 import unittest
@@ -147,25 +146,10 @@ class StudyIntegrationTest(unittest.TestCase):
             result=server.act_study({'action':'stop','id':SID})
         self.assertEqual(result['sessions'][0]['discord']['state'],'unchanged')
 
-    def test_installed_helper_round_trip_and_assets(self):
+    def test_study_assets_served(self):
         srv=server.Server(('127.0.0.1',0),server.Handler)
         threading.Thread(target=srv.serve_forever,daemon=True).start()
-        helper=Path(__file__).resolve().parents[1]/'.claude/skills/study/scripts/study.py'
-        url='http://127.0.0.1:%d' % srv.server_address[1]
-        def cli(action,*args):
-            result=subprocess.run([sys.executable,str(helper),action,'--url',url,*args],capture_output=True,text=True,check=True,encoding='utf-8')
-            return json.loads(result.stdout)
         try:
-            with patch.object(server.SYNC,'commit'):
-                initial=cli('status')
-                self.assertIsNone(initial['active'])
-                running=cli('start','--course','STAT','--topic','Trees')
-                sid=running['active']['id']
-                observed=cli('observe','--session',sid,'--topic','Trees','--outcome','hinted','--evidence','Identified the correct tree rotation after a directing hint.')
-                self.assertEqual(observed['genome'][0]['status'],'developing')
-                oid=observed['observations'][0]['id']
-                self.assertEqual(cli('retract','--event',oid)['genome'],[])
-                self.assertIsNone(cli('stop','--id',sid)['active'])
             conn=http.client.HTTPConnection('127.0.0.1',srv.server_address[1])
             for asset in ['/study.js','/study.css']:
                 conn.request('GET',asset)

@@ -4,7 +4,7 @@
 
 Brain is Alex's personal digital brain: plain Markdown notes plus a local app for browsing, capturing thoughts, managing projects, and working with AI. Alex studies Computer Science at Queen's, class of '28, and is interested in AI, ML, learning, and creative projects he can shape and understand.
 
-Read `README.md` for the architecture and setup, `FORMATS.md` before changing note formats, and relevant `docs/specs/` documents before changing the corresponding behaviour. Treat upstream biography and fictional `example/` notes as examples, not facts about Alex. The project skills live in `.claude/skills/` (`/wild` for wild brainstorming, `/study` for tutoring).
+Read `README.md` for the architecture and setup, `FORMATS.md` before changing note formats, and relevant `docs/specs/` documents before changing the corresponding behaviour. Treat upstream biography and fictional `example/` notes as examples, not facts about Alex. The project skills live in `.claude/skills/` (`/wild` for wild brainstorming).
 
 ## Implementation
 

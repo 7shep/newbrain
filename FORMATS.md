@@ -164,7 +164,7 @@ Task text is one line (1–300 characters), up to 100 tasks per day. The 16-char
 
 ## Study sessions and Tutor Genome
 
-`study/state.json` is versioned storage written by the authenticated study API. It contains `revision`, `sessions`, `observations`, and `changes`. Sessions have an immutable ID, course/topic, UTC start/end, last check-in, and Discord adapter result. Evidence links to a session and records topic, outcome (`independent`, `hinted`, `struggled`), actual reasoning, source, creation time, and optional retraction time. `study/log.md` is generated from it. Use the panel or the `/study` skill to change data; see [study sessions](docs/study.md).
+`study/state.json` is versioned storage written by the authenticated study API. It contains `revision`, `sessions`, `observations`, and `changes`. Sessions have an immutable ID, course/topic, UTC start/end, last check-in, and Discord adapter result. Evidence links to a session and records topic, outcome (`independent`, `hinted`, `struggled`), actual reasoning, source, creation time, and optional retraction time. `study/log.md` is generated from it. Use the panel to change data; see [study sessions](docs/study.md).
 
 ## `claude/day-planner.md` (optional)
 
