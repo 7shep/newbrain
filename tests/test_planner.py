@@ -24,10 +24,10 @@ class PlannerTest(unittest.TestCase):
                            assignment_minutes=60, gym_days=4, gym_minutes=45,
                            laundry_weekday=2, courses={'STAT252': {'quiz_material_weekday': 2}})
         self.save_config()
-        (self.notes / 'now.md').write_text('## Upcoming\n- 2026-10-23 13:30 · STAT252 Quiz\n- 2026-10-22 · CISC 235 Test\n- 2026-10-22 · CISC223 Assignment Due\n\nCalendar synced 2026-10-21.\n')
+        (self.notes / 'now.md').write_text('## Upcoming\n- 2026-10-23 13:30 · STAT252 Quiz\n- 2026-10-22 · CISC 235 Test\n- 2026-10-22 · CISC223 Assignment Due\n\nCalendar synced 2026-10-21.\n', encoding='utf-8')
 
     def save_config(self):
-        (self.notes / planner.CONFIG).write_text('```json\n' + json.dumps(self.config) + '\n```\n')
+        (self.notes / planner.CONFIG).write_text('```json\n' + json.dumps(self.config) + '\n```\n', encoding='utf-8')
 
     def titles(self, date):
         return [t['text'] for t in planner.generate(self.notes, date)[0]]
@@ -63,14 +63,14 @@ class PlannerTest(unittest.TestCase):
             for task in tasks:
                 task['done'] = True
                 count += task['text'] == 'Go to the gym'
-            (self.notes / 'daily' / (date + '.md')).write_text(daily.render(date, tasks))
+            (self.notes / 'daily' / (date + '.md')).write_text(daily.render(date, tasks), encoding='utf-8')
         self.assertEqual(count, 4)
 
     def test_completed_assignment_does_not_repeat_on_due_day(self):
         tasks, _ = planner.generate(self.notes, '2026-10-21')
         for task in tasks:
             task['done'] = True
-        (self.notes / 'daily/2026-10-21.md').write_text(daily.render('2026-10-21', tasks))
+        (self.notes / 'daily/2026-10-21.md').write_text(daily.render('2026-10-21', tasks), encoding='utf-8')
         self.assertNotIn('Do CISC223 Assignment', self.titles('2026-10-22'))
 
     def test_server_generates_once_and_preserves_edits_and_plan_note(self):
