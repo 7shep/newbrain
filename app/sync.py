@@ -33,6 +33,8 @@ class Sync:
         with self.lock:
             self.last = time.time()
             try:
+                if not self._settle_index():  # a stuck half-merge would make every later pull fail
+                    return False
                 p = self._git("pull", "--rebase", "--autostash", "--quiet")
             except subprocess.TimeoutExpired:
                 self.error = "Pull timed out. Offline?"
@@ -42,9 +44,23 @@ class Sync:
                 msg = (p.stderr or p.stdout).strip().splitlines()
                 self.error = "Sync paused: " + (msg[-1] if msg else "git pull failed") + ". Fix it in a terminal or ask Claude."
                 return False
+            if not self._settle_index():  # the autostash can clash with what was just pulled
+                return False
             self.error = None
         self.on_pulled()
         return True
+
+    def _settle_index(self):
+        """Clear a conflict left by restoring the autostash. INDEX.md is generated, so take the pulled copy (Brain
+        rebuilds it, and git keeps the stash); any other conflicted note is reported, never auto-resolved."""
+        stuck = self._git("diff", "--name-only", "--diff-filter=U").stdout.split()
+        if not stuck:
+            return True
+        if stuck == ["INDEX.md"]:
+            self._git("checkout", "HEAD", "--", "INDEX.md")
+            return True
+        self.error = "Sync paused: unresolved changes in " + ", ".join(stuck) + ". Fix it in a terminal or ask Claude."
+        return False
 
     def commit(self, files, message):
         """Commit just these notes files (paths relative to the notes folder), then push in the background."""

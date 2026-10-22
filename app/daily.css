@@ -1,4 +1,9 @@
 .daily { grid-column: span 5; }
+.daily-brief { display: grid; gap: 6px; margin: 0 0 14px; padding: 12px 14px; border-radius: 10px; background: var(--tile-2); font-size: 13.5px; color: var(--ink); }
+.daily-brief[hidden] { display: none; }
+.daily-brief b { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.daily-brief button { justify-self: start; min-height: 36px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+.daily-brief button:hover { background: var(--tile); }
 .daily-summary { margin: 0 0 12px; color: var(--ink); font-size: 14px; }
 .daily-list { list-style: none; padding: 0; margin: 0 0 16px; }
 .daily-row { display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--line); }

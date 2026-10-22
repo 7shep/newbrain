@@ -330,6 +330,27 @@ class SyncTest(unittest.TestCase):
         self.assertIn("mac line", read(self.mac, "now.md"))
         self.assertFalse(os.path.isdir(os.path.join(self.mac, ".git", "rebase-merge")))  # rebase aborted
 
+    def test_index_clash_from_autostash_heals_and_later_pulls_still_work(self):
+        s = Sync(self.mac)
+        with open(os.path.join(self.mac, "INDEX.md"), "w") as f:
+            f.write("index v1\n")
+        git(self.mac, "add", "INDEX.md")
+        git(self.mac, "commit", "-qm", "index")
+        git(self.mac, "push", "-q")
+        git(self.phone, "pull", "-q")
+        self.remote_change("INDEX.md", "phone rebuild\n")
+        with open(os.path.join(self.mac, "INDEX.md"), "a") as f:
+            f.write("mac rebuild\n")  # uncommitted, so it rides the autostash and clashes on the way back
+        with open(os.path.join(self.mac, "inbox.md"), "a") as f:
+            f.write("- unsaved mac capture\n")
+        self.assertTrue(s.pull(gap=0))
+        self.assertEqual(git(self.mac, "diff", "--name-only", "--diff-filter=U"), "")
+        self.assertIn("phone rebuild", read(self.mac, "INDEX.md"))
+        self.assertIn("unsaved mac capture", read(self.mac, "inbox.md"))
+        self.remote_change("ideas.md", "- next phone idea\n")
+        self.assertTrue(s.pull(gap=0))
+        self.assertIn("next phone idea", read(self.mac, "ideas.md"))
+
     def test_off_without_phone_folder(self):
         shutil.rmtree(os.path.join(self.mac, "phone"))
         self.assertFalse(Sync(self.mac).enabled())

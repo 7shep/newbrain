@@ -213,7 +213,12 @@ def _daily_state():
         except (ValueError, OSError, TypeError, KeyError) as exc:
             return {"date": date, "tasks": [], "plan_note": "Check claude/day-planner.md: " + str(exc)}
     note = next((line for line in text.splitlines() if line.startswith("Plan: ")), "")
-    return {"date": date, "tasks": daily.parse(text), **({"plan_note": note} if note else {})}
+    out = {"date": date, "tasks": daily.parse(text), **({"plan_note": note} if note else {})}
+    brief = "daily/%s-briefing.md" % date  # written by the morning routine
+    if os.path.exists(os.path.join(NOTES, brief)):
+        line = re.search(r"^\*\*Today in one line:\*\*\s*(.+)$", read(brief), re.M)
+        out["brief"] = {"path": brief, "line": line.group(1).strip() if line else ""}
+    return out
 
 
 def act_daily(body):

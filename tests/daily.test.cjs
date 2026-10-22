@@ -34,3 +34,11 @@ test('daily tile shows remaining count and escaped task preview', () => {
   assert.ok(html.includes('&lt;script&gt;'));
   assert.ok(!html.includes('<script>'));
 });
+test('daily tile mentions today\'s morning brief, never a stale one', () => {
+  const brief = { path: 'daily/2026-10-21-briefing.md', line: 'Quiz at 16:30.' };
+  const tile = T.items({ today: date, daily: { date, tasks: [], brief } }).find(t => t.key === 'daily');
+  assert.match(tile.summary, /Morning brief ready/);
+  assert.deepEqual(tile.rows[0], ['Morning brief', 'Quiz at 16:30.']);
+  const stale = T.items({ today: '2026-10-22', daily: { date, tasks: [], brief } }).find(t => t.key === 'daily');
+  assert.deepEqual(stale.rows, []);
+});

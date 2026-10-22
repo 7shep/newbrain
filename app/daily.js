@@ -20,7 +20,7 @@
     if (draftDay !== date) { draft = ""; draftDay = date; }
     let view = views.get(root);
     if (!view) {
-      root.innerHTML = `<p class="daily-summary" aria-live="polite"></p><ul class="daily-list"></ul>
+      root.innerHTML = `<div class="daily-brief" hidden></div><p class="daily-summary" aria-live="polite"></p><ul class="daily-list"></ul>
         <form class="daily-form"><label class="daily-label">Add a task for today<input name="task" maxlength="300" autocomplete="off" placeholder="What needs doing today?" required></label><button type="submit">Add task</button></form>
         <p class="daily-error" role="alert" hidden></p><p class="daily-reset">Starts fresh every day. Unfinished tasks stay with that day.</p>`;
       view = { busy: false, date, data, send, signature: "", root };
@@ -70,6 +70,9 @@
     }
     if (view.date !== date) { root.querySelector("input[name=task]").value = ""; view.signature = ""; }
     view.date = date; view.data = forDay(data, date); view.send = send;
+    const brief = view.data.brief, briefEl = root.querySelector(".daily-brief");
+    briefEl.hidden = !brief;  // the morning routine's daily/YYYY-MM-DD-briefing.md; the page's [data-open] handler opens it
+    briefEl.innerHTML = brief ? `<b>Morning brief</b>${brief.line ? `<span>${esc(brief.line)}</span>` : ""}<button type="button" data-open="${esc(brief.path)}">Read the brief</button>` : "";
     root.querySelector(".daily-reset").textContent = view.data.plan_note || "Starts fresh every day. Unfinished tasks stay with that day.";
     const tasks = view.data.tasks, done = tasks.filter(t => t.done).length;
     root.querySelector(".daily-summary").textContent = tasks.length ? `${done} of ${tasks.length} done today` : "A fresh page for today. Add your first task.";

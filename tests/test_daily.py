@@ -63,6 +63,14 @@ class DailyTest(unittest.TestCase):
             self.assertEqual(server.daily_state()["tasks"][0]["text"], "New task")
         self.assertEqual(server.read("daily/" + DATE + ".md"), before)
 
+    def test_todays_morning_brief_is_linked(self):
+        os.makedirs(os.path.join(self.tmp.name, "daily"))
+        server.write("daily/2026-10-20-briefing.md", "**Today in one line:** old news\n")
+        self.assertNotIn("brief", server.daily_state())
+        server.write("daily/" + DATE + "-briefing.md", "# Morning briefing\n\n**Today in one line:** Quiz at 16:30.\n")
+        self.assertEqual(server.daily_state()["brief"], {"path": "daily/" + DATE + "-briefing.md", "line": "Quiz at 16:30."})
+        self.assertEqual(server.daily_state()["tasks"], [])
+
     def test_invalid_payloads_cannot_write_files(self):
         for body in [dict(text=""), dict(text=" " * 10), dict(text="x" * 301), dict(text=12),
                      dict(id="../escape"), dict(date="../../escape"), dict(action="unknown")]:

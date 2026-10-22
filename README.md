@@ -12,7 +12,7 @@ act on them.
 
 - **Cover story:** Claude writes a magazine-style headline about your week after real work.
 - **Study sessions:** Start/Stop controls, a live timer, timestamped history, interruption recovery, and a Tutor Genome with evidence and retraction. Windows attempts Discord DND using desktop accessibility controls. See [the study session guide](docs/study.md). Phone shows synced history read-only.
-- **Daily tasks:** a small checklist for everyday tasks: add, check off, or remove items. Starts empty at local midnight; past lists stay in dated Markdown notes. Available on desktop and phone (phone changes use the existing sync queue).
+- **Daily tasks:** a small checklist for everyday tasks: add, check off, or remove items. Starts empty at local midnight; past lists stay in dated Markdown notes. Available on desktop and phone (phone changes use the existing sync queue). When the morning routine has written `daily/YYYY-MM-DD-briefing.md` for today, the tile shows its one-line summary and a link to the full brief.
 - **Notes to self:** reminders Claude adds only when they help. You can mark them Done (with confetti), snooze them, or say "Not doing this", which retires them for good.
 - **Projects:** hide the ones you're not working on; they wait under "Show hidden".
 - **How Claude adapts to you:** habits Claude follows every session. Claude can *propose* a new one, and you switch each on or off. You can also brainstorm a habit in the app, and Claude talks it through with you next session. Past habits stay out of the way.

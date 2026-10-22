@@ -36,9 +36,10 @@ function items(S, o) {
   // A daily list is visible even before its first task; previous days never carry forward.
   const daily = S.daily?.date === today ? S.daily.tasks || [] : [];
   const remaining = daily.filter(t => !t.done), done = daily.length - remaining.length;
-  mk("daily", "Daily tasks", "bell", remaining.length ? 40 : 18, { count: remaining.length,
-    why: "starts fresh daily", summary: daily.length ? `${done} of ${daily.length} done today` : "A fresh page for today. Add a task.",
-    rows: daily.map(t => [t.text, t.done ? "done" : "to do"]),
+  const brief = S.daily?.date === today ? S.daily.brief : null;
+  mk("daily", "Daily tasks", "bell", remaining.length ? 40 : brief ? 30 : 18, { count: remaining.length,
+    why: "starts fresh daily", summary: (daily.length ? `${done} of ${daily.length} done today` : "A fresh page for today. Add a task.") + (brief ? " Morning brief ready." : ""),
+    rows: [...(brief ? [["Morning brief", brief.line || "open the tile to read it"]] : []), ...daily.map(t => [t.text, t.done ? "done" : "to do"])],
     spot: remaining[0] ? [remaining[0].text, "next on your list"] : null });
 
   const study = S.study || {}, running = study.active, studied = study.sessions || [];
