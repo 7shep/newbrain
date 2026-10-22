@@ -1,0 +1,22 @@
+.study-panel { display:grid; gap:20px; min-width:0; }
+.study-panel form,.study-active,.study-history,.study-genome { display:grid; gap:12px; }
+.study-panel label { display:grid; gap:6px; font-size:13px; font-weight:600; }
+.study-panel input,.study-panel select,.study-panel textarea { box-sizing:border-box; width:100%; min-width:0; border:1px solid var(--line); border-radius:9px; padding:10px 12px; background:var(--tile-2); color:var(--ink); font:inherit; }
+.study-panel textarea { resize:vertical; min-height:76px; }
+.study-panel button { border:1px solid var(--line); border-radius:9px; padding:10px 14px; background:var(--tile-2); color:var(--ink); font:inherit; cursor:pointer; min-height:44px; }
+.study-panel button.primary { background:var(--accent); color:var(--bg); font-weight:700; }
+.study-panel :focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+.study-panel :disabled { opacity:.55; cursor:wait; }
+.study-fields { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.study-timer { font:700 clamp(32px,8vw,54px)/1.1 var(--mono); font-variant-numeric:tabular-nums; }
+.study-panel p { margin:0; }
+.study-muted { color:var(--muted); font-size:13px; }
+.study-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.study-row,.study-node { border-top:1px solid var(--line); padding:14px 0; overflow-wrap:anywhere; }
+.study-row summary,.study-node summary { cursor:pointer; padding:4px 0; }
+.study-evidence { display:grid; gap:8px; margin:12px 0; padding-left:20px; }
+.study-error { color:var(--bad); }
+.study-warning { padding:12px; border:1px solid var(--accent); border-radius:9px; }
+.study-panel h3 { margin:0; font:700 20px var(--display); }
+.study-history-list { max-height:440px; overflow:auto; }
+@media(max-width:480px) { .study-fields { grid-template-columns:1fr; } }

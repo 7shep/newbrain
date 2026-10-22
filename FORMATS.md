@@ -162,3 +162,7 @@ A separate checklist for each local calendar day. The app shows only today's fil
 ```
 
 Task text is one line (1–300 characters), up to 100 tasks per day. The 16-character lowercase hexadecimal ID is stable.
+
+## Study sessions and Tutor Genome
+
+`study/state.json` is versioned storage written by the authenticated study API. It contains `revision`, `sessions`, `observations`, and `changes`. Sessions have an immutable ID, course/topic, UTC start/end, last check-in, and Discord adapter result. Evidence links to a session and records topic, outcome (`independent`, `hinted`, `struggled`), actual reasoning, source, creation time, and optional retraction time. `study/log.md` is generated from it. Use the panel or `$study` helper to change data; see [study sessions](docs/study.md).

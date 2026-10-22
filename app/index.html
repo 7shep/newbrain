@@ -401,6 +401,8 @@ a.it-row:hover { background: var(--tile-2); }
 <script src="tiles.js"></script>
 <link rel="stylesheet" href="daily.css">
 <script src="daily.js"></script>
+<link rel="stylesheet" href="study.css">
+<script src="study.js"></script>
 
 <div class="bar">
   <h1 id="greet">Brain</h1>
@@ -431,6 +433,7 @@ a.it-row:hover { background: var(--tile-2); }
 <main class="grid" id="grid">
   <section class="tile cover" id="cover"></section>
   <section class="tile next"><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><h2>Up next</h2><span class="n" id="nextAsOf"></span></header><div id="next"></div></section>
+  <section class="tile study" id="studyTile"><header><h2>Study sessions</h2></header><div data-study></div></section>
   <section class="tile daily" id="dailyTile"><header><h2>Daily tasks</h2></header><div data-daily></div></section>
   <section class="tile nudges"><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1112 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"/></svg><h2>Notes to self</h2><span class="n" id="nudgeCount"></span></header><div id="nudges"></div></section>
   <section class="tile projects"><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h6l2 2h10v10H3z"/></svg><h2>Projects</h2><span class="n" id="projCount"></span></header><div id="projects"></div></section>
@@ -755,6 +758,28 @@ async function initMap() {
   $("mapSearch").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); search(); } else if (e.key === "Escape") { $("mapSearch").value = ""; pin = hover = null; showCard(null); setFocus(null); } });
 }
 
+function renderStudy() {
+  if (!S) return;
+  BrainStudy.mount(document.querySelector("[data-study]"), S.study, async body => {
+    const reply = await api("/api/study", body);
+    S.study = reply.study;
+    renderBoard("act");
+    return reply.study;
+  });
+}
+let studyPingBusy = false;
+setInterval(async () => {
+  const a = S?.study?.active;
+  if (!a || a.interrupted || studyPingBusy) return;
+  studyPingBusy = true;
+  try {
+    const reply = await api("/api/study", {action:"heartbeat", id:a.id});
+    S.study = reply.study;
+    renderStudy();
+  } catch (e) { load("bg"); }
+  finally { studyPingBusy = false; }
+}, 30000);
+
 function renderDaily() {
   if (!S) return;
   BrainDaily.mount(document.querySelector("[data-daily]"), S.daily, async body => {
@@ -771,7 +796,7 @@ BrainDaily.onDayChange(() => { renderDaily(); renderBoard("bg"); load("bg").catc
 function render(how) {
   const [hi] = greeting(), late = S.nudges.filter(n => n.status === "open" && n.due && daysFrom(n.due) < 0).length, today = (S.now.upcoming || []).filter(u => u.date && daysFrom(u.date) === 0).length;
   $("greet").innerHTML = `${esc(hi)}<small>${esc(new Date().toLocaleDateString("en", { weekday: "long", month: "long", day: "numeric" }))}${late ? ` · ${late} overdue` : ""}${today ? ` · ${today} today` : ""}</small>`;
-  renderDaily(); renderCover(); renderNext(); renderNudges(); renderProjects(); renderInternships(); renderIdeas(); renderHabits(); renderTimeline(); renderAgents(); renderKnows(); renderRoutines(); renderPeople();
+  renderStudy(); renderDaily(); renderCover(); renderNext(); renderNudges(); renderProjects(); renderInternships(); renderIdeas(); renderHabits(); renderTimeline(); renderAgents(); renderKnows(); renderRoutines(); renderPeople();
   renderBoard(how);
 }
 
@@ -813,7 +838,7 @@ function setLayout(v) {
 }
 
 // Opening a tile: the real section moves out of #grid into the page, which grows from the tile's box; Done/Esc/outside puts it back.
-const SECTIONS = { daily: "#dailyTile", cover: "#cover", next: ".tile.next", nudges: ".tile.nudges", projects: ".tile.projects", intern: ".tile.intern", agents: "#agentsTile",
+const SECTIONS = { study: "#studyTile", daily: "#dailyTile", cover: "#cover", next: ".tile.next", nudges: ".tile.nudges", projects: ".tile.projects", intern: ".tile.intern", agents: "#agentsTile",
   routines: "#routinesTile", ideas: ".tile.ideas", inbox: ".tile.ideas", habits: ".tile.habits", streak: ".tile.timeline", people: "#peopleTile", knows: "#knowsTile" };
 function openTile(k, from) {
   if (k === "map") return $("mapTile").hidden ? toast("No map yet. Run graphify to build one.") : $("mapFull").click();

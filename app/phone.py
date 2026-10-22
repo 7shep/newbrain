@@ -157,7 +157,7 @@ ACTIONS = {
     "theme": server.act_theme,  # "Sync theme with Mac" on: the phone's pick becomes the shared one
 }
 # What the phone shows. Sessions and the note list stay on the Mac.
-KEEP = ("today", "issue", "streak", "now", "me", "people", "nudges", "habits", "projects", "ideas", "ideas_closed", "inbox", "agents", "predictions", "internships", "routines", "theme", "graph", "daily")
+KEEP = ("today", "issue", "streak", "now", "me", "people", "nudges", "habits", "projects", "ideas", "ideas_closed", "inbox", "agents", "predictions", "internships", "routines", "theme", "graph", "daily", "study")
 
 
 def apply_queue():

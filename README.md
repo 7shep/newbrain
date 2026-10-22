@@ -11,6 +11,7 @@ act on them.
 ![Brain app running on the example notes](docs/screenshot.png)
 
 - **Cover story:** Codex writes a magazine-style headline about your week after real work.
+- **Study sessions:** Start/Stop controls, a live timer, timestamped history, interruption recovery, and a Tutor Genome with evidence and retraction. Windows attempts Discord DND using desktop accessibility controls. Invoke `$study` in Codex for guided tutoring and automatic evidence recording; see [the study session guide](docs/study.md). Phone shows synced history read-only.
 - **Daily tasks:** a small checklist for everyday tasks: add, check off, or remove items. Starts empty at local midnight; past lists stay in dated Markdown notes. Available on desktop and phone (phone changes use the existing sync queue).
 - **Notes to self:** reminders Codex adds only when they help. You can mark them Done (with confetti), snooze them, or say "Not doing this", which retires them for good.
 - **Projects:** hide the ones you're not working on; they wait under "Show hidden".

@@ -37,6 +37,8 @@ from codex_routines import Routines  # noqa: E402  (Codex automations snapshot)
 from sync import Sync  # noqa: E402  (git pull/commit/push for the phone app, when phone/ exists)
 import predictions  # noqa: E402  (how well Codex knows you: codex/predictions.md)
 import daily  # daily checklist operations
+import study
+import study_discord
 import stats  # noqa: E402  (usage stats from Codex transcripts)
 
 TOKEN = secrets.token_urlsafe(24)
@@ -209,6 +211,39 @@ def act_daily(body):
     write("daily/%s.md" % current["date"], daily.render(current["date"], tasks))
 
 
+def study_state():
+    return study.view(study.load(read(study.PATH)))
+
+
+def act_study(body):
+    data = study.load(read(study.PATH))
+    before = json.dumps(data, sort_keys=True)
+    updated = study.apply(data, body)
+    action = body.get("action")
+    session = next((s for s in updated["sessions"] if s["id"] == body.get("id")), None)
+    # Persist the clock before attempting desktop control: timer data survives adapter failures.
+    write(study.PATH, json.dumps(updated, ensure_ascii=False, indent=2) + "\n")
+    if session and action in ("start", "stop", "discord_retry"):
+        status = session["discord"]
+        if session["ended_at"] is None and status.get("state") in ("pending", "unavailable", "unverified"):
+            result = study_discord.change("start")
+            if status.get("previous"):
+                result["previous"] = status["previous"]
+        elif session["ended_at"] and status.get("state") in ("dnd", "unverified", "restore_failed"):
+            result = study_discord.change("restore", status.get("previous"))
+            if result.get("state") in ("unavailable", "unverified"):
+                result["state"] = "restore_failed"
+            result["previous"] = status.get("previous")
+        else:
+            result = None
+        if result:
+            session["discord"] = result
+            write(study.PATH, json.dumps(updated, ensure_ascii=False, indent=2) + "\n")
+    if action != "heartbeat" and before != json.dumps(updated, sort_keys=True):
+        write("study/log.md", study.markdown(updated))
+    return study.view(updated)
+
+
 def state():
     docs = build.load_notes()
     idx = session_index()
@@ -277,6 +312,7 @@ def state():
         "agents": AGENTS.recent(),
         "routines": ROUTINES.load(),
         "daily": daily_state(),
+        "study": study_state(),
         "theme": saved_theme(),
         "graph": graph_summary(),
         "predictions": predictions.stats(predictions.parse(read("codex/predictions.md"))),
@@ -578,7 +614,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             with open(asset, "rb") as f:
                 ctype = {".woff2": "font/woff2", ".woff": "font/woff", ".ttf": "font/ttf"}.get(os.path.splitext(asset)[1])
                 return self.send(200, f.read(), ctype or mimetypes.guess_type(asset)[0] or "application/octet-stream")
-        if url.path in ("/theme.css", "/theme.js", "/tiles.css", "/tiles.js", "/daily.css", "/daily.js"):  # shared with the phone app
+        if url.path in ("/theme.css", "/theme.js", "/tiles.css", "/tiles.js", "/daily.css", "/daily.js", "/study.css", "/study.js"):  # shared with the phone app
             with open(os.path.join(HERE, url.path[1:]), "rb") as f:
                 return self.send(200, f.read(), "text/css; charset=utf-8" if url.path.endswith("css") else "text/javascript; charset=utf-8")
         if not self.authed():
@@ -587,6 +623,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if url.path == "/api/state":
                 SYNC.pull()  # pick up phone changes; at most once a minute
                 return self.send(200, {**state(), "sync": {"on": SYNC.enabled(), "error": SYNC.error}})
+            if url.path == "/api/study":
+                with LOCK:
+                    return self.send(200, study_state())
             if url.path == "/api/file":
                 return self.send(200, file_get(urllib.parse.parse_qs(url.query)))
             if url.path == "/api/stats":
@@ -626,7 +665,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if not self.authed():
             return self.send(403, {"error": "forbidden"})
         routes = {"/api/nudge": act_nudge, "/api/habit": act_habit, "/api/capture": act_capture,
-                  "/api/idea": act_idea, "/api/project": act_project, "/api/habit-new": act_habit_new, "/api/theme": act_theme, "/api/daily": act_daily}
+                  "/api/idea": act_idea, "/api/project": act_project, "/api/habit-new": act_habit_new, "/api/theme": act_theme, "/api/daily": act_daily, "/api/study": act_study}
         path = urllib.parse.urlparse(self.path).path
         if path == "/api/routines":  # outside LOCK: suggestions can call Codex
             return self.routines(self.body())
@@ -638,9 +677,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     return self.send(code, out)
                 if path not in routes:
                     return self.send(404, {"error": "not found"})
-                routes[path](self.body())
-                self.commit_touched("feat(notes): update daily tasks" if path == "/api/daily" else "brain: " + path.rsplit("/", 1)[-1])
-            return self.send(200, {"ok": True})
+                body = self.body()
+                result = routes[path](body)
+                if path == "/api/study" and body.get("action") == "heartbeat":
+                    return self.send(200, {"ok": True, "study": result})
+                self.commit_touched("feat(notes): update study session" if path == "/api/study" else "feat(notes): update daily tasks" if path == "/api/daily" else "brain: " + path.rsplit("/", 1)[-1])
+            return self.send(200, {"ok": True, **({"study": result} if path == "/api/study" else {})})
         except KeyError:
             return self.send(404, {"error": "No such item — the file may have changed. Reload."})
         except PermissionError:

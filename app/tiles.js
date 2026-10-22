@@ -13,7 +13,7 @@ const ICONS = { doc: '<path d="M6 3h9l4 4v14H6z"/>', cal: '<rect x="3" y="5" wid
 const LEGEND = ["--accent", "--good", "--info", "--bad", "--muted", "--extra"];
 
 // ---------- items: one per section, scored 0-100 from live state (spec "Scores") ----------
-const ORDER = ["cover", "next", "daily", "people", "intern", "nudges", "agents", "routines", "projects", "ideas", "streak", "habits", "knows", "map", "inbox"];
+const ORDER = ["cover", "study", "next", "daily", "people", "intern", "nudges", "agents", "routines", "projects", "ideas", "streak", "habits", "knows", "map", "inbox"];
 const ISO = /^\d{4}-\d{2}-\d{2}/;
 function items(S, o) {
   S = S || {}; o = o || {};
@@ -40,6 +40,12 @@ function items(S, o) {
     why: "starts fresh daily", summary: daily.length ? `${done} of ${daily.length} done today` : "A fresh page for today. Add a task.",
     rows: daily.map(t => [t.text, t.done ? "done" : "to do"]),
     spot: remaining[0] ? [remaining[0].text, "next on your list"] : null });
+
+  const study = S.study || {}, running = study.active, studied = study.sessions || [];
+  mk("study", "Study sessions", "clock", running ? 92 : 32, { count: studied.length,
+    why: running ? "session active" : "focus and learn", summary: running ? `${running.course} · ${running.topic}${running.interrupted ? " · needs review" : " · running"}` : `${studied.filter(s => s.ended_at).length} completed sessions. Start studying.`,
+    spot: running ? [running.topic, running.interrupted ? "Recover session" : "Study timer running"] : null,
+    rows: studied.slice(-5).reverse().map(s => [s.course, s.topic]) });
 
   // People waiting: VIP right now is whoever's follow-up names today, else whoever has waited longest
   const md = new Date(T).toLocaleDateString("en", { month: "short", day: "numeric", timeZone: "UTC" });
