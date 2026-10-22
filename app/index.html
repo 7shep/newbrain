@@ -503,7 +503,7 @@ function drawThemes() {
     `<button class="fam${k === r.family ? " on" : ""}" data-f="${k}"><span class="pv"><i></i><b>Aa</b></span>${f.label}</button>`).join("");
   const f = F[r.family], modes = [...(f.auto ? [["auto", "Auto"]] : []), ...Object.entries(f.modes)];
   themesPop.innerHTML = `<div class="lbl">Everyday</div><div class="fams">${fam(false)}</div>
-    <div class="lbl">Unique</div><div class="fams">${fam(true)}</div>
+    ${BrainTheme.LOCK ? "" : `<div class="lbl">Unique</div><div class="fams">${fam(true)}</div>`}
     <div class="lbl">Mode</div><div class="modes">${modes.map(([m, l]) => `<button class="${m === r.mode ? "on" : ""}" data-m="${m}">${l}</button>`).join("")}</div>`;
   // Each family tile previews itself in the mode you'd land on.
   themesPop.querySelectorAll(".fam").forEach(b => BrainTheme.paint(b.querySelector(".pv"), b.dataset.f + "/" + r.mode));

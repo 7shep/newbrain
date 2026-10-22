@@ -9,14 +9,18 @@
     riso: { label: "Riso", wild: true, modes: { paper: "Paper", ink: "Ink" }, auto: ["paper", "ink"] },
     swiss: { label: "Swiss", wild: true, modes: { light: "Light", dark: "Dark" }, auto: ["light", "dark"] },
   };
+  // Locked to one family: every pick resolves to it and the pickers only offer it (and its modes). null unlocks.
+  const LOCK = "pride";
   const DARK = new Set(["dark", "softdark", "green", "amber", "ink"]);
   const LEGACY = { dark: "classic/dark", light: "classic/light", soft: "classic/softlight" };
   const sysLight = matchMedia("(prefers-color-scheme: light)");
 
   // "riso/auto" -> { family: "riso", mode: "auto", id: "riso-paper", tone: "light" }. Anything unknown -> pride/auto,
-  // Alex's default, so a fresh browser or phone starts on it before the shared pick arrives.
+  // Alex's default, so a fresh browser or phone starts on it before the shared pick arrives. With LOCK set, the family
+  // is always LOCK and a mode it lacks falls back to auto.
   function resolve(choice) {
     let [family, mode] = String(LEGACY[choice] || choice || "").split("/");
+    if (LOCK) family = LOCK;
     const f = FAMILIES[family] || FAMILIES[(family = "pride")];
     if (mode === "auto" ? !f.auto : !f.modes[mode]) mode = f.auto ? "auto" : Object.keys(f.modes)[0];
     const m = mode === "auto" ? f.auto[sysLight.matches ? 0 : 1] : mode;
@@ -42,6 +46,6 @@
 
   let saved = null; try { saved = localStorage.getItem("brain.theme"); } catch (e) {}
   saved = new URLSearchParams(location.search).get("theme") || saved;  // ?theme=riso/paper to preview one
-  window.BrainTheme = { FAMILIES, resolve, paint, apply, get: () => current, saved };
+  window.BrainTheme = { FAMILIES: LOCK ? { [LOCK]: FAMILIES[LOCK] } : FAMILIES, LOCK, resolve, paint, apply, get: () => current, saved };
   apply(saved);
 })();

@@ -17,8 +17,11 @@ win.window = win;
 vm.runInNewContext(readFileSync(new URL("../app/theme.js", import.meta.url), "utf8"), win);
 const { resolve, FAMILIES } = win.BrainTheme;
 
-test("auto on a family with no auto mode falls back instead of throwing (Settings picker previews)", () => {
-  assert.deepEqual({ ...resolve("phosphor/auto") }, { family: "phosphor", mode: "green", id: "phosphor-green", tone: "dark" });
+test("the lock turns any pick into its family, keeping a mode it has", () => {
+  assert.deepEqual(Object.keys(FAMILIES), ["pride"]);
+  assert.deepEqual({ ...resolve("phosphor/auto") }, { family: "pride", mode: "auto", id: "pride-light", tone: "light" });
+  assert.equal(resolve("swiss/dark").id, "pride-dark");
+  assert.equal(resolve("riso/paper").mode, "auto");
 });
 
 test("every family resolves under every mode the picker can pass it", () => {
