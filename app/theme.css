@@ -23,7 +23,7 @@
 /* Defaults every theme starts from; each theme below overrides what it needs. */
 :root, [data-theme] {
   --cover: var(--accent); --cover-solid: var(--accent); --cover-ink: var(--accent-ink);
-  --good-ink: var(--accent-ink); --tile-shadow: none; --bg-image: none; --scrim: rgba(0,0,0,.55);
+  --good-ink: var(--accent-ink); --tile-shadow: none; --bg-image: none; --scrim: rgba(0,0,0,.55); --shade: #000;
 }
 [data-tone="dark"] { color-scheme: dark; --grain: var(--grain-dark); }
 [data-tone="light"] { color-scheme: light; --grain: var(--grain-light); --scrim: rgba(30,35,45,.25); }

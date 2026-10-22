@@ -105,7 +105,7 @@ function items(S, o) {
   mk("inbox", "Inbox", "inbox", inbox.length ? 20 : 1, { count: inbox.length, cleared: !inbox.length, why: inbox.length ? `${inbox.length} to file` : "empty", summary: `${inbox.length} to file.`, rows: inbox });
 
   // Custom tiles: one per tiles/*.md, opened as that note
-  (S.tiles || []).forEach(t => mk("t:" + t.slug, t.title, ICONS[t.icon] ? t.icon : "doc", 20, { count: t.rows.length, cleared: !t.rows.length, path: t.path,
+  (S.tiles || []).forEach(t => mk("t:" + t.slug, t.title, ICONS[t.icon] ? t.icon : "doc", 20, { count: t.rows.length, path: t.path,
     why: `${t.rows.length} item${t.rows.length === 1 ? "" : "s"}`, summary: t.summary || (t.rows[0] ? t.rows[0][0] : "Nothing yet."), rows: t.rows, spot: t.rows[0] || null }));
 
   // Cover last: it scores 90 when nothing else is due
