@@ -97,6 +97,7 @@ kbd { font: 500 11px var(--mono); border: 1px solid var(--line); border-radius: 
 .nudge p { margin: 0; color: var(--muted); font-size: 13px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
 .nudge p.full { -webkit-line-clamp: unset; }
 .nudge .due { font: 500 11px var(--mono); color: var(--bad); margin-left: 6px; white-space: nowrap; }
+.nudge .due.later { color: var(--dim); }  /* not due yet: no alarm colour */
 .nudge .acts { display: flex; gap: 6px; margin-top: 11px; flex-wrap: wrap; }
 .nudge.leaving { opacity: 0; transform: translateX(24px) scale(.98); }
 .won { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; padding: 4px 0; }
@@ -939,7 +940,7 @@ function renderNudges() {
   let html = open.map(n => {
     const d = n.due ? daysFrom(n.due) : null;
     const due = d === null ? "" : d < 0 ? `${-d}d overdue` : d === 0 ? "today" : `in ${d}d`;
-    return `<div class="nudge" data-nudge="${esc(n.id)}"><h4>${esc(n.title)}${due ? `<span class="due">${due}</span>` : ""}</h4>
+    return `<div class="nudge" data-nudge="${esc(n.id)}"><h4>${esc(n.title)}${due ? `<span class="due${d > 0 ? " later" : ""}">${due}</span>` : ""}</h4>
       ${n.why ? `<p title="Click to expand" onclick="this.classList.toggle('full')">${esc(n.why)}</p>` : ""}
       <div class="acts"><button class="pill sm yes" data-nact="done">${I.check}Done</button><button class="pill sm" data-nact="snooze" data-days="1">Tomorrow</button>
       <button class="pill sm" data-nact="snooze" data-days="7">Next week</button><button class="pill sm" data-nact="no">Not doing this</button>
