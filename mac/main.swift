@@ -9,15 +9,10 @@ let brainBin = (try? String(contentsOf: Bundle.main.url(forResource: "brain-path
     .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 let url = URL(string: "http://127.0.0.1:\(ProcessInfo.processInfo.environment["BRAIN_PORT"] ?? "4747")/")!
 
-// Runs at page start: mark the native shell, default new installs to Glass, and clear the traffic lights.
+// Runs at page start: mark the native shell (app/theme.css styles html.native) and default new installs to Glass.
 let boot = """
 document.documentElement.classList.add('native');
 try { if (!localStorage.getItem('brain.theme')) localStorage.setItem('brain.theme', 'glass/auto'); } catch (e) {}
-addEventListener('DOMContentLoaded', () => {
-  const s = document.createElement('style');
-  s.textContent = 'html.native body { padding-top: 40px; } html.native ::-webkit-scrollbar-thumb { border-color: transparent; }';
-  document.head.appendChild(s);
-});
 """
 
 final class App: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKUIDelegate {
@@ -35,7 +30,7 @@ final class App: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKUIDele
         web.autoresizingMask = [.width, .height]
 
         let blur = NSVisualEffectView()
-        blur.material = .hudWindow
+        blur.material = .fullScreenUI  // follows light/dark; .hudWindow is always dark
         blur.blendingMode = .behindWindow
         blur.state = .active
         blur.autoresizingMask = [.width, .height]
