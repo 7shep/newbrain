@@ -125,6 +125,38 @@
 [data-family="swiss"] .tile, [data-family="swiss"] .card { border-width: 2px; }
 [data-family="swiss"] .cover h3 { text-transform: uppercase; letter-spacing: -.04em; }
 
+
+/* ---------- Glass: translucent tiles over a blurred backdrop. In the Mac app (html.native) the window
+   itself is macOS glass, so the page background goes clear and the desktop shows through. ---------- */
+[data-theme="glass-light"] {
+  --bg: #d9cfc4; --tile: rgba(255,252,248,.30); --tile-2: rgba(255,252,248,.22); --tile-3: rgba(255,255,255,.18); --line: rgba(255,255,255,.45);
+  --ink: #221d18; --muted: #5a5047; --dim: #8a7f74; --accent: #10b981; --accent-ink: #ffffff;
+  --good: #059669; --good-ink: #ffffff; --bad: #dc4a3a; --info: #3b82c4; --extra: #8b6cc9;
+  --bg-image: radial-gradient(700px 520px at 18% 12%, #f3e9dc, transparent 65%), radial-gradient(800px 600px at 85% 20%, #b9a48e, transparent 60%),
+              radial-gradient(900px 600px at 30% 100%, #8f7a64, transparent 60%), linear-gradient(180deg, #e2d8cc, #b8a998);
+  --cover: rgba(255,252,248,.36); --cover-solid: #a8988a; --cover-ink: #221d18;
+  --tile-shadow: inset 0 1px 0 rgba(255,255,255,.55), 0 10px 40px rgba(60,40,20,.12);
+  --grain: none; --scrim: rgba(40,30,20,.18);
+}
+[data-theme="glass-dark"] {
+  --bg: #17130f; --tile: rgba(255,255,255,.08); --tile-2: rgba(255,255,255,.06); --tile-3: rgba(255,255,255,.10); --line: rgba(255,255,255,.14);
+  --ink: #f6f2ec; --muted: #b8afa5; --dim: #7d756c; --accent: #34d399; --accent-ink: #04140a;
+  --good: #34d399; --good-ink: #04140a; --bad: #ff7a6b; --info: #7cb8ff; --extra: #c4a6ff;
+  --bg-image: radial-gradient(700px 520px at 18% 12%, #4a3b2c, transparent 65%), radial-gradient(800px 600px at 85% 20%, #2c2621, transparent 60%),
+              radial-gradient(900px 600px at 30% 100%, #3a2c1f, transparent 60%), linear-gradient(180deg, #1c1813, #0f0c09);
+  --cover: rgba(255,255,255,.10); --cover-solid: #3a3128; --cover-ink: #f6f2ec;
+  --tile-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 12px 40px rgba(0,0,0,.40);
+  --grain: none;
+}
+[data-family="glass"] { --sans: -apple-system, "SF Pro Text", system-ui, sans-serif; --display: -apple-system, "SF Pro Display", system-ui, sans-serif; }
+[data-family="glass"] .tile, [data-family="glass"] .nudge, [data-family="glass"] .capture-btn, [data-family="glass"] .chip,
+[data-family="glass"] .sheet, [data-family="glass"] .drawer, [data-family="glass"] .palette, [data-family="glass"] .cover {
+  -webkit-backdrop-filter: blur(40px) saturate(160%); backdrop-filter: blur(40px) saturate(160%); }
+[data-family="glass"] .tile, [data-family="glass"] .cover { border-radius: 22px; }
+[data-family="glass"] .chip, [data-family="glass"] .capture-btn { border-radius: 999px; }
+html.native[data-family="glass"] { background: transparent; }
+html.native[data-family="glass"] body { background: transparent; }
+
 /* ---------- applied to both pages ---------- */
 html { background: var(--grain), var(--bg-image), var(--bg); background-attachment: scroll, fixed, scroll; }
 .tile, .nudge, .capture-btn, .chip, .sheet, .drawer, .palette { background-image: var(--grain); }

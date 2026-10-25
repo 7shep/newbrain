@@ -4,7 +4,8 @@
 #   brain stop      stop it
 #   brain restart   restart (after editing the app)
 #   brain log       show the server log
-# Env: BRAIN_NOTES (notes folder, default: parent of the brain folder), BRAIN_PORT (default 4747)
+# Env: BRAIN_NOTES (notes folder, default: parent of the brain folder), BRAIN_PORT (default 4747),
+#      BRAIN_NO_BROWSER=1 (start without opening a browser; the Mac app uses it)
 set -euo pipefail
 
 # Resolve this script through a symlink (e.g. ~/.local/bin/brain -> <brain>/bin/brain).
@@ -22,7 +23,7 @@ LOG="$APP/.brain.log"
 NOTES_ARGS=()
 [[ -n "${BRAIN_NOTES:-}" ]] && NOTES_ARGS=(--notes "$BRAIN_NOTES")
 
-open_url() { if command -v open >/dev/null; then open "$URL"; elif command -v xdg-open >/dev/null; then xdg-open "$URL"; fi; }
+open_url() { [[ -n "${BRAIN_NO_BROWSER:-}" ]] && return; if command -v open >/dev/null; then open "$URL"; elif command -v xdg-open >/dev/null; then xdg-open "$URL"; fi; }
 running() { [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; }
 
 stop() {

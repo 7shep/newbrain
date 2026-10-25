@@ -225,6 +225,10 @@ push or run arbitrary shell commands. Outward actions come back as drafts for yo
 Each run writes `agents/<time>-<slug>.md` (queued, running, then done or failed), so the state survives a restart. The
 runner's tests use a fake `claude`, so they're free: `python3 -m unittest discover -s tests`.
 
+## As a Mac app (optional)
+
+`mac/build.sh` builds `~/Applications/Brain.app`: Brain in its own window, starting the server if it isn't running. With the **Glass** theme the window is see-through macOS blur, so your desktop shows behind frosted tiles. Needs Xcode's command line tools.
+
 ## On your phone
 
 <img src="docs/phone.png" width="300" align="right" alt="Brain's phone app on the example notes: cover story, Up next and Notes to self">

@@ -7,6 +7,7 @@
     phosphor: { label: "Phosphor", wild: true, modes: { green: "Green", amber: "Amber" } },
     riso: { label: "Riso", wild: true, modes: { paper: "Paper", ink: "Ink" }, auto: ["paper", "ink"] },
     swiss: { label: "Swiss", wild: true, modes: { light: "Light", dark: "Dark" }, auto: ["light", "dark"] },
+    glass: { label: "Glass", modes: { light: "Light", dark: "Dark" }, auto: ["light", "dark"] },
   };
   const DARK = new Set(["dark", "softdark", "green", "amber", "ink"]);
   const LEGACY = { dark: "classic/dark", light: "classic/light", soft: "classic/softlight" };
