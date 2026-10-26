@@ -679,7 +679,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
         try:
             if url.path == "/api/state":
                 SYNC.pull()  # pick up phone changes; at most once a minute
-                return self.send(200, {**state(), "sync": {"on": SYNC.enabled(), "error": SYNC.error}})
+                s = state()
+                # The day planner just started today's list: commit it now, or the phone's copy of the same file
+                # can't be pulled over the uncommitted one.
+                started = "daily/%s.md" % s["daily"]["date"]
+                if started in TOUCHED:
+                    TOUCHED.discard(started)
+                    SYNC.commit([started], "feat(notes): start daily tasks")
+                return self.send(200, {**s, "sync": {"on": SYNC.enabled(), "error": SYNC.error}})
             if url.path == "/api/study":
                 with LOCK:
                     return self.send(200, study_state())

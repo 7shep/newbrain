@@ -3,7 +3,8 @@
 On only when the notes folder is a git repo with a phone/ folder. Pulls when Brain starts, when the page
 asks for fresh state, and every minute in the background so phone agent tasks start with no tab open (at most
 once a minute either way). Commits only the files Brain itself wrote, then pushes in the
-background. A pull that can't rebase cleanly is aborted and reported, never auto-resolved.
+background. A pull that can't rebase cleanly is aborted and reported, never auto-resolved. The one exception is a
+note that both sides created with identical contents (e.g. today's daily tasks): the untracked local copy is dropped.
 """
 import os
 import subprocess
@@ -47,7 +48,7 @@ class Sync:
             try:
                 if not self._settle_index():  # a stuck half-merge would make every later pull fail
                     return False
-                p = self._git("pull", "--rebase", "--autostash", "--quiet")
+                p = self._pull()
             except subprocess.TimeoutExpired:
                 self.error = "Pull timed out. Offline?"
                 return False
@@ -59,8 +60,36 @@ class Sync:
             if not self._settle_index():  # the autostash can clash with what was just pulled
                 return False
             self.error = None
+            ahead = self._git("rev-list", "--count", "@{u}..HEAD").stdout.strip()
+        if ahead not in ("", "0"):  # commits a failed push left behind would otherwise wait for the next change
+            threading.Thread(target=self.push, daemon=True).start()
         self.on_pulled()
         return True
+
+    def _pull(self):
+        """git pull --rebase --autostash, getting past untracked notes the pull would overwrite. The autostash leaves
+        untracked files alone, so one the Mac wrote but never committed (and GitHub has too) blocks every pull. Drop
+        each local copy that matches the pulled one byte for byte and retry; if any differs, leave all of them."""
+        p = self._git("pull", "--rebase", "--autostash", "--quiet")
+        if p.returncode == 0 or "untracked working tree files would be overwritten" not in p.stderr + p.stdout:
+            return p
+        self._git("rebase", "--abort")
+        untracked = subprocess.run(["git", "-C", self.notes, "ls-files", "--others", "--exclude-standard", "-z"],
+                                   capture_output=True, timeout=30).stdout.decode("utf-8", "replace").split("\0")
+        same, differ = [], []
+        for rel in filter(None, untracked):
+            theirs = subprocess.run(["git", "-C", self.notes, "show", "@{u}:" + rel], capture_output=True, timeout=30)
+            if theirs.returncode != 0:
+                continue  # not in the pull: no clash
+            with open(os.path.join(self.notes, rel), "rb") as f:
+                mine = f.read()
+            (same if mine.replace(b"\r\n", b"\n") == theirs.stdout.replace(b"\r\n", b"\n") else differ).append(rel)
+        if differ:
+            p.stderr = "%s differ from GitHub's copies (untracked here)" % ", ".join(differ)
+            return p
+        for rel in same:
+            os.remove(os.path.join(self.notes, rel))
+        return self._git("pull", "--rebase", "--autostash", "--quiet")
 
     def _settle_index(self):
         """Clear a conflict left by restoring the autostash. INDEX.md is generated, so take the pulled copy (Brain
@@ -93,7 +122,7 @@ class Sync:
                     if self._git("push", "--quiet").returncode == 0:
                         return True
                     # Rejected: the phone (or GitHub) pushed first. Take theirs, replay ours, try again.
-                    p = self._git("pull", "--rebase", "--autostash", "--quiet")
+                    p = self._pull()
                 except subprocess.TimeoutExpired:
                     self.error = "Push timed out. Offline? It will retry on the next change."
                     return False

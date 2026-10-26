@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import unittest
 from pathlib import Path
 
@@ -295,6 +296,48 @@ class SyncTest(unittest.TestCase):
         self.assertEqual(pulled, [1])
         self.assertTrue(s.pull())  # within the minute: skipped, hook not re-run
         self.assertEqual(pulled, [1])
+
+    def remote_add(self, rel, text):
+        with open(os.path.join(self.phone, rel), "w", encoding="utf-8") as f:
+            f.write(text)
+        git(self.phone, "add", rel)
+        git(self.phone, "commit", "-qm", "phone adds " + rel)
+        git(self.phone, "push", "-q")
+
+    def test_an_identical_untracked_copy_doesnt_block_the_pull(self):
+        # Both sides started today's daily list; the Mac's copy was never committed.
+        text = "# Daily tasks — 2026-10-25\n\n- [ ] Go to the gym\n"
+        self.remote_add("today-list.md", text)
+        with open(os.path.join(self.mac, "today-list.md"), "w", encoding="utf-8") as f:
+            f.write(text)
+        self.remote_change("inbox.md", "- also from the phone\n")
+        s = Sync(self.mac)
+        self.assertTrue(s.pull(gap=0))
+        self.assertIsNone(s.error)
+        self.assertIn("also from the phone", read(self.mac, "inbox.md"))
+        self.assertEqual(git(self.mac, "status", "--porcelain").strip(), "")
+
+    def test_a_clean_pull_pushes_commits_a_failed_push_left_behind(self):
+        with open(os.path.join(self.mac, "inbox.md"), "a") as f:
+            f.write("- stranded on the mac\n")
+        git(self.mac, "commit", "-qam", "brain: capture")  # committed, but its push never happened
+        s = Sync(self.mac)
+        self.assertTrue(s.pull(gap=0))
+        for _ in range(100):  # the push runs on its own thread
+            if git(self.mac, "rev-list", "--count", "@{u}..HEAD").strip() == "0":
+                break
+            time.sleep(0.05)
+        git(self.phone, "pull", "-q")
+        self.assertIn("stranded on the mac", read(self.phone, "inbox.md"))
+
+    def test_a_different_untracked_copy_pauses_and_is_kept(self):
+        self.remote_add("today-list.md", "phone's list\n")
+        with open(os.path.join(self.mac, "today-list.md"), "w", encoding="utf-8") as f:
+            f.write("mac's list\n")
+        s = Sync(self.mac)
+        self.assertFalse(s.pull(gap=0))
+        self.assertIn("today-list.md", s.error)
+        self.assertEqual(read(self.mac, "today-list.md"), "mac's list\n")
 
     def test_background_timer_pulls_without_a_page_asking(self):
         pulled = threading.Event()

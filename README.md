@@ -268,7 +268,9 @@ gets its background agent the next time your laptop pulls.
 On your laptop, Brain pulls from GitHub when it starts, every minute while it's running (even with no Brain tab open),
 when you reload the page and when a Claude session starts.
 It commits and pushes only the notes it changed itself. If the phone and laptop ever change the same note in a way
-git can't combine, it stops and says "Sync paused" instead of guessing.
+git can't combine, it stops and says "Sync paused" instead of guessing. A note both sides created with the same
+contents (like today's daily tasks) isn't a conflict: the laptop's uncommitted copy gives way to GitHub's. Commits
+a failed push left behind go out with the next clean pull.
 
 **Set it up (about 10 minutes):**
 
