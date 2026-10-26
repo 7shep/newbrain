@@ -59,6 +59,8 @@ button { cursor: pointer; }
 .nudge, .job { background: var(--tile-2); border-radius: 14px; padding: 12px; margin-bottom: 8px; }
 .nudge h4, .job h4 { margin: 0 0 4px; font-size: 15px; }
 .due { font: 500 11px var(--mono); color: var(--bad); margin-left: 6px; }
+.rep { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 600; vertical-align: 1px; color: var(--dim); background: var(--tile-2); }
+.rep.replied { color: var(--good); background: color-mix(in srgb, var(--good) 13%, transparent); } .rep.rejected { color: var(--bad); background: color-mix(in srgb, var(--bad) 10%, transparent); }
 .nudge p, .job p { margin: 0 0 10px; color: var(--muted); font-size: 13.5px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .nudge p.full, .job p.full { display: block; }
 .job p { margin: 4px 0 0; white-space: pre-line; } .idea small.clamp { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; } a.pill { color: inherit; text-decoration: none; display: inline-block; } .job small { font: 500 11px var(--mono); color: var(--dim); }
@@ -722,7 +724,7 @@ function internSec(list) {
   return sec("intern", "Internships", rows.filter(r => r.group === "applied").length + " applied", rows.slice(0, showAllIntern ? 999 : 6).map(r => {
     const dd = /^\d{4}-\d{2}-\d{2}$/.test(r.deadline) ? daysFrom(r.deadline) : null;
     const due = r.group === "applied" || dd === null ? "" : dd < 0 ? "closed" : dd === 0 ? "due today" : `due in ${dd}d`;
-    return `<div class="idea"><small class="clamp">${esc(r.status)}</small><div class="t">${esc(r.company)}${r.role ? " · " + esc(r.role) : ""}${due ? `<span class="due">${due}</span>` : ""}</div>
+    return `<div class="idea"><small class="clamp">${esc(r.status)}</small><div class="t">${esc(r.company)}${r.role ? " · " + esc(r.role) : ""}${due ? `<span class="due">${due}</span>` : ""}${r.reply ? `<span class="rep ${esc(r.reply_kind)}">${esc(r.reply)}</span>` : ""}</div>
       ${r.term ? `<div class="s" style="color:var(--muted);font-size:13px">${esc(r.term)}</div>` : ""}${r.link && r.group !== "applied" ? `<div class="acts"><a class="pill" href="${esc(r.link)}" target="_blank" rel="noopener">Open posting</a></div>` : ""}</div>`; }).join("")
     + (rows.length > 6 ? `<button class="more" id="allIntern">${showAllIntern ? "Show fewer" : `Show all ${rows.length}`}</button>` : ""));
 }

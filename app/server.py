@@ -351,8 +351,26 @@ def internship_group(status):
     return "check"
 
 
+def internship_reply(heard, group):
+    """The "Heard back?" cell as the panel's label: "Rejected", "Replied w/ <what>" or "Pending" (applied, nothing yet).
+    The reply check writes "<label> · <YYYY-MM-DD>"; older free text counts as a reply unless it says there's none."""
+    date = re.search(r"\d{4}-\d{2}-\d{2}", heard)
+    label = heard.split(" · ")[0].strip(" -—")
+    low = label.lower()
+    if low.startswith(("rejected", "declined", "not moving forward")):
+        kind, label = "rejected", "Rejected"
+    elif not low or low.startswith(("pending", "not recorded", "no reply", "no response", "none", "no ")) or low == "no":
+        if group != "applied":
+            return {"reply": "", "reply_kind": "", "reply_date": ""}
+        kind, label = "pending", "Pending"
+    else:
+        kind = "replied"
+    return {"reply": label[:60], "reply_kind": kind, "reply_date": date.group(0) if date and kind != "pending" else ""}
+
+
 def internships(text):
-    """Rows from every markdown table that has a company column. Status decides the group by its first words."""
+    """Rows from every markdown table that has a company column. Status decides the group by its first words;
+    a "Heard back?" (or "reply") column adds the reply label."""
     rows, head = [], None
     for line in text.splitlines():
         if not line.startswith("|"):
@@ -371,6 +389,7 @@ def internships(text):
         rows.append({"company": r["company"], "role": r.get("role", ""), "term": r.get("term") or r.get("where", ""),
                      "deadline": r.get("deadline", "").lstrip("~"), "link": link if link.startswith("http") else "",
                      "status": r.get("status", ""), "group": internship_group(r.get("status", ""))})
+        rows[-1].update(internship_reply(r.get("heard back?") or r.get("heard back") or r.get("reply", ""), rows[-1]["group"]))
     return rows
 
 
@@ -560,14 +579,17 @@ def act_capture(body):
 
 def act_agent(body):
     """Start a headless agent on a task typed in the Agents tile (or the palette's Agent kind),
-    or {"preset": "internships"} for the internship run (the tile's button, on the Mac only)."""
-    if body.get("preset") == "internships":
+    or {"preset": "internships"} / {"preset": "replies"} for the internship run or reply check (the tile's buttons,
+    on the Mac only)."""
+    preset = body.get("preset")
+    if preset in ("internships", "replies"):
+        name = "internship run" if preset == "internships" else "reply check"
         if os.environ.get("BRAIN_AGENTS") == "pending":
-            raise ValueError("The internship run starts from Brain on the Mac, not the phone.")
+            raise ValueError("The %s starts from Brain on the Mac, not the phone." % name)
         if not os.path.exists(os.path.join(NOTES, "internships", "tracker.md")):
             raise ValueError("No internships/tracker.md in these notes.")
-        if not AGENTS.internships():
-            raise ValueError("The internship run is already queued or running.")
+        if not (AGENTS.internships() if preset == "internships" else AGENTS.replies()):
+            raise ValueError("The %s is already queued or running." % name)
         return
     text = str(body.get("text") or "").strip()[:4000]
     if not text:

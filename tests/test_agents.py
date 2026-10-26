@@ -175,6 +175,31 @@ class AgentsTest(unittest.TestCase):
         self.assertEqual(a.drain_pending(), 0)
         self.assertEqual(a.recent(), [])
 
+    def test_reply_check_reads_gmail_only_and_writes_only_the_tracker_folder(self):
+        import agents
+        cmd = agents.replies_command()
+        self.assertEqual(cmd[cmd.index("--model") + 1], "claude-sonnet-5-5")
+        self.assertIn("mcp__claude_ai_Gmail__search_threads", cmd)
+        self.assertIn("Write(internships/**)", cmd)
+        for tool in ("Write", "Edit", "--chrome", "WebFetch", "mcp__claude_ai_Gmail__create_draft"):
+            self.assertNotIn(tool, cmd)
+        self.assertIn("never send", agents.REPLIES_PROMPT)
+
+    def test_reply_check_gets_its_own_command_prompt_and_runs_one_at_a_time(self):
+        echo = [sys.executable, "-c", "import sys, time; sys.stdin.reconfigure(encoding='utf-8'); time.sleep(.5); print('replies: ' + sys.stdin.read()[:40])"]
+        a = Agents(self.notes, command=FAKE, replies_command=echo)
+        self.assertTrue(a.replies())
+        self.assertIsNone(a.replies())
+        run = wait(a, 1)[0]
+        self.assertEqual((run["type"], run["status"]), ("replies", "done"))
+        self.assertIn("replies: Brain started you headless to check", run["report"])
+
+    def test_reply_check_is_never_drained(self):
+        a = Agents(self.notes, command=FAKE)
+        a._park("replies", "x")
+        self.assertEqual(a.drain_pending(), 0)
+        self.assertEqual(a.recent(), [])
+
 
 if __name__ == "__main__":
     unittest.main()

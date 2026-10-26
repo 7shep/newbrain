@@ -236,6 +236,13 @@ allowlist: Chrome, reading the notes, and writing only under `internships/`. Lik
 applications and leaves each tab ready, and never submits. It only starts from that button on the computer: there's no
 schedule, and the phone can't start it, so you're around while it uses your browser.
 
+Once the tracker has applications, a **Check replies** button sits next to it. It runs a headless agent on Sonnet 5.5
+that reads the inbox named on the `Email:` line of `internships/profile.md` through the claude.ai Gmail connector (no
+browser), and sets each applied row's **Heard back?** cell to `Rejected · <date>`, `Replied w/ <what> · <date>` (an
+interview invite, online assessment, recruiter call…) or `Pending`, then logs the check under `## Reply checks`. Its
+allowlist is Gmail search and read, reading the notes, and writing only under `internships/`: it can't send, draft,
+label or delete mail. The connector must be signed in to that inbox; if it isn't, the agent changes nothing and says so.
+
 The agent's permissions are an allowlist, not a denylist. It runs with `--setting-sources project --permission-mode
 dontAsk`, so your own Claude settings can't widen it and anything off the list is refused. It can read, edit notes and
 project files, search the web, create Gmail drafts and add calendar events. It can't send email or texts, commit,
@@ -312,7 +319,8 @@ queue run (`python3 app/phone.py personal-notes`) uses your existing Claude Code
 
 ### Internships and morning context
 
-Rows in `internships/tracker.md` appear in the desktop Internships tile, grouped by status. The three
+Rows in `internships/tracker.md` appear in the desktop Internships tile, grouped by status, each applied one with
+its reply from the **Heard back?** column: Rejected, Replied w/ …, or Pending (the phone shows the same). The three
 themes work on desktop and phone. Up next reads only the `## Upcoming` section of `now.md`, sorted by
 date and time. Session context reminds Claude when today's `## Today · YYYY-MM-DD` section is missing,
 using the configured notes folder and available calendar data without delaying your current request.

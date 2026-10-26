@@ -62,10 +62,15 @@ function items(S, o) {
   const soon = live.filter(r => { const d = dd(r.deadline); return d !== null && d >= 0 && d <= 7; });
   const nextDl = live.filter(r => dd(r.deadline) >= 0).sort((a, b) => a.deadline.localeCompare(b.deadline))[0];
   const iso = r => ISO.test(r.deadline || "") ? r.deadline : "9999";
-  mk("intern", "Internships", "case", Math.min(70, 10 + 15 * soon.length), { count: ins.length, cleared: !ins.length, why: `${soon.length} due this week`,
-    summary: `${g("applied").length} applied, ${g("apply").length} to apply, ${g("check").length} to check.`,
+  // Replies come from the tracker's "Heard back?" column (the Agents tile's Check replies fills it); a reply outranks a deadline.
+  const replied = ins.filter(r => r.reply_kind === "replied").sort((a, b) => (b.reply_date || "").localeCompare(a.reply_date || ""));
+  const rejected = ins.filter(r => r.reply_kind === "rejected").length, heard = replied.length || rejected ? ` Heard back: ${replied.length} replied, ${rejected} rejected.` : "";
+  mk("intern", "Internships", "case", Math.min(80, 10 + 15 * soon.length + 25 * replied.length), { count: ins.length, cleared: !ins.length,
+    why: replied.length ? `${replied.length} replied` : `${soon.length} due this week`,
+    summary: `${g("applied").length} applied, ${g("apply").length} to apply, ${g("check").length} to check.${heard}`,
     rows: [...g("apply"), ...g("check")].sort((a, b) => (a.group === b.group ? 0 : a.group === "apply" ? -1 : 1) || iso(a).localeCompare(iso(b))).map(r => [r.company, `${r.group} · ${r.deadline || "—"}`]),
-    spot: nextDl ? [[nextDl.company, nextDl.role].filter(Boolean).join(" · "), `deadline ${nextDl.deadline}`] : null });
+    spot: replied.length ? [[replied[0].company, replied[0].role].filter(Boolean).join(" · "), [replied[0].reply, replied[0].reply_date].filter(Boolean).join(" · ")]
+      : nextDl ? [[nextDl.company, nextDl.role].filter(Boolean).join(" · "), `deadline ${nextDl.deadline}`] : null });
 
   // Notes to self
   const open = (S.nudges || []).filter(n => n.status === "open"), due = n => n.due ? dd(n.due) : null;

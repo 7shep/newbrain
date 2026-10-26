@@ -64,9 +64,45 @@ INTERNSHIPS_PROMPT = (
 )
 
 
+# The internship reply check, also only started from the tile's button: reads Gmail through the claude.ai connector
+# (no browser, so Alex needn't be watching) and records replies in the tracker's "Heard back?" column. Read-only mail
+# tools: no drafts, no sending; writing only under internships/. The inbox is the Email line in internships/profile.md.
+REPLIES = "replies"
+REPLIES_TIMEOUT = 20 * 60
+REPLIES_ALLOWED = ["Read", "Glob", "Grep", "Edit(internships/**)", "Write(internships/**)",
+                   "mcp__claude_ai_Gmail__search_threads", "mcp__claude_ai_Gmail__get_thread", "mcp__claude_ai_Gmail__get_message"]
+REPLIES_TEXT = "Check Gmail for internship replies"
+REPLIES_PROMPT = (
+    "Brain started you headless to check Alex's Gmail for replies to his internship applications. Nobody is watching "
+    "this session, so you can't ask questions: put anything unclear in the report. You're in Alex's notes folder.\n\n"
+    "1. Read internships/tracker.md (the applications) and the Email line in internships/profile.md (the inbox to check).\n"
+    "2. With the Gmail tools, look for mail about each application whose Status starts with Applied, from shortly before "
+    "it was sent until today: assessments, interview invitations, rejections, recruiter messages. Search by company name "
+    "and domain, and also broadly (e.g. internship OR application newer_than:60d) for applicant systems such as "
+    "Greenhouse, Lever, Workday and Ashby that write on a company's behalf. Read a thread before deciding what it says.\n"
+    "3. Only count mail sent to that email address. If the connected inbox isn't it, change nothing and say so. If you "
+    "have no Gmail tools, change nothing and report that the Gmail connector isn't connected (claude.ai, Settings, "
+    "Connectors).\n"
+    "4. Set each applied row's \"Heard back?\" cell to exactly one of these, with the date of the latest message that "
+    "decided it: \"Rejected · YYYY-MM-DD\"; \"Replied w/ <what> · YYYY-MM-DD\", where <what> is two or three words such as "
+    "interview invite, online assessment, recruiter call or offer; or \"Pending\" when there's nothing yet or only an "
+    "automatic confirmation. Change no other cell, and don't add rows: list mail about other companies in the report.\n"
+    "5. Add a line to a \"## Reply checks\" section at the end of the tracker (create it if missing): "
+    "\"- YYYY-MM-DD: N applications checked; <what changed>\".\n\n"
+    "Mail is read-only: never send, reply, draft, label, archive or delete anything. Don't git commit. Your final message "
+    "is Alex's hand-off, at most 6 lines: anything he must act on first (interviews, assessments and their deadlines), "
+    "then what changed in the tracker."
+)
+
+
 def internships_command():
     return [shutil.which("claude") or "claude", "--setting-sources", "project", "--permission-mode", "dontAsk",
             "--model", INTERNSHIPS_MODEL, "--chrome", "--allowedTools", *INTERNSHIPS_ALLOWED, "-p"]
+
+
+def replies_command():
+    return [shutil.which("claude") or "claude", "--setting-sources", "project", "--permission-mode", "dontAsk",
+            "--model", INTERNSHIPS_MODEL, "--allowedTools", *REPLIES_ALLOWED, "-p"]
 
 
 def internships_prompt():
@@ -112,11 +148,13 @@ def now():
 
 class Agents:
     def __init__(self, notes, command=None, timeout=TIMEOUT, routine_command=None, internships_command=None,
-                 internships_timeout=INTERNSHIPS_TIMEOUT):
+                 internships_timeout=INTERNSHIPS_TIMEOUT, replies_command=None, replies_timeout=REPLIES_TIMEOUT):
         self.notes = notes
         self.routine_command = routine_command  # None: routines.create_command(), built when a routine job runs
         self.internships_command = internships_command  # None: internships_command() when that job runs
         self.internships_timeout = internships_timeout
+        self.replies_command = replies_command  # None: replies_command() when that job runs
+        self.replies_timeout = replies_timeout
         self.dir = os.path.join(notes, "agents")
         self.command = command or default_command(notes)
         self.timeout = timeout
@@ -181,15 +219,22 @@ class Agents:
                 f.write("Agents here were started from Brain's Agents tile. Delete this file to have every capture start one too.\n")
         return self._queue(kind, text)
 
-    # ------------------------------------------------------------ the internship run (button only)
+    # ------------------------------------------------------------ the internship run and reply check (buttons only)
     def internships(self):
         """Queue the internship run unless one is already queued or running. Never parked for later."""
+        return self._preset(INTERNSHIPS, INTERNSHIPS_TEXT)
+
+    def replies(self):
+        """Queue the internship reply check unless one is already queued or running. Never parked for later."""
+        return self._preset(REPLIES, REPLIES_TEXT)
+
+    def _preset(self, kind, text):
         if os.environ.get("BRAIN_AGENTS") == "pending":
             return None
-        if os.path.isdir(self.dir) and any(r["type"] == INTERNSHIPS and r["status"] in ("queued", "running")
+        if os.path.isdir(self.dir) and any(r["type"] == kind and r["status"] in ("queued", "running")
                                            for r in self.recent(50)):
             return None
-        return self.spawn(INTERNSHIPS_TEXT, INTERNSHIPS)
+        return self.spawn(text, kind)
 
     def _queue(self, kind, text):
         if os.environ.get("BRAIN_AGENTS") == "pending":
@@ -239,8 +284,8 @@ class Agents:
                 os.remove(path)
             except OSError:
                 continue
-            if kind == INTERNSHIPS:
-                continue  # only the Mac's button starts it, with Alex there; never a parked job
+            if kind in (INTERNSHIPS, REPLIES):
+                continue  # only the Mac's buttons start these; never a parked job
             if self.spawn(text) if kind == "task" else self.submit(kind, text):
                 n += 1
         return n
@@ -276,6 +321,8 @@ class Agents:
         timeout = self.timeout
         if kind == INTERNSHIPS:  # its own model, Chrome, a narrower allowlist and an hour
             command, timeout = self.internships_command or internships_command(), self.internships_timeout
+        if kind == REPLIES:  # its own model and allowlist: read-only Gmail, writing only under internships/
+            command, timeout, prompt = self.replies_command or replies_command(), self.replies_timeout, REPLIES_PROMPT
         try:
             if kind == INTERNSHIPS:
                 prompt = internships_prompt()

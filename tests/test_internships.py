@@ -34,6 +34,22 @@ class InternshipsTest(unittest.TestCase):
         self.assertEqual(rows[2]["term"], "Vancouver")  # "where" stands in when there's no term column
         self.assertEqual(rows[2]["link"], "")  # a portal id, not a URL
 
+    def test_heard_back_becomes_a_reply_label(self):
+        rows = server.internships("""| Company | Role | Heard back? | Status |
+|---|---|---|---|
+| Lyft | SWE | Replied w/ interview invite · 2026-10-24 | Applied 2026-10-22 |
+| Stripe | SWE | Rejected · 2026-10-23 | Applied 2026-10-01 |
+| Altera | SWE | Not recorded | Applied 2026-10-21 |
+| Pinterest | SWE | Pending | Applied 2026-10-21 |
+| Bell | Intern | Not recorded | Ready to submit |
+""")
+        got = [(r["company"], r["reply"], r["reply_kind"], r["reply_date"]) for r in rows]
+        self.assertEqual(got, [("Lyft", "Replied w/ interview invite", "replied", "2026-10-24"),
+                               ("Stripe", "Rejected", "rejected", "2026-10-23"),
+                               ("Altera", "Pending", "pending", ""), ("Pinterest", "Pending", "pending", ""),
+                               ("Bell", "", "", "")])  # not applied yet: no reply to wait for
+        self.assertEqual(server.internships(TRACKER)[0]["reply"], "Pending")  # applied, no column
+
 
 if __name__ == "__main__":
     unittest.main()
