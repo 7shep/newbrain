@@ -246,7 +246,9 @@ label or delete mail. The connector must be signed in to that inbox; if it isn't
 **Prep LinkedIn** (always in the Agents tile) keeps a LinkedIn profile active without living on LinkedIn. It runs
 headless on Sonnet 5.5 in your Chrome, reads your profile, feed and a search or two, and writes `linkedin/<date>.md`:
 one or two post drafts about the week's real work (it gets every active project's commits from the last 7 days as
-its facts), five posts worth commenting on with a draft comment each, and suggested profile edits. It reads
+its facts), five posts worth commenting on with a draft comment each and a link to each post (its permalink when
+the page shows one, otherwise an exact-phrase search the agent has checked brings the post up first), and suggested
+profile edits. It reads
 `linkedin/voice.md` first, so put an approved post and your style rules there. It can't act on LinkedIn: its Chrome
 tools open and read pages (`navigate`, `get_page_text`, `read_page`, `find`, tabs) but can't click, type or run
 scripts, so it can't like, comment, post or connect. You edit the drafts and post them yourself; a finished run

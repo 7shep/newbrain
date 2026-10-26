@@ -204,6 +204,9 @@ class AgentsTest(unittest.TestCase):
                      "mcp__claude-in-chrome__form_input", "mcp__claude-in-chrome__browser_batch", "Write", "Edit", "Bash(ls:*)"):
             self.assertNotIn(tool, cmd)
         self.assertIn("never like, react, comment, post", agents.LINKEDIN_PROMPT)
+        prompt = agents.LINKEDIN_PROMPT.format(date="2026-10-26", context="")  # links: permalink, else a checked search
+        self.assertIn("/feed/update/urn:li:activity:", prompt)
+        self.assertIn("search/results/content/?keywords=%22", prompt)
 
     def test_linkedin_prep_gets_the_weeks_commits_and_runs_one_at_a_time(self):
         echo = [sys.executable, "-c", "import sys, time; sys.stdin.reconfigure(encoding='utf-8'); time.sleep(.5); print(sys.stdin.read()[-40:])"]
