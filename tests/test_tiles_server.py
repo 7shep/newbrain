@@ -78,7 +78,7 @@ class CustomTilesTest(unittest.TestCase):
         with open(os.path.join(d, "gen.py"), "w", encoding="utf-8") as f:
             f.write("open('tiles/music.md', 'w', encoding='utf-8').write('---\\ntitle: Recently played\\n---\\n- Nights · Frank Ocean\\n')\n")
         with open(os.path.join(d, "tiles", "music.md"), "w") as f:
-            f.write(f'---\ntitle: Recently played\nicon: music\nrefresh: "{sys.executable}" gen.py\n---\n- old\n')
+            f.write(f'---\ntitle: Recently played\nicon: music\nrefresh: {sys.executable} gen.py\n---\n- old\n')
         old, server.NOTES = server.NOTES, d
         self.addCleanup(setattr, server, "NOTES", old)
         server.REFRESHED.clear()
