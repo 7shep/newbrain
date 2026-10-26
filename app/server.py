@@ -64,6 +64,7 @@ def project_folders(docs):
 AGENTS = Agents(NOTES, extra_tools=clubkit_tools)
 ROUTINES = Routines(NOTES)
 SYNC = Sync(NOTES, on_pulled=AGENTS.drain_pending)
+AGENTS.sync = SYNC  # each agent run commits the notes it changed
 TOUCHED = set()  # notes files written since the last sync commit
 
 

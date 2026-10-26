@@ -339,6 +339,29 @@ class SyncTest(unittest.TestCase):
         self.assertIn("today-list.md", s.error)
         self.assertEqual(read(self.mac, "today-list.md"), "mac's list\n")
 
+    def test_an_agent_run_commits_and_pushes_only_what_it_changed(self):
+        from agents import Agents
+        with open(os.path.join(self.mac, "me.md"), "a") as f:
+            f.write("\nAlex's own edit, not saved yet\n")  # dirty before the run: stays his
+        os.makedirs(os.path.join(self.mac, "agents"), exist_ok=True)
+        # Stands in for claude: appends to an existing note and writes a new one, like an agent filing its work.
+        agent = [sys.executable, "-c", "open('inbox.md', 'a').write('- filed by the agent\\n'); "
+                                       "open('agent-notes.md', 'w').write('# From the agent\\n'); print('filed it')"]
+        a = Agents(self.mac, command=agent)
+        a.sync = Sync(self.mac)
+        a.spawn("file my notes")
+        for _ in range(200):
+            if git(self.mac, "rev-list", "--count", "@{u}..HEAD").strip() == "0" and "agent:" in git(self.mac, "log", "-1", "--format=%s"):
+                break
+            time.sleep(0.05)
+        self.assertEqual(git(self.mac, "log", "-1", "--format=%s").strip(), "agent: file my notes")
+        committed = git(self.mac, "show", "--name-only", "--format=", "HEAD").split()
+        self.assertEqual(sorted(f for f in committed if not f.startswith("agents/")), ["agent-notes.md", "inbox.md"])
+        self.assertTrue(any(f.startswith("agents/") and f.endswith("file-my-notes.md") for f in committed))  # its report
+        self.assertIn("me.md", git(self.mac, "status", "--porcelain"))
+        git(self.phone, "pull", "-q")
+        self.assertIn("filed by the agent", read(self.phone, "inbox.md"))
+
     def test_background_timer_pulls_without_a_page_asking(self):
         pulled = threading.Event()
         s = Sync(self.mac, on_pulled=pulled.set)

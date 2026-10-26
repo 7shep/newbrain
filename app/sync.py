@@ -103,6 +103,32 @@ class Sync:
         self.error = "Sync paused: unresolved changes in " + ", ".join(stuck) + ". Fix it in a terminal or ask Claude."
         return False
 
+    def snapshot(self):
+        """{path: blob hash} for every changed or untracked notes file right now ({} when sync is off). Taken before
+        and after something runs, it tells which files that run touched (changed_since), leaving earlier edits alone."""
+        if not self.enabled():
+            return {}
+        run = lambda *args, **kw: subprocess.run(["git", "-C", self.notes, *args], capture_output=True,
+                                                  encoding="utf-8", errors="replace", timeout=30, **kw)
+        entries, paths = run("status", "--porcelain", "-z", "--untracked-files=all").stdout.split("\0"), []
+        skip = False
+        for e in entries:
+            if skip or len(e) < 4:  # a rename's second entry is its old path
+                skip = False
+                continue
+            skip = "R" in e[:2] or "C" in e[:2]
+            paths.append(e[3:])
+        present = [p for p in paths if os.path.isfile(os.path.join(self.notes, p))]
+        hashes = run("hash-object", "--stdin-paths", input="\n".join(present)).stdout.split() if present else []
+        out = dict.fromkeys(paths)  # a deleted file hashes to None
+        out.update(zip(present, hashes))
+        return out
+
+    def changed_since(self, before):
+        """Paths whose state differs from the snapshot `before`: new, edited again, or deleted since."""
+        now = self.snapshot()
+        return sorted(p for p in set(now) | set(before) if now.get(p, "clean") != before.get(p, "clean"))
+
     def commit(self, files, message):
         """Commit just these notes files (paths relative to the notes folder), then push in the background."""
         files = sorted({f for f in files if f and os.path.exists(os.path.join(self.notes, f))})

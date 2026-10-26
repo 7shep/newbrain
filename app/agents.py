@@ -162,6 +162,9 @@ class Agents:
         # None, or a function returning (command args, allowlist additions, prompt note) for task and capture agents,
         # asked at each run so a newly linked tool shows up without a restart. Presets and routines never get it.
         self.extra_tools = extra_tools
+        # The notes' Sync (set by the server once it exists): each run commits the notes files it changed, with its
+        # own report, so agent work reaches GitHub and the phone. None (tests, no git): nothing is committed.
+        self.sync = None
         self.jobs = queue.Queue()
         self.lock = threading.Lock()
         self.worker = None
@@ -315,6 +318,15 @@ class Agents:
             self.run(*job)
 
     def run(self, path, kind, text):
+        before = self.sync.snapshot() if self.sync else {}
+        try:
+            self._run(path, kind, text)
+        finally:
+            if self.sync:  # only what changed during this run, so Alex's own unsaved edits stay his to commit
+                record = os.path.relpath(path, self.notes).replace(os.sep, "/")
+                self.sync.commit(self.sync.changed_since(before) + [record], "agent: " + re.sub(r"\s+", " ", text)[:60])
+
+    def _run(self, path, kind, text):
         meta = {"status": "running", "type": kind, "queued": self._read(path)[0].get("queued", now()), "started": now()}
         self._write(path, meta, text)
         command, prompt = self.command, (TASK_PROMPT if kind == "task" else PROMPT).format(kind=kind, text=text)
