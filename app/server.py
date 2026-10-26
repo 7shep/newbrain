@@ -201,7 +201,7 @@ def custom_tiles():
     refresh is a shell command (cwd = notes) that rewrites the file; it runs at most every 5 min."""
     out = []
     for path in sorted(glob.glob(os.path.join(NOTES, "tiles", "*.md"))):
-        rel = os.path.relpath(path, NOTES)
+        rel = "tiles/" + os.path.basename(path)  # "/" on Windows too: the page uses it as a note path
         meta, _ = build.parse_frontmatter(read(rel))
         cmd = meta.get("refresh")
         if cmd and datetime.datetime.now().timestamp() - REFRESHED.get(rel, 0) > 300:
