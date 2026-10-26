@@ -248,7 +248,7 @@ body.map-full { overflow: hidden; }
 .it-grp i { width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--good); }
 .it-grp i.applied { background: var(--good); } .it-grp i.apply { border-right-color: transparent; } .it-grp i.out { border-color: var(--dim); }
 .it-grp .more { margin-left: auto; font-weight: 500; color: var(--dim); }
-.it-row { display: grid; grid-template-columns: 1fr 0fr 0fr auto minmax(84px, .3fr); align-items: center; padding: 8px 10px; border-radius: 10px; color: inherit; text-decoration: none;
+.it-row { display: grid; grid-template-columns: 1fr 0fr 0fr minmax(0, 13rem) minmax(84px, .3fr); align-items: center; padding: 8px 10px; border-radius: 10px; color: inherit; text-decoration: none;
   transition: grid-template-columns .6s var(--spring), background .15s; }
 a.it-row:hover { background: var(--tile-2); }
 .it-row > * { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
@@ -257,6 +257,7 @@ a.it-row:hover { background: var(--tile-2); }
 .it-inl { margin-left: 8px; transition: opacity .2s; }
 .it-role, .it-term { padding-left: 14px; opacity: 0; transform: translateX(14px); transition: opacity .25s, transform .6s var(--spring); }
 /* reply from the tracker's "Heard back?" column: Rejected, Replied w/ …, Pending */
+.it-rp { text-align: right; }  /* one fixed column on every row, so the role and term columns line up */
 .it-rep { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; margin-left: 10px; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600;
   color: var(--dim); background: var(--tile-2); border: 1px solid var(--line); }
 .it-rep.replied { color: var(--good); border-color: color-mix(in srgb, var(--good) 40%, transparent); background: color-mix(in srgb, var(--good) 12%, transparent); }
@@ -264,11 +265,11 @@ a.it-row:hover { background: var(--tile-2); }
 .it-due { text-align: right; font-family: var(--mono); font-size: 12px; }
 .it-due.soon { color: var(--bad); font-weight: 600; } .it-due.past { color: var(--dim); text-decoration: line-through; }
 @container (min-width: 620px) {
-  .it-row { grid-template-columns: .8fr 1.4fr 0fr auto minmax(84px, .35fr); }
+  .it-row { grid-template-columns: .8fr 1.4fr 0fr minmax(0, 13rem) minmax(84px, .35fr); }
   .it-inl { display: none; } .it-role { opacity: 1; transform: none; }
 }
 @container (min-width: 900px) {
-  .it-row { grid-template-columns: .8fr 1.4fr 1fr auto minmax(84px, .35fr); }
+  .it-row { grid-template-columns: .8fr 1.4fr 1fr minmax(0, 13rem) minmax(84px, .35fr); }
   .it-term { opacity: 1; transform: none; }
 }
 .agents { grid-column: span 12; }
@@ -1296,7 +1297,7 @@ function internRow(r) {
   const due = applied ? `sent ${monthDay(applied[0])}` : d === null ? (r.deadline || "rolling") : d < 0 ? "closed" : d === 0 ? "today" : d === 1 ? "tmrw" : monthDay(r.deadline);
   const cls = applied || d === null ? "" : d < 0 ? "past" : d <= 3 ? "soon" : "";
   const rep = r.reply ? `<span class="it-rep ${esc(r.reply_kind)}" title="${esc(r.reply_date ? `${r.reply} · ${r.reply_date}` : r.reply)}">${esc(r.reply)}</span>` : "";
-  const cells = `<span class="it-co"><b>${esc(r.company)}</b><span class="it-inl">${esc(r.role)}</span></span><span class="it-role">${esc(r.role)}</span><span class="it-term">${esc(r.term)}</span><span>${rep}</span><span class="it-due ${cls}">${esc(due)}</span>`;
+  const cells = `<span class="it-co"><b>${esc(r.company)}</b><span class="it-inl">${esc(r.role)}</span></span><span class="it-role">${esc(r.role)}</span><span class="it-term">${esc(r.term)}</span><span class="it-rp">${rep}</span><span class="it-due ${cls}">${esc(due)}</span>`;
   return r.link ? `<a class="it-row" href="${esc(r.link)}" target="_blank" rel="noopener" title="${esc(r.status)}">${cells}</a>` : `<div class="it-row" title="${esc(r.status)}">${cells}</div>`;
 }
 
