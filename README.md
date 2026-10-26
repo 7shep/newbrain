@@ -254,6 +254,14 @@ tools open and read pages (`navigate`, `get_page_text`, `read_page`, `find`, tab
 scripts, so it can't like, comment, post or connect. You edit the drafts and post them yourself; a finished run
 has an **Open drafts** button. Like Run internships, it only starts from the button on the computer.
 
+**Dev log** turns your GitHub profile README into a little blog. Add `devlog/profile.md` to the notes with a
+`Repo: <you>/<you>` line, and put `<!-- devlog-posts:start -->` and `<!-- devlog-posts:end -->` in that repo's
+README. Each morning after 7:00, while Brain is running, it reads your own commits in your **public** repos since the
+last post, has Claude (Sonnet 5.5, no tools) write two to four sentences about them, saves the post as
+`devlog/<date>.md` and puts the three newest posts between the markers through the GitHub API, using `gh auth token`
+or `$GITHUB_TOKEN`. A day with no public commits, or only chores, gets no post. The **Write dev log** button in the
+Agents tile runs it early. It runs at most once a day, and never from the phone.
+
 The agent's permissions are an allowlist, not a denylist. It runs with `--setting-sources project --permission-mode
 dontAsk`, so your own Claude settings can't widen it and anything off the list is refused. It can read, edit notes and
 project files, search the web, create Gmail drafts and add calendar events. It can't send email or texts, commit,

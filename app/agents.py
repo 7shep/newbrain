@@ -15,6 +15,8 @@ import subprocess
 import threading
 import time
 
+import devlog
+
 TIMEOUT = 20 * 60
 # The whole permission boundary: --setting-sources project + dontAsk means nothing outside this list
 # runs, including allow rules from the user's own settings. Outward actions are drafts only.
@@ -149,6 +151,14 @@ LINKEDIN_PROMPT = (
 )
 
 
+# The morning dev log, started by Brain's morning check (or the tile's button): no tools, the agent's answer is the
+# post, and Brain itself publishes it (devlog.py). Its facts are public commits only, since the README is public.
+DEVLOG = "devlog"
+DEVLOG_TIMEOUT = 10 * 60
+DEVLOG_TEXT = "Write today's dev log post"
+PRESETS = (INTERNSHIPS, REPLIES, LINKEDIN, DEVLOG)
+
+
 def internships_command():
     return [shutil.which("claude") or "claude", "--setting-sources", "project", "--permission-mode", "dontAsk",
             "--model", INTERNSHIPS_MODEL, "--chrome", "--allowedTools", *INTERNSHIPS_ALLOWED, "-p"]
@@ -208,8 +218,12 @@ def now():
 class Agents:
     def __init__(self, notes, command=None, timeout=TIMEOUT, routine_command=None, internships_command=None,
                  internships_timeout=INTERNSHIPS_TIMEOUT, replies_command=None, replies_timeout=REPLIES_TIMEOUT,
-                 extra_tools=None, linkedin_command=None, linkedin_timeout=LINKEDIN_TIMEOUT, linkedin_context=None):
+                 extra_tools=None, linkedin_command=None, linkedin_timeout=LINKEDIN_TIMEOUT, linkedin_context=None,
+                 devlog_command=None, devlog_context=None, devlog_publish=None):
         self.notes = notes
+        self.devlog_command = devlog_command  # None: devlog.command() when that job runs
+        self.devlog_context = devlog_context or devlog.context  # notes -> (prompt, None) or (None, why there's no post)
+        self.devlog_publish = devlog_publish or devlog.publish  # (notes, post) -> a line for the report
         self.linkedin_command = linkedin_command  # None: linkedin_command() when that job runs
         self.linkedin_timeout = linkedin_timeout
         self.linkedin_context = linkedin_context  # None, or a function returning this week's commits as text
@@ -301,6 +315,10 @@ class Agents:
         """Queue the weekly LinkedIn prep unless one is already queued or running. Never parked for later."""
         return self._preset(LINKEDIN, LINKEDIN_TEXT)
 
+    def devlog(self):
+        """Queue the dev log post unless one is already queued or running. Never parked for later."""
+        return self._preset(DEVLOG, DEVLOG_TEXT)
+
     def _preset(self, kind, text):
         if os.environ.get("BRAIN_AGENTS") == "pending":
             return None
@@ -357,7 +375,7 @@ class Agents:
                 os.remove(path)
             except OSError:
                 continue
-            if kind in (INTERNSHIPS, REPLIES, LINKEDIN):
+            if kind in PRESETS:
                 continue  # only the Mac's buttons start these; never a parked job
             if self.spawn(text) if kind == "task" else self.submit(kind, text):
                 n += 1
@@ -396,7 +414,7 @@ class Agents:
         meta = {"status": "running", "type": kind, "queued": self._read(path)[0].get("queued", now()), "started": now()}
         self._write(path, meta, text)
         command, prompt = self.command, (TASK_PROMPT if kind == "task" else PROMPT).format(kind=kind, text=text)
-        extra = self.extra_tools() if self.extra_tools and kind not in ("routine", INTERNSHIPS, REPLIES, LINKEDIN) else None
+        extra = self.extra_tools() if self.extra_tools and kind not in ("routine", *PRESETS) else None
         if extra:  # e.g. clubkit's MCP server: its tools join the allowlist (just before -p), and the prompt says so
             args, tools, note = extra
             command, prompt = command[:-1] + list(tools) + list(args) + command[-1:], prompt + note
@@ -419,6 +437,16 @@ class Agents:
         except OSError as e:
             meta.update(status="failed", finished=now())
             return self._write(path, meta, text, "Couldn't read the apply-internships skill: %s" % e)
+        if kind == DEVLOG:  # no tools; the answer is the post, published below
+            command, timeout = self.devlog_command or devlog.command(), DEVLOG_TIMEOUT
+            try:
+                prompt, why = self.devlog_context(self.notes)
+            except Exception as e:  # GitHub unreachable, rate limited, ...
+                meta.update(status="failed", finished=now())
+                return self._write(path, meta, text, "Couldn't read the public commits: %s" % e)
+            if not prompt:  # nothing new to write about: a quiet day, not a failure
+                meta.update(status="done", finished=now())
+                return self._write(path, meta, text, why)
         try:
             p = subprocess.run(command, input=prompt, cwd=self.notes,
                                capture_output=True, encoding="utf-8", errors="replace", timeout=timeout)
@@ -428,5 +456,10 @@ class Agents:
             status, report = "failed", "Stopped after %d minutes." % (timeout // 60)
         except FileNotFoundError:
             status, report = "failed", "The %s command wasn't found." % os.path.basename(command[0])
+        if kind == DEVLOG and status == "done":
+            try:
+                report = report + "\n\n" + self.devlog_publish(self.notes, p.stdout)
+            except Exception as e:
+                status, report = "failed", report + "\n\nCouldn't publish: %s" % e
         meta.update(status=status, finished=now())
         self._write(path, meta, text, report[:2000])

@@ -22,6 +22,7 @@ import socketserver
 import subprocess
 import sys
 import threading
+import time
 import urllib.parse
 import webbrowser
 
@@ -43,6 +44,7 @@ import study
 import study_discord
 import stats  # noqa: E402  (usage stats from Claude Code transcripts)
 import clubkit  # noqa: E402  (the clubkit tile, and clubkit's MCP tools for agents)
+import devlog  # noqa: E402  (the morning dev log post on the GitHub profile)
 
 TOKEN = secrets.token_urlsafe(24)
 CLAUDE_PROJECTS = os.path.expanduser("~/.claude/projects")
@@ -360,6 +362,7 @@ def state():
         "notes": [slim(d) for d in docs if d["kind"] == "note" and not d["path"].startswith("people/")
                   and d["path"] not in ("me.md", "now.md", "nudges.md", "ideas.md", "inbox.md", "claude/habits.md")],
         "internships": internships(read("internships/tracker.md")),
+        "devlog": bool(devlog.repo(NOTES)),
         "agents": AGENTS.recent(),
         "routines": ROUTINES.load(),
         "clubkit": clubkit.state(project_folders(docs)),
@@ -612,16 +615,18 @@ def act_capture(body):
 
 def act_agent(body):
     """Start a headless agent on a task typed in the Agents tile (or the palette's Agent kind),
-    or {"preset": "internships" | "replies" | "linkedin"} for the internship run, reply check or LinkedIn prep (the
-    tile's buttons, on the Mac only)."""
+    or {"preset": "internships" | "replies" | "linkedin" | "devlog"} for the internship run, reply check, LinkedIn prep
+    or dev log post (the tile's buttons, on the Mac only)."""
     preset = body.get("preset")
     presets = {"internships": ("internship run", AGENTS.internships), "replies": ("reply check", AGENTS.replies),
-               "linkedin": ("LinkedIn prep", AGENTS.linkedin)}
+               "linkedin": ("LinkedIn prep", AGENTS.linkedin), "devlog": ("dev log post", AGENTS.devlog)}
     if preset in presets:
         name, start = presets[preset]
         if os.environ.get("BRAIN_AGENTS") == "pending":
             raise ValueError("The %s starts from Brain on the Mac, not the phone." % name)
-        if preset != "linkedin" and not os.path.exists(os.path.join(NOTES, "internships", "tracker.md")):
+        if preset == "devlog" and not devlog.repo(NOTES):
+            raise ValueError("No devlog/profile.md with a Repo: line in these notes.")
+        if preset in ("internships", "replies") and not os.path.exists(os.path.join(NOTES, "internships", "tracker.md")):
             raise ValueError("No internships/tracker.md in these notes.")
         if not start():
             raise ValueError("The %s is already queued or running." % name)
@@ -833,6 +838,19 @@ def publish_graph():
     TOUCHED.discard("phone/graph.json")
 
 
+def morning(every=300):
+    """Start the dev log post once each morning while Brain runs (devlog.due decides), checking every five minutes."""
+    def loop():
+        while True:
+            try:
+                if devlog.due(NOTES, AGENTS.recent(50)):
+                    AGENTS.devlog()
+            except Exception:  # never let one bad check end the timer
+                pass
+            time.sleep(every)
+    threading.Thread(target=loop, daemon=True).start()
+
+
 class Server(socketserver.ThreadingMixIn, http.server.HTTPServer):
     daemon_threads = True
     allow_reuse_address = True
@@ -855,6 +873,7 @@ def main():
     publish_graph()
     AGENTS.recover()
     SYNC.start()  # keep pulling with no tab open, so tasks queued from the phone start on their own
+    morning()
     if "--no-open" not in sys.argv:
         threading.Timer(0.4, lambda: subprocess.run(["open", url]) if sys.platform == "darwin" else webbrowser.open(url)).start()
     try:
