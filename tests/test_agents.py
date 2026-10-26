@@ -194,6 +194,28 @@ class AgentsTest(unittest.TestCase):
         self.assertEqual((run["type"], run["status"]), ("replies", "done"))
         self.assertIn("replies: Brain started you headless to check", run["report"])
 
+    def test_linkedin_prep_can_read_chrome_but_never_click_type_or_script(self):
+        import agents
+        cmd = agents.linkedin_command()
+        self.assertIn("--chrome", cmd)
+        self.assertIn("mcp__claude-in-chrome__get_page_text", cmd)
+        self.assertIn("Write(linkedin/**)", cmd)
+        for tool in ("mcp__claude-in-chrome", "mcp__claude-in-chrome__computer", "mcp__claude-in-chrome__javascript_tool",
+                     "mcp__claude-in-chrome__form_input", "mcp__claude-in-chrome__browser_batch", "Write", "Edit", "Bash(ls:*)"):
+            self.assertNotIn(tool, cmd)
+        self.assertIn("never like, react, comment, post", agents.LINKEDIN_PROMPT)
+
+    def test_linkedin_prep_gets_the_weeks_commits_and_runs_one_at_a_time(self):
+        echo = [sys.executable, "-c", "import sys, time; sys.stdin.reconfigure(encoding='utf-8'); time.sleep(.5); print(sys.stdin.read()[-40:])"]
+        a = Agents(self.notes, command=FAKE, linkedin_command=echo, linkedin_context=lambda: "Brain:\n- 2026-10-25 feat: glass")
+        self.assertTrue(a.linkedin())
+        self.assertIsNone(a.linkedin())
+        run = wait(a, 1)[0]
+        self.assertEqual((run["type"], run["status"]), ("linkedin", "done"))
+        self.assertIn("2026-10-25 feat: glass", run["report"])
+        a._park("linkedin", "x")
+        self.assertEqual(a.drain_pending(), 0)
+
     def test_reply_check_is_never_drained(self):
         a = Agents(self.notes, command=FAKE)
         a._park("replies", "x")

@@ -95,9 +95,59 @@ REPLIES_PROMPT = (
 )
 
 
+# Weekly LinkedIn prep, also only started from the tile's button (it reads Alex's feed in his Chrome). It drafts and
+# never acts: its Chrome tools can open and read pages but can't click, type or run scripts, so it can't like,
+# comment, post, connect or message. Drafts go in linkedin/<date>.md, which Alex edits and posts himself.
+LINKEDIN = "linkedin"
+LINKEDIN_TIMEOUT = 30 * 60
+LINKEDIN_CHROME = ["mcp__claude-in-chrome__tabs_context_mcp", "mcp__claude-in-chrome__tabs_create_mcp",
+                   "mcp__claude-in-chrome__tabs_close_mcp", "mcp__claude-in-chrome__navigate",
+                   "mcp__claude-in-chrome__get_page_text", "mcp__claude-in-chrome__read_page", "mcp__claude-in-chrome__find"]
+LINKEDIN_ALLOWED = ["Read", "Glob", "Grep", "Edit(linkedin/**)", "Write(linkedin/**)", *LINKEDIN_CHROME]
+LINKEDIN_TEXT = "Prep this week's LinkedIn"
+LINKEDIN_PROMPT = (
+    "Brain started you headless to prepare Alex's LinkedIn for the week. Alex wants an active, credible profile while "
+    "spending only a few minutes on LinkedIn, so you draft and he posts. Nobody is watching, so you can't ask questions. "
+    "You're in Alex's notes folder. Today is {date}.\n\n"
+    "Hard rules. You can open and read pages in Chrome but can't click, type, or run scripts, and you must not try: "
+    "never like, react, comment, post, repost, follow, connect, message or endorse anything. Everything you produce is "
+    "a draft in a file. Never invent work, numbers, results or opinions Alex hasn't stated: every claim in a draft must "
+    "come from his notes or the commit list below. Don't git commit.\n\n"
+    "1. Read me.md, now.md, internships/profile.md (his targets), the project notes for active projects, and "
+    "linkedin/voice.md if it exists: it shows how Alex writes and what he has approved before. Read earlier "
+    "linkedin/*.md drafts so you don't repeat a post or comment on the same post twice.\n"
+    "2. In Chrome, open a new tab. Read Alex's profile (https://www.linkedin.com/in/me/) with get_page_text, then his "
+    "feed (https://www.linkedin.com/feed/), then one or two content searches on his interests, e.g. "
+    "https://www.linkedin.com/search/results/content/?keywords=AI%20agents&sortBy=%22date_posted%22. Read pages with "
+    "get_page_text; use find or read_page only to get a post's link. If LinkedIn shows a sign-in page or a checkpoint, "
+    "stop browsing and say so in the report. Close the tab when you're done.\n"
+    "3. Write linkedin/{date}.md with these sections:\n"
+    "## Posts to publish: one or two drafts in Alex's voice about real work from this week (the commits below, "
+    "finished projects, results). Each: the draft, then one line saying which notes or commits it's based on and a "
+    "suggested image. Keep the job-search line (Summer 2027 SWE or AI/ML internship, Toronto hybrid or remote) in at "
+    "most one of them.\n"
+    "## Posts to comment on: five posts from the feed or searches that fit his interests (AI agents and evals, "
+    "developer tools, Toronto tech, Queen's and student clubs) or come from people at companies he applied to. Each: "
+    "author and their headline, the post's link if you found it (otherwise its first words), why it's worth his time, "
+    "and a draft comment of 1 to 3 sentences that adds something specific from his own experience or asks a real "
+    "question. No generic praise; if you can't say something specific, leave the post out.\n"
+    "## Profile: concrete edits to his headline, About and Featured section based on what he has shipped, each as "
+    "current text, then suggested text. Skip anything that's already good.\n"
+    "4. Your final message is the hand-off, at most 5 lines: the file's path, what's in it, and anything that stopped "
+    "you.\n\n"
+    "Commits in Alex's project repos over the last 7 days, as date, author: subject (the factual record for post "
+    "drafts; only commits by Alex are his work, others came from upstream or collaborators):\n{context}"
+)
+
+
 def internships_command():
     return [shutil.which("claude") or "claude", "--setting-sources", "project", "--permission-mode", "dontAsk",
             "--model", INTERNSHIPS_MODEL, "--chrome", "--allowedTools", *INTERNSHIPS_ALLOWED, "-p"]
+
+
+def linkedin_command():
+    return [shutil.which("claude") or "claude", "--setting-sources", "project", "--permission-mode", "dontAsk",
+            "--model", INTERNSHIPS_MODEL, "--chrome", "--allowedTools", *LINKEDIN_ALLOWED, "-p"]
 
 
 def replies_command():
@@ -149,8 +199,11 @@ def now():
 class Agents:
     def __init__(self, notes, command=None, timeout=TIMEOUT, routine_command=None, internships_command=None,
                  internships_timeout=INTERNSHIPS_TIMEOUT, replies_command=None, replies_timeout=REPLIES_TIMEOUT,
-                 extra_tools=None):
+                 extra_tools=None, linkedin_command=None, linkedin_timeout=LINKEDIN_TIMEOUT, linkedin_context=None):
         self.notes = notes
+        self.linkedin_command = linkedin_command  # None: linkedin_command() when that job runs
+        self.linkedin_timeout = linkedin_timeout
+        self.linkedin_context = linkedin_context  # None, or a function returning this week's commits as text
         self.routine_command = routine_command  # None: routines.create_command(), built when a routine job runs
         self.internships_command = internships_command  # None: internships_command() when that job runs
         self.internships_timeout = internships_timeout
@@ -235,6 +288,10 @@ class Agents:
         """Queue the internship reply check unless one is already queued or running. Never parked for later."""
         return self._preset(REPLIES, REPLIES_TEXT)
 
+    def linkedin(self):
+        """Queue the weekly LinkedIn prep unless one is already queued or running. Never parked for later."""
+        return self._preset(LINKEDIN, LINKEDIN_TEXT)
+
     def _preset(self, kind, text):
         if os.environ.get("BRAIN_AGENTS") == "pending":
             return None
@@ -291,7 +348,7 @@ class Agents:
                 os.remove(path)
             except OSError:
                 continue
-            if kind in (INTERNSHIPS, REPLIES):
+            if kind in (INTERNSHIPS, REPLIES, LINKEDIN):
                 continue  # only the Mac's buttons start these; never a parked job
             if self.spawn(text) if kind == "task" else self.submit(kind, text):
                 n += 1
@@ -330,7 +387,7 @@ class Agents:
         meta = {"status": "running", "type": kind, "queued": self._read(path)[0].get("queued", now()), "started": now()}
         self._write(path, meta, text)
         command, prompt = self.command, (TASK_PROMPT if kind == "task" else PROMPT).format(kind=kind, text=text)
-        extra = self.extra_tools() if self.extra_tools and kind not in ("routine", INTERNSHIPS, REPLIES) else None
+        extra = self.extra_tools() if self.extra_tools and kind not in ("routine", INTERNSHIPS, REPLIES, LINKEDIN) else None
         if extra:  # e.g. clubkit's MCP server: its tools join the allowlist (just before -p), and the prompt says so
             args, tools, note = extra
             command, prompt = command[:-1] + list(tools) + list(args) + command[-1:], prompt + note
@@ -343,6 +400,10 @@ class Agents:
             command, timeout = self.internships_command or internships_command(), self.internships_timeout
         if kind == REPLIES:  # its own model and allowlist: read-only Gmail, writing only under internships/
             command, timeout, prompt = self.replies_command or replies_command(), self.replies_timeout, REPLIES_PROMPT
+        if kind == LINKEDIN:  # read-only Chrome, writing only under linkedin/, and this week's commits as the facts
+            context = (self.linkedin_context() if self.linkedin_context else "") or "(none found)"
+            command, timeout = self.linkedin_command or linkedin_command(), self.linkedin_timeout
+            prompt = LINKEDIN_PROMPT.format(date=datetime.date.today().isoformat(), context=context)
         try:
             if kind == INTERNSHIPS:
                 prompt = internships_prompt()

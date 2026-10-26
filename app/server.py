@@ -61,7 +61,23 @@ def project_folders(docs):
             for d in docs if d["kind"] == "project" and not d["meta"].get("archived")]
 
 
-AGENTS = Agents(NOTES, extra_tools=clubkit_tools)
+def week_commits():
+    """Commit subjects from the last 7 days in every active project's git folders: the LinkedIn prep's facts."""
+    lines = []
+    for p in project_folders(build.load_notes()):
+        for folder in p["folders"]:
+            try:
+                log = subprocess.run(["git", "-C", folder, "log", "--since=7.days", "--no-merges", "-n", "40",
+                                      "--date=short", "--format=%ad %an: %s"], capture_output=True, text=True,
+                                     encoding="utf-8", errors="replace", timeout=15).stdout.strip()
+            except (OSError, subprocess.TimeoutExpired):
+                continue
+            if log:
+                lines.append("%s (%s):\n%s" % (p["title"], p["path"], "\n".join("- " + l for l in log.splitlines())))
+    return "\n\n".join(lines)
+
+
+AGENTS = Agents(NOTES, extra_tools=clubkit_tools, linkedin_context=week_commits)
 ROUTINES = Routines(NOTES)
 SYNC = Sync(NOTES, on_pulled=AGENTS.drain_pending)
 AGENTS.sync = SYNC  # each agent run commits the notes it changed
@@ -596,16 +612,18 @@ def act_capture(body):
 
 def act_agent(body):
     """Start a headless agent on a task typed in the Agents tile (or the palette's Agent kind),
-    or {"preset": "internships"} / {"preset": "replies"} for the internship run or reply check (the tile's buttons,
-    on the Mac only)."""
+    or {"preset": "internships" | "replies" | "linkedin"} for the internship run, reply check or LinkedIn prep (the
+    tile's buttons, on the Mac only)."""
     preset = body.get("preset")
-    if preset in ("internships", "replies"):
-        name = "internship run" if preset == "internships" else "reply check"
+    presets = {"internships": ("internship run", AGENTS.internships), "replies": ("reply check", AGENTS.replies),
+               "linkedin": ("LinkedIn prep", AGENTS.linkedin)}
+    if preset in presets:
+        name, start = presets[preset]
         if os.environ.get("BRAIN_AGENTS") == "pending":
             raise ValueError("The %s starts from Brain on the Mac, not the phone." % name)
-        if not os.path.exists(os.path.join(NOTES, "internships", "tracker.md")):
+        if preset != "linkedin" and not os.path.exists(os.path.join(NOTES, "internships", "tracker.md")):
             raise ValueError("No internships/tracker.md in these notes.")
-        if not (AGENTS.internships() if preset == "internships" else AGENTS.replies()):
+        if not start():
             raise ValueError("The %s is already queued or running." % name)
         return
     text = str(body.get("text") or "").strip()[:4000]
