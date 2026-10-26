@@ -18,9 +18,9 @@ vm.runInNewContext(readFileSync(new URL("../app/theme.js", import.meta.url), "ut
 const { resolve, FAMILIES } = win.BrainTheme;
 
 test("the lock turns any pick into its family, keeping a mode it has", () => {
-  assert.deepEqual(Object.keys(FAMILIES), ["pride"]);
-  assert.deepEqual({ ...resolve("phosphor/auto") }, { family: "pride", mode: "auto", id: "pride-light", tone: "light" });
-  assert.equal(resolve("swiss/dark").id, "pride-dark");
+  assert.deepEqual(Object.keys(FAMILIES), ["glass"]);
+  assert.deepEqual({ ...resolve("phosphor/auto") }, { family: "glass", mode: "auto", id: "glass-light", tone: "light" });
+  assert.equal(resolve("swiss/dark").id, "glass-dark");
   assert.equal(resolve("riso/paper").mode, "auto");
 });
 

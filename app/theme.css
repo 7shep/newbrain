@@ -8,6 +8,7 @@
      type    --sans --display --mono
      shape   --tile-shadow (borders and corners: family rules at the bottom)
      texture --grain --bg-image
+     glass   --glass (a backdrop-filter) --glass-sheen (a highlight drawn over frosted surfaces)
    Selectors are [data-theme] (not html[...]) so the pickers can preview a theme on any element. */
 
 :root {
@@ -23,7 +24,7 @@
 /* Defaults every theme starts from; each theme below overrides what it needs. */
 :root, [data-theme] {
   --cover: var(--accent); --cover-solid: var(--accent); --cover-ink: var(--accent-ink);
-  --good-ink: var(--accent-ink); --tile-shadow: none; --bg-image: none; --scrim: rgba(0,0,0,.55);
+  --good-ink: var(--accent-ink); --tile-shadow: none; --bg-image: none; --scrim: rgba(0,0,0,.55); --glass: none; --glass-sheen: none;
 }
 [data-tone="dark"] { color-scheme: dark; --grain: var(--grain-dark); }
 [data-tone="light"] { color-scheme: light; --grain: var(--grain-light); --scrim: rgba(30,35,45,.25); }
@@ -77,24 +78,70 @@
   --grain: none; --tile-shadow: 0 1px 2px rgba(0,0,0,.04), 0 2px 8px rgba(0,0,0,.03);
 }
 
-/* ---------- Pride: plum neutrals, a rainbow strip across the top of the page and the cover ---------- */
-[data-family="pride"] {
-  --rainbow: linear-gradient(90deg, #e40303 0 16.67%, #ff8c00 0 33.33%, #ffed00 0 50%, #008026 0 66.67%, #24408e 0 83.33%, #732982 0);
-  --bg-image: var(--rainbow) top / 100% 5px no-repeat;
-  --cover: var(--rainbow) top / 100% 10px no-repeat, var(--cover-solid); --cover-ink: #ffffff;
+/* ---------- Glass: frosted "liquid glass" tiles, bars and panels floating over a soft, warm room ---------- */
+/* --room paints the scene behind everything (fixed, so the glass has something to refract); --glass is the
+   backdrop-filter the frosted surfaces use, --glass-sheen the light catching their top-left edge. */
+[data-theme="glass-light"] {
+  --bg: #cbb59c; --tile: rgba(255,255,255,.4); --panel: rgba(248,243,236,.66); --tile-2: rgba(255,255,255,.42); --tile-3: rgba(255,255,255,.66);
+  --line: rgba(255,255,255,.62); --ink: #1b1713; --muted: #4b4139; --dim: #75685c;
+  --accent: #c8582a; --accent-ink: #ffffff; --good: #24814f; --good-ink: #ffffff; --bad: #b83a2b; --info: #2a63b4; --extra: #6f48b8;
+  --cover: linear-gradient(150deg, rgba(42,32,25,.58), rgba(42,32,25,.4)); --cover-solid: #2a2019; --cover-ink: #ffffff;
+  --room:
+    radial-gradient(34% 30% at 50% 42%, rgba(46,38,34,.62), transparent 72%),
+    radial-gradient(26% 52% at 4% 66%, rgba(64,52,44,.6), transparent 72%),
+    radial-gradient(30% 46% at 95% 34%, rgba(255,250,240,.95), transparent 72%),
+    radial-gradient(42% 26% at 30% 6%, rgba(170,112,64,.72), transparent 72%),
+    radial-gradient(40% 22% at 76% 4%, rgba(150,96,54,.62), transparent 72%),
+    radial-gradient(56% 30% at 52% 98%, rgba(158,100,56,.78), transparent 72%),
+    radial-gradient(18% 22% at 80% 82%, rgba(110,132,82,.5), transparent 72%),
+    radial-gradient(22% 18% at 16% 30%, rgba(255,236,206,.7), transparent 72%),
+    linear-gradient(180deg, #ebdfcf, #d2bba2 55%, #bfa286);
+  --glass-sheen: linear-gradient(140deg, rgba(255,255,255,.34), rgba(255,255,255,.06) 38%, transparent 60%);
+  --tile-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 12px 32px -14px rgba(60,36,16,.34);
+  --scrim: rgba(44,32,22,.2);
 }
-[data-theme="pride-light"] {
-  --bg: #f6f3f7; --tile: #ffffff; --tile-2: #f8f5f9; --tile-3: rgba(40,20,50,.06); --line: #e6dfea; --ink: #1d1724; --muted: #5f566a; --dim: #958ca0;
-  --accent: #8a2fc0; --accent-ink: #ffffff; --good: #1f8a4c; --good-ink: #ffffff; --bad: #d1293d; --info: #1f63c6; --extra: #e2621b;
-  --cover-solid: #2a1d3a; --tile-shadow: 0 1px 2px rgba(50,20,70,.05), 0 8px 24px rgba(50,20,70,.05);
+[data-theme="glass-dark"] {
+  --bg: #1d1713; --tile: rgba(255,255,255,.1); --panel: rgba(38,31,26,.7); --tile-2: rgba(255,255,255,.09); --tile-3: rgba(255,255,255,.17);
+  --line: rgba(255,255,255,.16); --ink: #f5efe8; --muted: #c9bdb1; --dim: #95887c;
+  --accent: #ff9a62; --accent-ink: #1f0f05; --good: #72dca0; --good-ink: #05150c; --bad: #ff8a7a; --info: #8ab8ff; --extra: #c9a6ff;
+  --cover: linear-gradient(150deg, rgba(0,0,0,.42), rgba(0,0,0,.26)); --cover-solid: #17120e; --cover-ink: #fbf6f0;
+  --room:
+    radial-gradient(34% 30% at 50% 42%, rgba(6,5,4,.7), transparent 72%),
+    radial-gradient(26% 40% at 12% 58%, rgba(255,166,92,.36), transparent 72%),
+    radial-gradient(30% 46% at 95% 30%, rgba(120,140,190,.3), transparent 72%),
+    radial-gradient(42% 26% at 30% 6%, rgba(120,72,38,.6), transparent 72%),
+    radial-gradient(40% 22% at 76% 4%, rgba(96,58,30,.55), transparent 72%),
+    radial-gradient(56% 30% at 52% 98%, rgba(122,72,36,.62), transparent 72%),
+    radial-gradient(18% 22% at 80% 82%, rgba(70,96,58,.42), transparent 72%),
+    radial-gradient(14% 16% at 18% 26%, rgba(255,196,128,.45), transparent 72%),
+    linear-gradient(180deg, #2a221c, #1d1713 55%, #151009);
+  --glass-sheen: linear-gradient(140deg, rgba(255,255,255,.14), rgba(255,255,255,.03) 38%, transparent 60%);
+  --tile-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 14px 36px -14px rgba(0,0,0,.6);
+  --scrim: rgba(0,0,0,.38);
 }
-[data-theme="pride-dark"] {
-  --bg: #121016; --tile: #1a171f; --tile-2: #221e28; --tile-3: #2b2632; --line: #2e2935; --ink: #efeaf3; --muted: #a39cab; --dim: #6f6878;
-  --accent: #c77dff; --accent-ink: #16081f; --good: #5fd38d; --good-ink: #04140a; --bad: #ff7a7a; --info: #7fb2ff; --extra: #ffb347;
-  --cover-solid: #2a1d3a;
+[data-family="glass"] {
+  --sans: "Inter", -apple-system, "SF Pro Text", system-ui, sans-serif; --display: "Inter Tight", var(--sans);
+  --grain: none; --bg-image: var(--room);
+  --glass: blur(26px) saturate(165%); --glass-strong: blur(44px) saturate(175%);
 }
-/* The page's strip sits above the sticky top bar, which would otherwise cover --bg-image's (that one is for pickers). */
-[data-family="pride"] body::before { content: ""; position: fixed; inset: 0 0 auto; height: 5px; background: var(--rainbow); z-index: 16; pointer-events: none; }
+/* The room sits behind the page, fixed, so the html background layers below don't need to scroll with it. */
+html[data-family="glass"] { background: var(--bg); }
+html[data-family="glass"] body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: var(--room); pointer-events: none; }
+[data-family="glass"] .bt-outline path { stroke: rgba(255,255,255,.7); }
+[data-tone="dark"][data-family="glass"] .bt-outline path { stroke: rgba(255,255,255,.2); }
+[data-family="glass"] .bt:hover .bt-outline path { stroke: rgba(255,255,255,.95); }
+[data-tone="dark"][data-family="glass"] .bt:hover .bt-outline path { stroke: rgba(255,255,255,.42); }
+[data-family="glass"] .bt:has(.r-hero) .bt-outline path { fill: rgba(40,30,23,.46); stroke: rgba(255,255,255,.4); }
+[data-tone="dark"][data-family="glass"] .bt:has(.r-hero) .bt-outline path { fill: rgba(0,0,0,.34); stroke: rgba(255,255,255,.18); }
+/* Frosted surfaces. Nested cards stay plain translucent: a blur inside a blur only sees its parent. */
+[data-family="glass"] :is(.tile, .chip, .capture-btn, .toast, .stat, .deck) { -webkit-backdrop-filter: var(--glass); backdrop-filter: var(--glass); }
+[data-family="glass"] :is(.page, .drawer, .palette, .sheet, .pop) { -webkit-backdrop-filter: var(--glass-strong); backdrop-filter: var(--glass-strong); }
+[data-family="glass"] :is(.tile:not(.cover), .page, .palette, .bt-strip, .stat) { background-image: var(--glass-sheen); }
+[data-family="glass"] :is(.pill, .ib, .chip, .capture-btn, .bt-all, .bt-btn, .kind, .seg, .seg button) { border-radius: 999px; }
+/* The selected thing is a solid white chip, as in the bars of the reference design. */
+[data-family="glass"] :is(.seg button.on, .kind.on, .themes .modes button.on, .modes .pill.on) { background: #fff; color: #17130f; border-color: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.14); }
+[data-family="glass"] .toast { background: color-mix(in srgb, var(--ink) 78%, transparent); border-radius: 999px; }
+[data-family="glass"] .scrim.on { -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
 
 /* ---------- Phosphor: green-screen terminal (dark only) ---------- */
 [data-theme="phosphor-green"] {

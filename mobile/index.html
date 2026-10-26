@@ -326,6 +326,13 @@ body.tiles .fab { width: 56px; padding: 0; justify-content: center; font-size: 0
 #page.cover .pill { background: var(--cover-ink); color: var(--cover-solid); }
 @media (prefers-reduced-motion: reduce) { #page, #page > header, #pageStrip, #pageUi, #board, #top, .island, .ilist, .nx, .sts button { transition: none; } .island.work i { animation: none; }
   .pt { opacity: 1; transform: none; transition: none; } }
+/* Glass (theme.css): sheets, the open page and the lower deck are frosted panes over the room, not solid fills */
+[data-family="glass"] :is(.sheet, #page:not(.cover)) { background: var(--panel); }
+[data-family="glass"] #page { -webkit-backdrop-filter: var(--glass-strong); backdrop-filter: var(--glass-strong); border-color: var(--line); }
+[data-family="glass"] .deck { --deck: var(--tile); }
+[data-family="glass"] :is(.island, .ilist) { background: color-mix(in srgb, var(--panel) 85%, transparent); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line);
+  -webkit-backdrop-filter: var(--glass-strong); backdrop-filter: var(--glass-strong); }
+[data-family="glass"] .ilist div { border-top-color: var(--line); }
 
 </style>
 <link rel="stylesheet" href="../app/theme.css">

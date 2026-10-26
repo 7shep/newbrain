@@ -312,7 +312,8 @@ function renderPart(it, role, box, o) {
 // A whole block's inner HTML: the outline SVG plus each part placed in pixels. g = {cw, rh, gap, radius, cover}.
 function renderBlock(it, b, g) {
   const gap = g.gap ?? GAP, rh = g.rh ?? ROW, o = outline(b.cells, g.cw, rh, gap, g.radius), X = x => x * (g.cw + gap), Y = y => y * (rh + gap);
-  const html = `<svg class="bt-outline" width="${o.w}" height="${o.h}"><path d="${o.d}"/></svg>` + b.parts.map(q => {
+  // .bt-glass blurs what's behind the block (themes with --glass), clipped to the same outline the SVG draws.
+  const html = `<div class="bt-glass" style="width:${o.w}px;height:${o.h}px;clip-path:path('${o.d}')"></div><svg class="bt-outline" width="${o.w}" height="${o.h}"><path d="${o.d}"/></svg>` + b.parts.map(q => {
     const w = X(q.c) - gap, h = Y(q.r) - gap;
     return `<div class="bt-part r-${q.role}" style="left:${X(q.x - o.x0)}px;top:${Y(q.y - o.y0)}px;width:${w}px;height:${h}px">${renderPart(it, q.role, { w, h }, g)}</div>`;
   }).join("");

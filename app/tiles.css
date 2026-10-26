@@ -3,6 +3,7 @@
 .bt, .bt * { box-sizing: border-box; }
 .bt { position: relative; min-width: 0; pointer-events: none; }
 .bt-outline { position: absolute; left: 0; top: 0; overflow: visible; }
+.bt-glass { position: absolute; left: 0; top: 0; pointer-events: none; -webkit-backdrop-filter: var(--glass); backdrop-filter: var(--glass); background: var(--glass-sheen); }
 .bt-outline path { fill: var(--tile); stroke: var(--line); stroke-width: 1; pointer-events: fill; cursor: pointer; transition: stroke .2s, fill .4s; }
 .bt:hover .bt-outline path { stroke: color-mix(in srgb, var(--ink) 30%, var(--line)); }
 .bt:has(.r-hero) .bt-outline path { fill: var(--cover-solid); stroke: none; }
