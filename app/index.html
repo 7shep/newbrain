@@ -291,6 +291,24 @@ a.it-row:hover { background: var(--tile-2); }
 @keyframes pulse { 50% { opacity: .35; } }
 @media (prefers-reduced-motion: reduce) { .run.running .st { animation: none; } }
 .routines { grid-column: span 12; }
+/* ---------- clubkit (app/clubkit.py): repo state, eval runs, modules, TODOS, and an agent with clubkit's MCP tools ---------- */
+.clubkit { grid-column: span 12; }
+.ck-head { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+.ck-head code, .ck-run code { font: 500 12px var(--mono); color: var(--dim); }
+.ck-lbl { font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--dim); margin: 18px 0 6px; }
+.ck-run { display: grid; grid-template-columns: minmax(0, 1fr) 70px 70px 64px 62px; gap: 10px; align-items: baseline; padding: 7px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.ck-run.th { border-top: 0; color: var(--dim); font: 500 11px var(--mono); padding-top: 0; }
+.ck-run > :not(:first-child) { text-align: right; font-family: var(--mono); font-size: 12.5px; }
+.ck-run > :first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ck-run .up { color: var(--good); } .ck-run .down { color: var(--bad); }
+.ck-sanity { color: var(--dim); font-size: 12px; margin-top: 6px; }
+.ck-mods { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.ck-mod { background: var(--tile-2); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 12.5px; color: var(--muted); }
+.ck-mod b { display: flex; justify-content: space-between; gap: 8px; color: var(--ink); font-size: 13.5px; margin-bottom: 3px; }
+.ck-mod b span { font: 500 11px var(--mono); color: var(--dim); }
+.ck-mod.planned { opacity: .6; }
+.ck-todo { margin: 0; padding-left: 20px; font-size: 13.5px; } .ck-todo li { margin: 5px 0; }
+.ck-ask { margin: 18px 0 0; }
 .rt { display: grid; grid-template-columns: 12px 1fr auto; gap: 2px 10px; align-items: center; padding: 9px 0; border-top: 1px solid var(--line); }
 .rt:first-child { border-top: 0; }
 .rt .st { width: 8px; height: 8px; border-radius: 50%; background: var(--good); }
@@ -471,6 +489,9 @@ a.it-row:hover { background: var(--tile-2); }
     <form class="agent-new" id="agentForm"><div style="flex:1"><textarea id="agentText" rows="2" aria-label="Task for a new agent" placeholder="What should an agent do? e.g. Read my ML notes and draft a study plan for the midterm"></textarea><small>Runs headless in your notes folder. Outside actions become drafts. ⌘↵ to start.</small></div><button class="pill yes" type="submit">Start agent</button></form>
     <div id="agents"></div></section>
   <section class="tile routines" id="routinesTile" hidden><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2M3 4l3 3M21 4l-3 3"/></svg><h2>Routines</h2><span class="n" id="routineCount"></span><button class="add" data-ract="refresh">Refresh</button></header><div id="routines"></div></section>
+  <section class="tile clubkit" id="clubkitTile" hidden><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><path d="M17 13v8M13 17h8"/></svg><h2>clubkit</h2><span class="n" id="clubkitMeta"></span><button class="add" id="clubkitOpen">Project page</button></header>
+    <div id="clubkit"></div>
+    <form class="agent-new ck-ask" id="clubkitAsk"><div style="flex:1"><textarea id="clubkitText" rows="2" aria-label="Ask an agent about clubkit" placeholder="Ask an agent about clubkit, e.g. Which module would handle sponsor follow-ups, and does it pass verification?"></textarea><small>A headless agent answers through clubkit's own MCP tools (modules, playbooks, verify). It can't edit the repo. ⌘↵ to ask.</small></div><button class="pill yes" type="submit">Ask</button></form></section>
   <section class="tile ideas"><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z"/></svg><h2>Ideas</h2><span class="n" id="ideaCount"></span><button class="add" data-capture="idea">+ Idea</button></header><div id="ideas"></div></section>
   <section class="tile habits"><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 5.8H20l-4.9 3.6 1.9 5.8L12 14.6l-5 3.6 1.9-5.8L4 8.8h6.1z"/></svg><h2>How Claude adapts to you</h2><span class="n" id="habitCount"></span></header><div id="habits"></div></section>
   <section class="tile map" id="mapTile" hidden><header><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="6" r="2"/><circle cx="19" cy="7" r="2"/><circle cx="12" cy="18" r="2"/><circle cx="12" cy="10" r="2.5"/><path d="M7 6.5l2.8 2.2M17.1 7.6l-2.8 1.6M12 12.5V16"/></svg><h2>Map of everything</h2><input class="map-search" id="mapSearch" list="mapPhrases" placeholder="Search the map…" autocomplete="off" aria-label="Search the map"><datalist id="mapPhrases"></datalist><span class="n" id="mapCount"></span></header>
@@ -830,7 +851,7 @@ BrainDaily.onDayChange(() => { renderDaily(); renderBoard("bg"); load("bg").catc
 function render(how) {
   const [hi] = greeting(), late = S.nudges.filter(n => n.status === "open" && n.due && daysFrom(n.due) < 0).length, today = (S.now.upcoming || []).filter(u => u.date && daysFrom(u.date) === 0).length;
   $("greet").innerHTML = `${esc(hi)}<small>${esc(new Date().toLocaleDateString("en", { weekday: "long", month: "long", day: "numeric" }))}${late ? ` · ${late} overdue` : ""}${today ? ` · ${today} today` : ""}</small>`;
-  renderStudy(); renderDaily(); renderCover(); renderNext(); renderNudges(); renderProjects(); renderInternships(); renderIdeas(); renderHabits(); renderTimeline(); renderAgents(); renderKnows(); renderRoutines(); renderPeople();
+  renderStudy(); renderDaily(); renderCover(); renderNext(); renderNudges(); renderProjects(); renderInternships(); renderIdeas(); renderHabits(); renderTimeline(); renderAgents(); renderKnows(); renderRoutines(); renderClubkit(); renderPeople();
   renderBoard(how);
 }
 
@@ -873,7 +894,7 @@ function setLayout(v) {
 
 // Opening a tile: the real section moves out of #grid into the page, which grows from the tile's box; Done/Esc/outside puts it back.
 const SECTIONS = { study: "#studyTile", daily: "#dailyTile", cover: "#cover", next: ".tile.next", nudges: ".tile.nudges", projects: ".tile.projects", intern: ".tile.intern", agents: "#agentsTile",
-  routines: "#routinesTile", ideas: ".tile.ideas", inbox: ".tile.ideas", habits: ".tile.habits", streak: ".tile.timeline", people: "#peopleTile", knows: "#knowsTile" };
+  routines: "#routinesTile", clubkit: "#clubkitTile", ideas: ".tile.ideas", inbox: ".tile.ideas", habits: ".tile.habits", streak: ".tile.timeline", people: "#peopleTile", knows: "#knowsTile" };
 function openTile(k, from) {
   if (k === "map") return $("mapTile").hidden ? toast("No map yet. Run graphify to build one.") : $("mapFull").click();
   const sec = document.querySelector(SECTIONS[k]), it = tileList.find(i => i.key === k);
@@ -1061,6 +1082,12 @@ $("checkReplies").onclick = async () => {
   try { await api("/api/agent", { preset: "replies" }); toast("Reply check started. It reads Gmail and updates the tracker; it never sends mail."); await load(); }
   catch (err) { toast(err.message); }
 };
+$("clubkitAsk").onsubmit = async e => {
+  e.preventDefault();
+  const text = $("clubkitText").value.trim(); if (!text) return $("clubkitText").focus();
+  try { await spawnAgent("About clubkit: " + text); $("clubkitText").value = ""; } catch (err) { toast(err.message); }
+};
+$("clubkitText").addEventListener("keydown", e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); $("clubkitAsk").requestSubmit(); } });
 $("runInternships").onclick = async () => {
   try { await api("/api/agent", { preset: "internships" }); toast("Internship run started. Keep Chrome open; it fills forms and never submits."); await load(); }
   catch (err) { toast(err.message); }
@@ -1074,6 +1101,34 @@ document.addEventListener("click", e => {
   openRuns.has(f) ? openRuns.delete(f) : openRuns.add(f);
   row.classList.toggle("open");
 });
+
+/* ---------- clubkit: S.clubkit from app/clubkit.py, only when a project note links a clubkit repo ---------- */
+function renderClubkit() {
+  const K = S.clubkit;
+  $("clubkitTile").hidden = !K;
+  if (!K) return;
+  $("clubkitOpen").dataset.open = K.project;
+  $("clubkitMeta").textContent = [K.branch, K.dirty ? `${K.dirty} changed` : "clean"].filter(Boolean).join(" · ");
+  const frac = s => s.total ? `${s.passed}/${s.total}` : "—", rate = s => s.total ? s.passed / s.total : null;
+  const when = iso => new Date(iso).toLocaleString("en", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  const run = r => {
+    const a = rate(r.clubkit), b = rate(r.baseline), gap = a === null || b === null ? null : Math.round(100 * (a - b));
+    return `<div class="ck-run"><span title="${esc(r.id)}">${esc(when(r.date))} · ${esc(r.model || r.agent)} · ${r.tasks} task${r.tasks === 1 ? "" : "s"} · <code>${esc(r.commit)}</code></span>`
+      + `<span>${frac(r.clubkit)}</span><span>${frac(r.baseline)}</span><span class="${gap > 0 ? "up" : gap < 0 ? "down" : ""}">${gap === null ? "—" : (gap > 0 ? "+" : "") + gap + " pts"}</span>`
+      + `<span>$${(r.clubkit.costUsd + r.baseline.costUsd).toFixed(2)}</span></div>`;
+  };
+  const san = ["noop", "reference"].map(k => K.sanity[k] && `${k} ${frac(K.sanity[k].clubkit)} / ${frac(K.sanity[k].baseline)}`).filter(Boolean);
+  const mods = K.modules.map(m => `<div class="ck-mod ${esc(m.status)}"><b>${esc(m.name)}<span>${esc(m.status)}</span></b>${esc(m.summary)}</div>`).join("");
+  $("clubkit").innerHTML = (K.commit ? `<div class="ck-head">Last commit <code>${esc(K.commit.hash)}</code> ${esc(K.commit.subject)} · ${esc(when(K.commit.date))}</div>` : "")
+    + `<div class="ck-lbl">Evals: clubkit vs baseline</div>`
+    + (K.evals.length ? `<div class="ck-run th"><span>run</span><span>clubkit</span><span>baseline</span><span>gap</span><span>cost</span></div>` + K.evals.map(run).join("")
+      : `<div class="empty">No eval runs in evals/results yet. Run pnpm eval in the repo.</div>`)
+    + (san.length ? `<div class="ck-sanity">Latest sanity checks (clubkit / baseline): ${esc(san.join(" · "))}. noop should pass none, reference all.</div>` : "")
+    + `<div class="ck-lbl">Modules</div><div class="ck-mods">${mods || `<div class="empty">No catalog.json yet.</div>`}</div>`
+    + `<div class="ck-lbl">Next in TODOS.md${K.todo_count > K.todos.length ? ` · ${K.todo_count} open` : ""}</div>`
+    + (K.todos.length ? `<ol class="ck-todo">${K.todos.map(t => `<li>${esc(t)}</li>`).join("")}</ol>` : `<div class="empty">Nothing open in TODOS.md.</div>`);
+  $("clubkitAsk").hidden = !K.mcp;
+}
 
 /* ---------- routines (claude/routines.json, refreshed through Claude Code) ---------- */
 let showPaused = false, routinesAsked = false;

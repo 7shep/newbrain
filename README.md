@@ -327,6 +327,20 @@ themes work on desktop and phone. Up next reads only the `## Upcoming` section o
 date and time. Session context reminds Claude when today's `## Today · YYYY-MM-DD` section is missing,
 using the configured notes folder and available calendar data without delaying your current request.
 
+### clubkit
+
+If a project note's `paths:` points at a clubkit checkout (a folder whose
+`package.json` is named `clubkit`), the desktop board gets a **clubkit** tile. Open it for the repo's branch and last
+commit, every eval run in `evals/results/` (clubkit vs baseline pass counts, the gap in points, and cost), the latest
+noop/reference sanity checks, the modules from `catalog.json`, and the open items in `TODOS.md`. Brain only reads the
+repo. The eval results are gitignored in clubkit, so the tile is desktop-only.
+
+Task and capture agents also get clubkit's own MCP server (`list_modules`, `get_module`, `verify_module`,
+`list_skills`, `read_skill`), started with `--mcp-config` so it works from the notes folder. The tile has an **Ask**
+box for questions about clubkit; the agent answers through those tools and can't edit the repo. This needs the repo's
+`node_modules` installed (`pnpm install`); without them the tile still shows, without the Ask box. The internship
+presets and routine agents never get these tools. See `docs/specs/2026-10-25-clubkit.md`.
+
 ## Security
 
 The server binds to `127.0.0.1` only. Every API call needs a random per-run token embedded in the page, and requests

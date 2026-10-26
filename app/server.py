@@ -42,11 +42,26 @@ import planner
 import study
 import study_discord
 import stats  # noqa: E402  (usage stats from Claude Code transcripts)
+import clubkit  # noqa: E402  (the clubkit tile, and clubkit's MCP tools for agents)
 
 TOKEN = secrets.token_urlsafe(24)
 CLAUDE_PROJECTS = os.path.expanduser("~/.claude/projects")
 LOCK = threading.RLock()
-AGENTS = Agents(NOTES)
+
+
+def clubkit_tools():
+    """clubkit's MCP server for task and capture agents, when a project note links a clubkit repo that can run it."""
+    folder, _ = clubkit.find(project_folders(build.load_notes()))
+    config = folder and clubkit.mcp_config(folder)
+    return (["--mcp-config", config], clubkit.AGENT_TOOLS, clubkit.AGENT_NOTE) if config else None
+
+
+def project_folders(docs):
+    return [{"path": d["path"], "title": d["title"], "folders": [os.path.expanduser(p) for p in build.as_list(d["meta"].get("paths"))]}
+            for d in docs if d["kind"] == "project" and not d["meta"].get("archived")]
+
+
+AGENTS = Agents(NOTES, extra_tools=clubkit_tools)
 ROUTINES = Routines(NOTES)
 SYNC = Sync(NOTES, on_pulled=AGENTS.drain_pending)
 TOUCHED = set()  # notes files written since the last sync commit
@@ -330,6 +345,7 @@ def state():
         "internships": internships(read("internships/tracker.md")),
         "agents": AGENTS.recent(),
         "routines": ROUTINES.load(),
+        "clubkit": clubkit.state(project_folders(docs)),
         "daily": daily_state(),
         "study": study_state(),
         "theme": saved_theme(),

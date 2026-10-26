@@ -148,7 +148,8 @@ def now():
 
 class Agents:
     def __init__(self, notes, command=None, timeout=TIMEOUT, routine_command=None, internships_command=None,
-                 internships_timeout=INTERNSHIPS_TIMEOUT, replies_command=None, replies_timeout=REPLIES_TIMEOUT):
+                 internships_timeout=INTERNSHIPS_TIMEOUT, replies_command=None, replies_timeout=REPLIES_TIMEOUT,
+                 extra_tools=None):
         self.notes = notes
         self.routine_command = routine_command  # None: routines.create_command(), built when a routine job runs
         self.internships_command = internships_command  # None: internships_command() when that job runs
@@ -158,6 +159,9 @@ class Agents:
         self.dir = os.path.join(notes, "agents")
         self.command = command or default_command(notes)
         self.timeout = timeout
+        # None, or a function returning (command args, allowlist additions, prompt note) for task and capture agents,
+        # asked at each run so a newly linked tool shows up without a restart. Presets and routines never get it.
+        self.extra_tools = extra_tools
         self.jobs = queue.Queue()
         self.lock = threading.Lock()
         self.worker = None
@@ -314,6 +318,10 @@ class Agents:
         meta = {"status": "running", "type": kind, "queued": self._read(path)[0].get("queued", now()), "started": now()}
         self._write(path, meta, text)
         command, prompt = self.command, (TASK_PROMPT if kind == "task" else PROMPT).format(kind=kind, text=text)
+        extra = self.extra_tools() if self.extra_tools and kind not in ("routine", INTERNSHIPS, REPLIES) else None
+        if extra:  # e.g. clubkit's MCP server: its tools join the allowlist (just before -p), and the prompt says so
+            args, tools, note = extra
+            command, prompt = command[:-1] + list(tools) + list(args) + command[-1:], prompt + note
         if kind == "routine":  # its own prompt, and RemoteTrigger is the only tool; other kinds never get it
             import routines  # here, not at the top: routines imports this module
             command = self.routine_command or routines.create_command()

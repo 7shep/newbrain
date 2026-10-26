@@ -9,11 +9,12 @@ const ICONS = { doc: '<path d="M6 3h9l4 4v14H6z"/>', cal: '<rect x="3" y="5" wid
   bot: '<rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 3v4M9 12h.01M15 12h.01"/>', ppl: '<circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6"/>', case: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5h6v2"/>',
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', fold: '<path d="M3 7h6l2 2h10v10H3z"/>', bulb: '<path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z"/>',
   fire: '<path d="M12 3s5 5 5 10a5 5 0 01-10 0c0-3 2-4 2-4s0 3 3 3c0-4 0-9 0-9z"/>', inbox: '<path d="M3 13l3-8h12l3 8v6H3zM3 13h5l1 3h6l1-3h5"/>',
-  aim: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/>', map: '<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="8" r="2.5"/><circle cx="10" cy="18" r="2.5"/><path d="M8 7l8 1M7.5 8l2 8"/>', spark: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/>' };
+  aim: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/>', map: '<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="8" r="2.5"/><circle cx="10" cy="18" r="2.5"/><path d="M8 7l8 1M7.5 8l2 8"/>', spark: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/>',
+  kit: '<rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><path d="M17 13v8M13 17h8"/>' };
 const LEGEND = ["--accent", "--good", "--info", "--bad", "--muted", "--extra"];
 
 // ---------- items: one per section, scored 0-100 from live state (spec "Scores") ----------
-const ORDER = ["cover", "study", "next", "daily", "people", "intern", "nudges", "agents", "routines", "projects", "ideas", "streak", "habits", "knows", "map", "inbox"];
+const ORDER = ["cover", "study", "next", "daily", "people", "intern", "nudges", "agents", "routines", "clubkit", "projects", "ideas", "streak", "habits", "knows", "map", "inbox"];
 const ISO = /^\d{4}-\d{2}-\d{2}/;
 function items(S, o) {
   S = S || {}; o = o || {};
@@ -94,6 +95,17 @@ function items(S, o) {
   mk("routines", "Routines", "clock", bad.length ? 70 : 15, { count: rts.length, cleared: !rts.length, why: bad.length ? `${bad.length} failed` : "all OK",
     summary: `${rts.length} running${bad.length ? `, ${bad.length} failed` : ""}.`, rows: rts.map(r => [r.name, `${r.ok === false ? "✗" : "✓"} ${String(r.last_run || "").slice(5)}`]),
     spot: bad[0] ? [bad[0].name, "last run failed"] : null });
+
+  // clubkit: only when a project note links a clubkit repo (app/clubkit.py); latest real eval run and the next TODO
+  const ck = S.clubkit;
+  if (ck) {
+    const frac = s => s.total ? `${s.passed}/${s.total}` : "—", run = (ck.evals || [])[0], mods = ck.modules || [];
+    const working = mods.filter(m => m.status !== "planned").length;
+    mk("clubkit", "clubkit", "kit", 22 + (ck.dirty ? 8 : 0), { count: working, why: run ? `evals ${frac(run.clubkit)} vs ${frac(run.baseline)}` : `${ck.todo_count} to do`,
+      summary: `${working} modules working, ${mods.length - working} planned.` + (run ? ` Last eval (${run.model || run.agent}): clubkit ${frac(run.clubkit)}, baseline ${frac(run.baseline)}.` : ""),
+      rows: [...(ck.commit ? [[ck.commit.subject, ck.commit.hash]] : []), ...(ck.evals || []).slice(0, 4).map(r => [`${r.model || r.agent} · ${r.tasks} task${r.tasks === 1 ? "" : "s"}`, `${frac(r.clubkit)} vs ${frac(r.baseline)}`])],
+      spot: ck.todos && ck.todos[0] ? [ck.todos[0].length > 90 ? ck.todos[0].slice(0, 88) + "…" : ck.todos[0], "next in TODOS.md"] : null });
+  }
 
   // Projects: most active = most recently touched
   const prj = (S.projects || []).filter(p => !p.archived && (!p.meta || !p.meta.status || p.meta.status === "active"));
