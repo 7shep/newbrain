@@ -565,7 +565,10 @@ async function api(path, body, method) {
     body: body ? JSON.stringify(body) : undefined,
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) { const e = new Error(data.error || "Something went wrong"); e.status = res.status; throw e; }
+  // A 403 from this page means its token is from an earlier run: Brain restarted since the page loaded. Don't reload
+  // for him: an editor may hold unsaved text.
+  const msg = res.status === 403 ? "Brain restarted since this page loaded. Reload the page to reconnect." : data.error || "Something went wrong";
+  if (!res.ok) { const e = new Error(msg); e.status = res.status; throw e; }
   return data;
 }
 let S = null, lastState = "";
