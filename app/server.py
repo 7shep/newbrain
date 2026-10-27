@@ -44,6 +44,17 @@ CLAUDE_PROJECTS = os.path.expanduser("~/.claude/projects")
 LOCK = threading.Lock()
 AGENTS = Agents(NOTES)
 ROUTINES = Routines(NOTES)
+HISTORY = threading.Lock()  # one past-runs read at a time
+
+
+def routine_history():
+    try:
+        ROUTINES.history()
+        if SYNC.enabled():
+            with LOCK:
+                SYNC.commit(["claude/routines.json", "tiles/routine-runs.md"], "brain: routine runs")
+    finally:
+        HISTORY.release()
 SYNC = Sync(NOTES, on_pulled=AGENTS.drain_pending)
 TOUCHED = set()  # notes files written since the last sync commit
 
@@ -620,6 +631,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if SYNC.enabled() and snap:
             with LOCK:
                 SYNC.commit(["claude/routines.json"], "brain: routines")
+        if action == "refresh" and ROUTINES.due_history() and HISTORY.acquire(blocking=False):
+            threading.Thread(target=routine_history, daemon=True).start()  # reads run logs: minutes, so not in the reply
         return self.send(200, {"routines": snap})
 
     def do_POST(self):

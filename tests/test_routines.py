@@ -122,6 +122,19 @@ class RoutinesTest(unittest.TestCase):
         self.assertIsNone(r.refresh())  # second caller gets load(), and there's no snapshot yet
         t.join()
 
+    def test_history_reads_only_new_runs_and_writes_the_tile(self):
+        Routines(self.notes, command=fake(ONE)).refresh()
+        run = '{"runs":[{"run_id":"cse_1","created_at":"2026-10-19T11:00:05.12Z","ok":true,"did":"Sent the brief · 3 items"}]}'
+        r = Routines(self.notes, command=fake(run))
+        self.assertEqual([x["id"] for x in r.due_history()], ["t1"])
+        r.history()
+        self.assertEqual(r.due_history(), [])  # last_run is now known: no second log read
+        r.history()
+        self.assertEqual(len(r.load()["runs"]), 1)
+        tile = open(os.path.join(self.notes, "tiles", "routine-runs.md"), encoding="utf-8").read()
+        self.assertIn("summary: 1 recent runs, all OK", tile)
+        self.assertIn("- Daily, Mon 19 Oct 7:00 · Sent the brief, 3 items\n", tile)
+
     def test_no_snapshot_means_none(self):
         self.assertIsNone(Routines(self.notes).load())
         self.assertTrue(Routines(self.notes).stale())
