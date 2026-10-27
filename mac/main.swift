@@ -15,6 +15,20 @@ document.documentElement.classList.add('native');
 try { if (!localStorage.getItem('brain.theme')) localStorage.setItem('brain.theme', 'glass/auto'); } catch (e) {}
 """
 
+// The page runs under the hidden title bar, so the web view would swallow every click up there. This strip, the height
+// of a normal title bar, sits on top: drag it to move the window, double-click to zoom (or whatever the user set in
+// System Settings), like any Mac app. The page keeps its controls below it (theme.css: html.native .bar).
+final class TitleStrip: NSView {
+    override func mouseDown(with e: NSEvent) {
+        if e.clickCount == 2 {
+            let act = UserDefaults.standard.string(forKey: "AppleActionOnDoubleClick") ?? "Maximize"
+            act == "Minimize" ? window?.performMiniaturize(nil) : act == "None" ? () : window?.performZoom(nil)
+        } else {
+            window?.performDrag(with: e)
+        }
+    }
+}
+
 final class App: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKUIDelegate {
     var window: NSWindow!
     var web: WKWebView!
@@ -46,6 +60,9 @@ final class App: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKUIDele
         window.backgroundColor = .clear
         window.isMovableByWindowBackground = false
         window.contentView = blur
+        let strip = TitleStrip(frame: NSRect(x: 0, y: blur.bounds.height - 28, width: blur.bounds.width, height: 28))
+        strip.autoresizingMask = [.width, .minYMargin]
+        blur.addSubview(strip)
         window.center()
         window.setFrameAutosaveName("Brain")
         window.makeKeyAndOrderFront(nil)

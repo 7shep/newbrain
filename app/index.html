@@ -154,9 +154,10 @@ body.paged .board, body.paged #grid { filter: brightness(.42) saturate(.8); }
 ::view-transition-old(*), ::view-transition-new(*) { height: 100%; width: 100%; object-fit: none; object-position: left top; animation-duration: .3s; }
 .tscrim { position: fixed; inset: 0; z-index: 16; display: none; }
 body.paged .tscrim { display: block; }
-.page { position: fixed; z-index: 17; display: flex; flex-direction: column; overflow: hidden; opacity: 0; pointer-events: none; background: var(--tile); border: 1px solid var(--line); border-radius: 28px; box-shadow: var(--tile-shadow);
-  transition: left .55s var(--ease), top .55s var(--ease), width .55s var(--ease), height .55s var(--ease), opacity .12s .45s; }
-body.paged .page { opacity: 1; pointer-events: auto; transition: left .55s var(--ease), top .55s var(--ease), width .55s var(--ease), height .55s var(--ease), opacity .08s; }
+.page { position: fixed; z-index: 17; display: flex; flex-direction: column; overflow: hidden; opacity: 0; pointer-events: none; background: var(--tile); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--tile-shadow);
+  transition: left .55s var(--ease), top .55s var(--ease), width .55s var(--ease), height .55s var(--ease), border-radius .55s var(--ease), opacity .12s .45s; }
+/* the corners start and end at the tile's own 20px (renderBoard's radius) and round out to 28px as it grows */
+body.paged .page { opacity: 1; pointer-events: auto; border-radius: 28px; transition: left .55s var(--ease), top .55s var(--ease), width .55s var(--ease), height .55s var(--ease), border-radius .55s var(--ease), opacity .08s; }
 .page > * { transition: opacity .3s .15s; }
 body:not(.paged) .page > * { opacity: 0; transition-delay: 0s; }
 .page > header { display: flex; align-items: center; gap: 14px; padding: 20px 28px; border-bottom: 1px solid var(--line); }
