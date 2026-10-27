@@ -224,7 +224,7 @@ def custom_tiles():
         meta, body = build.parse_frontmatter(read(rel))
         rows = [[p.strip() for p in (l[2:].split(" · ", 1) + [""])[:2]] for l in body.splitlines() if l.startswith("- ")]
         out.append({"slug": os.path.basename(path)[:-3], "path": rel, "title": meta.get("title") or os.path.basename(path)[:-3],
-                    "icon": meta.get("icon", "doc"), "summary": meta.get("summary", ""), "rows": rows})
+                    "icon": meta.get("icon", "doc"), "summary": meta.get("summary", ""), "count": meta.get("count", ""), "rows": rows})
     return out
 
 
@@ -298,6 +298,7 @@ def state():
         "agents": AGENTS.recent(),
         "routines": ROUTINES.load(),
         "theme": saved_theme(),
+        "layout": json.loads(read("claude/layout.json") or "{}").get("order") or [],
         "graph": graph_summary(),
         "predictions": predictions.stats(predictions.parse(read("claude/predictions.md"))),
         "has": {k: k in by_path for k in ("me.md", "now.md")},
@@ -457,6 +458,14 @@ def act_theme(body):
     if not isinstance(theme, str) or not re.fullmatch(r"[a-z]+/[a-z]+", theme):
         raise ValueError("theme must look like family/mode")
     write("claude/theme.json", json.dumps({"theme": theme}) + "\n")
+
+
+def act_layout(body):
+    """The tile order he set by moving tiles (keys like "next" or "t:music"); [] goes back to ordering by score."""
+    order = body.get("order")
+    if not isinstance(order, list) or len(order) > 100 or not all(isinstance(k, str) and 0 < len(k) <= 80 for k in order):
+        raise ValueError("order must be a list of tile keys")
+    write("claude/layout.json", json.dumps({"order": order}) + "\n")
 
 
 def act_project(body):
@@ -639,7 +648,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if not self.authed():
             return self.send(403, {"error": "forbidden"})
         routes = {"/api/nudge": act_nudge, "/api/habit": act_habit, "/api/capture": act_capture,
-                  "/api/idea": act_idea, "/api/project": act_project, "/api/habit-new": act_habit_new, "/api/theme": act_theme}
+                  "/api/idea": act_idea, "/api/project": act_project, "/api/habit-new": act_habit_new, "/api/theme": act_theme, "/api/layout": act_layout}
         path = urllib.parse.urlparse(self.path).path
         if path == "/api/routines":  # slow (a claude call), so outside LOCK
             return self.routines(self.body())

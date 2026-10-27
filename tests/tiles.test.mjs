@@ -128,3 +128,20 @@ test("knows tile only once Claude has logged bets", () => {
   const k = T.items({ ...state, predictions: { n: 12, score: 64, avg_conf: 80, hit_rate: 70 } }, { today }).find(i => i.key === "knows");
   assert.equal(k.count, 64); assert.equal(k.score, 6);
 });
+
+test("a saved order (tiles he moved) wins over the scores, and moveTo drops a tile into another's spot", () => {
+  const auto = T.items(state, { today }).map(i => i.key);
+  const mine = T.items({ ...state, layout: ["inbox", "gone", "next"] }, { today }).map(i => i.key);
+  assert.deepEqual(mine.slice(0, 2), ["inbox", "next"]);  // a saved key that no longer exists is skipped
+  assert.deepEqual(mine.slice(2), auto.filter(k => k !== "inbox" && k !== "next"));  // the rest keep score order
+  assert.deepEqual(T.moveTo(["a", "b", "c", "d"], "a", "c"), ["b", "c", "a", "d"]);
+  assert.deepEqual(T.moveTo(["a", "b", "c", "d"], "d", "b"), ["a", "d", "b", "c"]);
+  const its = T.items({ ...state, layout: mine }, { today });
+  assert.deepEqual(T.solve(its, 12, 110, { fixed: true }).map(b => b.key).slice(0, 2), ["inbox", "next"]);
+});
+
+test("today's timed events drop off Up next once their time has passed", () => {
+  const d = new Date(), t = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const nx = T.items({ today: t, now: { upcoming: [{ date: t, time: "0:00", title: "Gone" }, { date: t, time: "23:59", title: "Still on" }, { date: t, title: "All day" }] } }).find(i => i.key === "next");
+  assert.deepEqual(nx.events.map(e => e[1]), d.getHours() || d.getMinutes() ? ["Still on", "All day"] : ["Gone", "Still on", "All day"]);
+});

@@ -423,6 +423,7 @@ a.it-row:hover { background: var(--tile-2); }
     <div class="themes" id="themes"></div>
     <div class="lbl">Cover length</div><div class="seg" id="segCover"></div>
     <div class="lbl">Layout</div><div class="seg" id="segLayout"></div>
+    <div class="lbl">Tile order</div><div class="seg" id="segOrder"></div>
   </div>
 </aside>
 
@@ -776,8 +777,8 @@ function renderBoard(how) {
   tileList = its;
   // Keep the pieces where they are (content only) for background refreshes while he's around, and while a tile is open.
   const keep = W === boardW && blocks.length === its.length && blocks.every(b => byKey[b.key]) && how !== "resize" && how !== "load" && (page?.key || (how === "bg" && Date.now() - lastAct < 600e3));
-  if (keep) { if (page?.key && how === "act" && sigOf(BT.solve(its, cols, cw, { cover: coverLen })) !== boardSig) reflowOnClose = true; }
-  else blocks = BT.solve(its, cols, cw, { cover: coverLen });
+  if (keep) { if (page?.key && how === "act" && sigOf(BT.solve(its, cols, cw, { cover: coverLen, fixed: !!S.layout?.length })) !== boardSig) reflowOnClose = true; }
+  else blocks = BT.solve(its, cols, cw, { cover: coverLen, fixed: !!S.layout?.length });
   const sig = sigOf(blocks), moved = sig !== boardSig; boardSig = sig; boardW = W;
   const g = { cw, rh: BT.ROW, gap: BT.GAP, cover: coverLen, radius: document.documentElement.dataset.family === "swiss" ? 0 : 20 };  // Swiss is square everywhere
   const paint = () => {
@@ -837,8 +838,32 @@ function closePage(now) {
 addEventListener("resize", () => { if (page) { pg.style.transition = "none"; boxTo(bigBox()); pg.offsetWidth; pg.style.transition = ""; } });
 $("pageDone").onclick = () => closePage();
 $("tScrim").onclick = () => closePage();
+// Moving tiles: drag one onto another and it takes that spot. The order is saved in the notes (claude/layout.json),
+// so it stays put after refreshes and the phone uses it too. Settings → Tile order → By urgency undoes it.
+let drag = null, dragged = false;
+function saveOrder(order) {
+  S.layout = order; renderBoard("act");
+  api("/api/layout", { order }).catch(err => toast(err.message));
+}
+board.addEventListener("pointerdown", e => {
+  const bt = e.target.closest(".bt");
+  if (bt && !e.button && !e.target.closest("[data-act], [data-all]")) drag = { k: bt.dataset.k, x: e.clientX, y: e.clientY, bt, on: false };
+});
+addEventListener("pointermove", e => {
+  if (!drag || (!drag.on && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 8)) return;
+  drag.on = true; drag.bt.classList.add("dragging"); drag.bt.style.translate = `${e.clientX - drag.x}px ${e.clientY - drag.y}px`;
+  const over = document.elementsFromPoint(e.clientX, e.clientY).map(n => n.closest(".bt")).find(b => b && b !== drag.bt);
+  board.querySelectorAll(".bt.drop").forEach(b => b !== over && b.classList.remove("drop")); over?.classList.add("drop");
+});
+addEventListener("pointerup", () => {
+  const d = drag; drag = null; if (!d?.on) return;
+  const over = board.querySelector(".bt.drop");
+  d.bt.classList.remove("dragging"); d.bt.style.translate = ""; over?.classList.remove("drop");
+  dragged = true; setTimeout(() => dragged = false);  // the click that ends a drag doesn't open the tile
+  if (over) saveOrder(BT.moveTo(tileList.map(i => i.key), d.k, over.dataset.k));
+});
 board.addEventListener("click", e => {
-  const bt = e.target.closest(".bt"); if (!bt) return;
+  const bt = e.target.closest(".bt"); if (!bt || dragged) return;
   const a = e.target.closest("[data-act]"), all = e.target.closest("[data-all]");
   if (a && a.dataset.act === "resume") { const p = S.projects.find(x => x.slug === a.dataset.arg); return p?.resume && copyCmd(p.resume.command); }
   if (a && a.dataset.act === "open" && /\.md$/.test(a.dataset.arg)) return openDoc(a.dataset.arg);
@@ -851,6 +876,7 @@ function drawSettings() {
   const seg = (vals, on) => vals.map(([v, l]) => `<button data-v="${v}" class="${v === on ? "on" : ""}">${l}</button>`).join("");
   $("segCover").innerHTML = seg([["short", "Short"], ["medium", "Medium"], ["long", "Long"]], coverLen);
   $("segLayout").innerHTML = seg([["tiles", "Tiles"], ["scroll", "Scroll"]], layout);
+  $("segOrder").innerHTML = seg([["auto", "By urgency"], ["mine", "As I moved them"]], S?.layout?.length ? "mine" : "auto");
   $("syncSw").classList.toggle("off", !themeSync); $("syncSw").setAttribute("aria-checked", themeSync);
 }
 // Turning sync back on takes the shared theme, like the phone does.
@@ -863,6 +889,10 @@ const settingsOpen = on => { $("setSide").classList.toggle("on", on); $("setScri
 settingsBtn.onclick = () => { drawThemes(); drawSettings(); settingsOpen(true); };
 $("setClose").onclick = $("setScrim").onclick = () => settingsOpen(false);
 $("segCover").onclick = e => { const b = e.target.closest("button"); if (!b) return; coverLen = b.dataset.v; setPref("cover", coverLen); drawSettings(); renderBoard("act"); };
+$("segOrder").onclick = e => {  // "As I moved them" is set by dragging a tile; this only turns it back off
+  const b = e.target.closest("button"); if (!b || b.dataset.v !== "auto" || !S?.layout?.length) return;
+  saveOrder([]); drawSettings();
+};
 $("segLayout").onclick = e => { const b = e.target.closest("button"); if (!b || b.dataset.v === layout) return; setLayout(b.dataset.v); drawSettings(); };
 
 // Dynamic Island: "Agents" at rest (a count read as N running); stretches with a pulsing dot while one works; "Done ✓"; click drops the run list.

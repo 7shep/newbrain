@@ -8,7 +8,7 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": 
 const ICONS = { music: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>', doc: '<path d="M6 3h9l4 4v14H6z"/>', cal: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>', bell: '<path d="M6 8a6 6 0 1112 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"/>',
   bot: '<rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 3v4M9 12h.01M15 12h.01"/>', ppl: '<circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6"/>', case: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5h6v2"/>',
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', fold: '<path d="M3 7h6l2 2h10v10H3z"/>', bulb: '<path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z"/>',
-  fire: '<path d="M12 3s5 5 5 10a5 5 0 01-10 0c0-3 2-4 2-4s0 3 3 3c0-4 0-9 0-9z"/>', inbox: '<path d="M3 13l3-8h12l3 8v6H3zM3 13h5l1 3h6l1-3h5"/>',
+  chart: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 6-7"/>', fire: '<path d="M12 3s5 5 5 10a5 5 0 01-10 0c0-3 2-4 2-4s0 3 3 3c0-4 0-9 0-9z"/>', inbox: '<path d="M3 13l3-8h12l3 8v6H3zM3 13h5l1 3h6l1-3h5"/>',
   aim: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/>', map: '<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="8" r="2.5"/><circle cx="10" cy="18" r="2.5"/><path d="M8 7l8 1M7.5 8l2 8"/>', spark: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/>' };
 const LEGEND = ["--accent", "--good", "--info", "--bad", "--muted", "--extra"];
 
@@ -24,7 +24,10 @@ function items(S, o) {
   const all = {}, mk = (key, title, icon, score, x) => all[key] = Object.assign({ key, title, icon, score, count: 0, summary: "", spot: null, rows: [], events: null, hero: null, cleared: false, days: null, legend: null, why: "" }, x);
 
   // Up next
-  const up = (S.now && S.now.upcoming || []).filter(u => { const d = dd(u.date); return d === null || d >= 0; })
+  // today's timed ones drop off once their time has passed (only against the real clock: tests pin `today`)
+  const local = new Date(), hm = today === `${local.getFullYear()}-${String(local.getMonth() + 1).padStart(2, "0")}-${String(local.getDate()).padStart(2, "0")}`
+    ? `${String(local.getHours()).padStart(2, "0")}:${String(local.getMinutes()).padStart(2, "0")}` : null;
+  const up = (S.now && S.now.upcoming || []).filter(u => { const d = dd(u.date); return d === null || d > 0 || (d === 0 && !(hm && /^\d{1,2}:\d{2}$/.test(u.time || "") && u.time.padStart(5, "0") < hm)); })
     .sort((a, b) => String(a.date).localeCompare(String(b.date)));
   const events = up.map(u => [rel(u.date) + (u.time ? " " + u.time : ""), u.title || "", u.detail || ""]);
   const d0 = up.length ? dd(up[0].date) : null, nToday = up.filter(u => dd(u.date) === 0).length;
@@ -110,7 +113,8 @@ function items(S, o) {
     summary: `${dec.length} decision${dec.length === 1 ? "" : "s"} to re-check.`, rows: dec.map(d => [d.what, `since ${d.check_by.slice(5)}`]), spot: [dec[0].what, `check-by ${dec[0].check_by}`] });
 
   // Custom tiles: one per tiles/*.md, opened as that note
-  (S.tiles || []).forEach(t => mk("t:" + t.slug, t.title, ICONS[t.icon] ? t.icon : "doc", 20, { count: t.rows.length, path: t.path,
+  // the big number is the tile's own `count:` when it sets one (a price, a temperature), else how many rows it has, else nothing
+  (S.tiles || []).forEach(t => mk("t:" + t.slug, t.title, ICONS[t.icon] ? t.icon : "doc", 20, { count: t.count || t.rows.length || "", path: t.path,
     why: `${t.rows.length} item${t.rows.length === 1 ? "" : "s"}`, summary: t.summary || (t.rows[0] ? t.rows[0][0] : "Nothing yet."), rows: t.rows, spot: t.rows[0] || null }));
 
   // Cover last: it scores 90 when nothing else is due
@@ -123,7 +127,10 @@ function items(S, o) {
     hero: { headline: head, side, dek: n.dek || "", acts } });
 
   const rank = k => ORDER.includes(k) ? ORDER.indexOf(k) : ORDER.length;  // custom tiles sort after the built-ins on a tie
-  return Object.keys(all).sort((a, b) => all[b].score - all[a].score || rank(a) - rank(b)).map(k => all[k]);
+  const auto = Object.keys(all).sort((a, b) => all[b].score - all[a].score || rank(a) - rank(b));
+  // A saved order (tiles he moved, claude/layout.json) wins over the scores; tiles it doesn't name follow in score order.
+  const saved = (S.layout || []).filter(k => all[k]);
+  return [...saved, ...auto.filter(k => !saved.includes(k))].map(k => all[k]);
 }
 
 // ---------- templates: shapes true to what an item holds, each part sized to its text ----------
@@ -199,7 +206,7 @@ function solve(list, cols, colW, o) {
   let best = null;
   for (let trial = 0; trial < 700; trial++) {
     const order = list.map((it, i) => ({ key: it.key, rank: i }));
-    for (let i = 1; i < order.length - 1; i++) if (rand() < .25) [order[i], order[i + 1]] = [order[i + 1], order[i]];
+    if (!(o && o.fixed)) for (let i = 1; i < order.length - 1; i++) if (rand() < .25) [order[i], order[i + 1]] = [order[i + 1], order[i]];  // a saved order stays as he set it
     const pick = {}, vi = {};
     for (const it of list) { const v = variants[it.key], c = trial === 0 ? v[0] : v[Math.floor(rand() * v.length)]; pick[it.key] = c.tp; vi[it.key] = c.ti; }
     const res = place(order, pick, cols);
@@ -362,8 +369,10 @@ function countdown(ms) {
   const s = Math.max(0, Math.floor(ms / 1000)), d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), p = n => String(n).padStart(2, "0");
   return d ? `${d}d ${h}h ${p(m)}m ${p(s % 60)}s` : h ? `${h}h ${p(m)}m ${p(s % 60)}s` : `${m}m ${p(s % 60)}s`;
 }
+// moveTo(keys, from, to) -> the order with `from` taken out and put where `to` was (a tile dropped on another)
+const moveTo = (keys, from, to) => { const k = keys.filter(x => x !== from), i = k.indexOf(to); if (i < 0) return keys; k.splice(keys.indexOf(from) < keys.indexOf(to) ? i + 1 : i, 0, from); return k; };
 const colsFor = w => w >= 1500 ? 12 : w >= 1100 ? 10 : w >= 800 ? 8 : w >= 560 ? 6 : 4;
-const API = { colsFor, nextUp, countdown, fit, strip, items, templates, solve, outline, renderPart, renderBlock, esc, ICONS, ROW, GAP };
+const API = { moveTo, colsFor, nextUp, countdown, fit, strip, items, templates, solve, outline, renderPart, renderBlock, esc, ICONS, ROW, GAP };
 if (typeof window !== "undefined") window.BrainTiles = API;
 if (typeof module !== "undefined" && module.exports) module.exports = API;
 })();

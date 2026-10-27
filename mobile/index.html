@@ -289,6 +289,9 @@ body.tiles .bar .dot { margin-left: -2px; }
   opacity: 0; transform: translateY(16px) scale(.96); transition: opacity .5s var(--ease), transform .6s var(--ease); }
 .pt.in { opacity: 1; transform: none; } .pt.in:active { transform: scale(.97); transition-duration: .18s; }
 .pt.wide { grid-column: span 2; }
+.pt { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.pt.lift { transform: scale(1.04); outline: 2px solid var(--accent); outline-offset: 2px; }
+#board.moving .pt:not(.lift) { opacity: .7; }
 .pt.hot { background: color-mix(in srgb, var(--accent) 12%, var(--tile)); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
 .pt small { font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pt b { font: 800 30px/1.1 var(--display); margin-top: auto; font-variant-numeric: tabular-nums; }
@@ -389,6 +392,8 @@ body.tiles .fab { width: 56px; padding: 0; justify-content: center; font-size: 0
     <div class="secpick" id="layPick"></div>
     <label>Cover length</label>
     <div class="secpick" id="covPick"></div>
+    <label>Tile order</label>
+    <div class="secpick" id="ordPick"></div>
     <label>Show on home</label>
     <div class="secpick" id="secPick"></div>
     <p class="help">Brain on your phone reads your private notes repo on GitHub. Nothing is stored anywhere except this phone.</p>
@@ -478,6 +483,7 @@ function optimistic(a, S) {
   if (a.action === "idea") S.ideas = S.ideas.filter(l => l !== b.text);
   if (a.action === "habit") { const h = S.habits.find(x => x.id === b.id); if (h) h.status = b.status; }
   if (a.action === "theme") S.theme = b.theme;
+  if (a.action === "layout") S.layout = b.order;
 }
 function act(action, body, msg) {
   const a = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, action, body, sent: false };
@@ -665,6 +671,25 @@ function fillPage() {
     ${hv.side.map(x => `<p class="side">${esc(x)}</p>`).join("")}<div class="acts">${hv.acts.filter(a => /\.md$/.test(a.arg)).map(a => `<button class="pill" data-open="${esc(a.arg)}">${esc(a.label)}</button>`).join("")}</div>`
     : it.rows?.length ? it.rows.map(r => `<div class="row"><div><div class="t">${esc(r[0])}</div><div class="s">${esc(r[1])}</div></div></div>`).join("") : `<p class="empty">${k.startsWith("t:") ? "Nothing yet." : "✓ All clear"}</p>`;
 }
+// Moving tiles: hold one until it lifts, then tap the tile whose spot it should take (tap it again to put it back).
+// The order is saved in the notes like the Mac's (claude/layout.json), so both keep it.
+let moving = null, held = null, lifted = false;
+const endMove = () => { moving = null; $("board").classList.remove("moving"); $("board").querySelector(".pt.lift")?.classList.remove("lift"); };
+$("board").addEventListener("touchstart", e => {
+  const b = e.target.closest(".pt"); if (!b || moving) return;
+  held = setTimeout(() => { held = null; moving = b.dataset.k; lifted = true; tap(); b.classList.add("lift"); $("board").classList.add("moving"); toast("Now tap where it should go"); }, 450);
+}, { passive: true });
+for (const t of ["touchmove", "touchend", "touchcancel"]) $("board").addEventListener(t, () => {
+  clearTimeout(held); held = null; if (lifted) setTimeout(() => lifted = false, 400);  // iOS may not send that click
+}, { passive: true });
+$("board").addEventListener("contextmenu", e => { if (e.target.closest(".pt")) e.preventDefault(); });
+$("board").addEventListener("click", e => {
+  if (!moving) return;
+  e.stopImmediatePropagation();
+  if (lifted) return void (lifted = false);  // the lift's own touch ends in a click
+  const b = e.target.closest(".pt"), from = moving; endMove();
+  if (b && b.dataset.k !== from) { tap(); act("layout", { order: BT.moveTo(Object.keys(ITEMS), from, b.dataset.k) }); }
+}, true);
 for (const id of ["board", "top"]) $(id).addEventListener("click", e => { const b = e.target.closest("[data-k]"); if (b) { tap(); openPage(b.dataset.k, b); } });
 addEventListener("keydown", e => { if (e.key === "Escape") closePage(); });
 addEventListener("resize", () => { if (tilesOn() && !pageKey) render(); });
@@ -685,7 +710,11 @@ function drawLayPick() {
   const p = (k, v, l, on) => `<button type="button" class="pill${on ? " on" : ""}" aria-pressed="${on}" data-lay="${k}" data-v="${v}">${l}</button>`;
   $("layPick").innerHTML = p("layout", "tiles", "Tiles", layout === "tiles") + p("layout", "scroll", "Scroll", layout === "scroll");
   $("covPick").innerHTML = ["short", "medium", "long"].map(v => p("cover", v, v[0].toUpperCase() + v.slice(1), coverLen === v)).join("");
+  const mine = !!S?.layout?.length;  // "As I moved them" comes from holding a tile; this only turns it back off
+  $("ordPick").innerHTML = `<button type="button" class="pill${mine ? "" : " on"}" aria-pressed="${!mine}" data-ord="auto">By urgency</button>`
+    + `<button type="button" class="pill${mine ? " on" : ""}" aria-pressed="${mine}" disabled>As I moved them</button>`;
 }
+document.addEventListener("click", e => { if (e.target.closest("[data-ord]") && S?.layout?.length) { tap(); act("layout", { order: [] }); drawLayPick(); } });
 document.addEventListener("click", e => { const b = e.target.closest("[data-lay]"); if (!b) return;
   b.dataset.lay === "layout" ? layout = b.dataset.v : coverLen = b.dataset.v; store.set(b.dataset.lay, b.dataset.v);
   reflow = true; lastHero = lastHtml = lastBoard = ""; tap(); drawLayPick(); render(); });
