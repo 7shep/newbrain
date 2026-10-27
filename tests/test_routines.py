@@ -7,12 +7,12 @@ import time
 import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "app"))
-from routines import Routines, parse_json  # noqa: E402
+from routines import Routines, _local, parse_json  # noqa: E402
 
 
 def fake(reply, seconds=0):
     """Stands in for claude: ignores the prompt on stdin and prints `reply`."""
-    return [sys.executable, "-c", "import sys,time; sys.stdin.read(); time.sleep(%r); print(%r)" % (seconds, reply)]
+    return [sys.executable, "-c", "import sys,time; sys.stdout.reconfigure(encoding='utf-8'); sys.stdin.read(); time.sleep(%r); print(%r)" % (seconds, reply)]
 
 
 ONE = '{"routines":[{"id":"t1","name":"Daily","schedule":"Daily 7am","enabled":true,"last_run":"2026-10-19 07:00","ok":true,"next_run":"2026-10-20 07:00"}]}'
@@ -133,7 +133,8 @@ class RoutinesTest(unittest.TestCase):
         self.assertEqual(len(r.load()["runs"]), 1)
         tile = open(os.path.join(self.notes, "tiles", "routine-runs.md"), encoding="utf-8").read()
         self.assertIn("summary: 1 recent runs, all OK", tile)
-        self.assertIn("- Daily, Mon 19 Oct 7:00 · Sent the brief, 3 items\n", tile)
+        self.assertEqual(r.load()["runs"][0]["at"], _local("2026-10-19T11:00:05.12Z"))  # UTC in, this computer's time out
+        self.assertRegex(tile, r"\n- Daily, Mon 19 Oct \d+:00 · Sent the brief, 3 items\n")
 
     def test_no_snapshot_means_none(self):
         self.assertIsNone(Routines(self.notes).load())
