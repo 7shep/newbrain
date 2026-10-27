@@ -186,6 +186,9 @@ html { background: var(--grain), var(--bg-image), var(--bg); background-attachme
 
 /* Mac app: the header runs under the traffic lights instead of leaving a strip above it. */
 html.native .bar { padding-top: 40px; }
+/* Like a native app: the bar, board and tiles don't select (or show a text cursor); a note's text and fields still do */
+html.native body { -webkit-user-select: none; user-select: none; cursor: default; }
+html.native :is(input, textarea, [contenteditable], .md, pre, code) { -webkit-user-select: text; user-select: text; cursor: auto; }
 
 /* Mac app: no scrollbars (trackpad scrolling still works). */
 html.native ::-webkit-scrollbar { display: none; }
