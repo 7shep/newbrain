@@ -205,17 +205,31 @@ def streak(dates):
 
 
 REFRESHED = {}  # tile path -> last time its refresh command ran
+# Tiles arrive by git pull, so anyone who can push to the notes repo (the phone's key can) could put a command in one.
+# Only commands listed in this Mac-only file run, one per line, exactly as written in the tile; it is never synced.
+REFRESH_ALLOW = os.path.expanduser("~/.config/brain/refresh-allow")
+
+
+def refresh_allowed(cmd):
+    try:
+        with open(REFRESH_ALLOW, encoding="utf-8") as f:
+            return cmd in {l.strip() for l in f if l.strip() and not l.lstrip().startswith("#")}
+    except OSError:
+        return False
 
 
 def custom_tiles():
     """tiles/*.md: one tile each. Frontmatter title/icon/refresh; each "- a · b" line is a row.
-    refresh is a shell command (cwd = notes) that rewrites the file; it runs at most every 5 min."""
+    refresh is a shell command (cwd = notes) that rewrites the file; it runs at most every 5 min, and only if it's
+    in REFRESH_ALLOW."""
     out = []
     for path in sorted(glob.glob(os.path.join(NOTES, "tiles", "*.md"))):
         rel = "tiles/" + os.path.basename(path)  # "/" on Windows too: the page uses it as a note path
         meta, _ = build.parse_frontmatter(read(rel))
-        cmd = meta.get("refresh")
-        if cmd and datetime.datetime.now().timestamp() - REFRESHED.get(rel, 0) > 300:
+        cmd, note = meta.get("refresh"), ""
+        if cmd and not refresh_allowed(cmd):
+            note = "Not refreshing: add its command to ~/.config/brain/refresh-allow on this Mac."
+        elif cmd and datetime.datetime.now().timestamp() - REFRESHED.get(rel, 0) > 300:
             REFRESHED[rel] = datetime.datetime.now().timestamp()
             try:
                 subprocess.run(cmd, shell=True, cwd=NOTES, timeout=15, capture_output=True)
@@ -224,7 +238,7 @@ def custom_tiles():
         meta, body = build.parse_frontmatter(read(rel))
         rows = [[p.strip() for p in (l[2:].split(" · ", 1) + [""])[:2]] for l in body.splitlines() if l.startswith("- ")]
         out.append({"slug": os.path.basename(path)[:-3], "path": rel, "title": meta.get("title") or os.path.basename(path)[:-3],
-                    "icon": meta.get("icon", "doc"), "summary": meta.get("summary", ""), "count": meta.get("count", ""), "rows": rows})
+                    "icon": meta.get("icon", "doc"), "summary": note or meta.get("summary", ""), "count": meta.get("count", ""), "rows": rows})
     return out
 
 
@@ -298,7 +312,7 @@ def state():
         "agents": AGENTS.recent(),
         "routines": ROUTINES.load(),
         "theme": saved_theme(),
-        "layout": json.loads(read("claude/layout.json") or "{}").get("order") or [],
+        "layout": saved_layout(),
         "graph": graph_summary(),
         "predictions": predictions.stats(predictions.parse(read("claude/predictions.md"))),
         "has": {k: k in by_path for k in ("me.md", "now.md")},
@@ -453,6 +467,16 @@ def saved_theme():
         return None
 
 
+def saved_layout():
+    """Tile order he set by moving tiles; [] = by urgency. The Mac and the phone's Action both write the file, so a
+    merge-conflicted or half-written one falls back to [] instead of failing every state() (and the phone's build)."""
+    try:
+        order = json.loads(read("claude/layout.json") or "{}").get("order")
+        return order if isinstance(order, list) else []
+    except (ValueError, AttributeError):
+        return []
+
+
 def act_theme(body):
     theme = body.get("theme")
     if not isinstance(theme, str) or not re.fullmatch(r"[a-z]+/[a-z]+", theme):
@@ -578,8 +602,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def commit_touched(self, message):
         files = sorted(TOUCHED)
-        TOUCHED.clear()
-        SYNC.commit(files, message)
+        if SYNC.commit(files, message) is not False:  # a refused commit keeps them for the next one
+            TOUCHED.difference_update(files)
 
     def authed(self):
         return self.local_host() and secrets.compare_digest(self.headers.get("X-Brain-Token", ""), TOKEN)
@@ -606,6 +630,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         try:
             if url.path == "/api/state":
                 SYNC.pull()  # pick up phone changes; at most once a minute
+                publish_graph_if_rebuilt()  # one stat() per poll; publishes only after a graphify rebuild
                 return self.send(200, {**state(), "sync": {"on": SYNC.enabled(), "error": SYNC.error}})
             if url.path == "/api/file":
                 return self.send(200, file_get(urllib.parse.parse_qs(url.query)))
@@ -650,9 +675,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         routes = {"/api/nudge": act_nudge, "/api/habit": act_habit, "/api/capture": act_capture,
                   "/api/idea": act_idea, "/api/project": act_project, "/api/habit-new": act_habit_new, "/api/theme": act_theme, "/api/layout": act_layout}
         path = urllib.parse.urlparse(self.path).path
-        if path == "/api/routines":  # slow (a claude call), so outside LOCK
-            return self.routines(self.body())
         try:
+            if path == "/api/routines":  # slow (a claude call), so outside LOCK
+                return self.routines(self.body())
             with LOCK:
                 if path == "/api/file":
                     code, out = file_put(self.body())
@@ -669,6 +694,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self.send(403, {"error": "That path isn't a note."})
         except (ValueError, TypeError) as e:
             return self.send(400, {"error": str(e)})
+        except Exception as e:  # noqa: BLE001  a disk or git error still owes the page an answer, not a hung request
+            return self.send(500, {"error": "%s: %s" % (type(e).__name__, e)})
 
 
 def graph_get():
@@ -720,6 +747,20 @@ def publish_graph():
     TOUCHED.discard("phone/graph.json")
 
 
+GRAPH_SEEN = [None]  # mtime of graphify-out/graph.json when last published
+
+
+def publish_graph_if_rebuilt():
+    """graphify can rebuild the Map while Brain runs; republish the phone's copy then, not only at startup."""
+    try:
+        m = os.path.getmtime(os.path.join(NOTES, "graphify-out", "graph.json"))
+    except OSError:
+        return
+    if m != GRAPH_SEEN[0]:
+        GRAPH_SEEN[0] = m
+        publish_graph()
+
+
 class Server(socketserver.ThreadingMixIn, http.server.HTTPServer):
     daemon_threads = True
     allow_reuse_address = True
@@ -739,7 +780,7 @@ def main():
     SYNC.pull(gap=0)  # start from GitHub's latest: whatever the phone did while the Mac was off
     rebuild_index()
     TOUCHED.clear()  # the startup index rebuild isn't worth a commit on its own
-    publish_graph()
+    publish_graph_if_rebuilt()
     AGENTS.recover()
     if "--no-open" not in sys.argv:
         threading.Timer(0.4, lambda: subprocess.run(["open", url]) if sys.platform == "darwin" else webbrowser.open(url)).start()

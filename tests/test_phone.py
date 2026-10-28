@@ -186,6 +186,17 @@ class SyncTest(unittest.TestCase):
         self.assertNotIn("half-finished", read(self.phone, "me.md"))
         self.assertIn("me.md", git(self.mac, "status", "--porcelain"))  # left for its owner
 
+    def test_commit_blocked_by_another_git_says_so_and_returns_false(self):
+        s = Sync(self.mac)
+        with open(os.path.join(self.mac, "inbox.md"), "a") as f:
+            f.write("- capture while a terminal holds the index\n")
+        open(os.path.join(self.mac, ".git", "index.lock"), "w").close()  # another git process is running
+        self.assertFalse(s.commit(["inbox.md"], "brain: capture"))
+        self.assertIn("couldn't save", s.error)
+        os.remove(os.path.join(self.mac, ".git", "index.lock"))
+        self.assertTrue(s.commit(["inbox.md"], "brain: capture"))  # next try goes through and clears it
+        self.assertIsNone(s.error)
+
     def test_push_rejected_by_newer_remote_rebases_and_retries(self):
         s = Sync(self.mac)
         self.remote_change("ideas.md", "- phone idea\n")
