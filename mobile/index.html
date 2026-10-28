@@ -477,7 +477,7 @@ async function loadState() {
   if (r.status === 404) throw new Error("No phone/state.json yet. The notes repo's Brain action hasn't run.");
   if (!r.ok) throw new Error(`GitHub said ${r.status}.`);
   S = await r.json(); store.set("state", S); phoneTheme();
-  for (const f of S.failed || []) if (outbox.some(o => o.id === f.id)) toast("Couldn't apply one change: " + f.error);
+  for (const f of S.failed || []) if (outbox.some(o => o.id === f.id) || gone.delete(f.id)) toast("Couldn't apply one change: " + f.error);
 }
 
 /* ---------- actions: optimistic here, real once the Action applies them ---------- */
@@ -514,8 +514,10 @@ async function flush() {
   error = err && (navigator.onLine || err.auth ? err.message : "Offline. Changes are saved on this phone and will send when you're back online.");
   flushing = false; paint(); watch();
 }
-// A sent action is done once the Action has consumed its queue file.
+// A sent action is done once the Action has consumed its queue file. Its id stays in `gone` so a failure the
+// Action reports in the state it then builds still gets a toast (it's left the outbox by then).
 let watching = null, watchStart = 0;
+const gone = new Set();
 function watch() {
   if (watching || !outbox.some(o => o.sent)) return;
   watchStart = Date.now();
@@ -523,7 +525,7 @@ function watch() {
     try {
       for (const a of outbox.filter(o => o.sent)) {
         const r = await gh(`phone/queue/${a.id}.json`);
-        if (r.status === 404) outbox = outbox.filter(o => o !== a);
+        if (r.status === 404) { outbox = outbox.filter(o => o !== a); gone.add(a.id); }
       }
       store.set("outbox", outbox);
       if (!outbox.some(o => o.sent)) { clearInterval(watching); watching = null; await refresh(); }

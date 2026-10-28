@@ -547,8 +547,12 @@ async function load(how = "act") {
     render(how);
     const h = document.querySelector(".habit-scroll"); if (h) h.scrollTop = hs;
     if (scrollY !== y) scrollTo(0, y);
+    // A graph that appeared after startup gets drawn; a rebuilt one asks for a reload (initMap wires listeners once).
+    const gs = S.graph && `${S.graph.nodes}:${S.graph.links}`;
+    if (gs && mapSig === null) initMap();
+    else if (gs && mapSig && gs !== mapSig && !mapNoted) { mapNoted = true; toast("Your Map was rebuilt. Reload Brain (⌘R) to see it."); }
   }
-  catch (e) { toast(e.status === 403 ? "Session expired — restart with `brain`" : "Can't reach Brain. Is it still running?"); }
+  catch (e) { toast(e.status === 403 ? "Session expired — restart with `brain`" : e.status ? "Brain hit an error: " + e.message : "Can't reach Brain. Is it still running?"); }  // a status = it answered
 }
 
 /* ---------- copy ---------- */
@@ -569,9 +573,13 @@ const fmtDay = iso => new Date(iso + "T12:00:00").toLocaleDateString("en", { wee
 const daysFrom = iso => Math.round((new Date(iso + "T12:00:00") - new Date(S.today + "T12:00:00")) / 864e5);
 
 /* ---------- map: the graphify knowledge graph, drawn in the app's own colours ---------- */
+// mapSig: node:link counts of the drawn Map ("" while loading, null = none yet), compared with state.graph by load().
+let mapSig = null, mapNoted = false;
 async function initMap() {
+  if (mapSig !== null) return; mapSig = "";
   let g;
-  try { g = await api("/api/graph"); } catch { return; } // no graph: the tile stays hidden
+  try { g = await api("/api/graph"); } catch { mapSig = null; return; } // no graph: the tile stays hidden
+  mapSig = `${g.nodes.length}:${g.links.length}`;
   const tile = $("mapTile"), cv = $("mapCanvas"), card = $("mapCard"), ctx = cv.getContext("2d");
   tile.hidden = false;
   const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();

@@ -50,6 +50,12 @@ class GraphSummaryTest(unittest.TestCase):
     def test_no_graph_is_none(self):
         self.assertIsNone(server.state()["graph"])
 
+    def test_a_broken_layout_file_falls_back_to_urgency_order(self):
+        os.makedirs(os.path.join(self.notes, "claude"))
+        with open(os.path.join(self.notes, "claude", "layout.json"), "w") as f:
+            f.write('<<<<<<< HEAD\n{"order": ["next"]}\n=======\n{"order": ["map"]}\n>>>>>>> phone\n')
+        self.assertEqual(server.state()["layout"], [])
+
     def test_falls_back_to_the_published_phone_graph(self):
         # CI has no graphify-out/ (gitignored), only the phone/graph.json the Mac published
         os.makedirs(os.path.join(self.notes, "phone"))
@@ -92,7 +98,27 @@ class CustomTilesTest(unittest.TestCase):
             f.write(f'---\ntitle: Recently played\nicon: music\nrefresh: {sys.executable} gen.py\n---\n- old\n')
         old, server.NOTES = server.NOTES, d
         self.addCleanup(setattr, server, "NOTES", old)
+        allow = os.path.join(d, "refresh-allow")  # the Mac-only list; tiles arrive by git, so they can't run what isn't on it
+        with open(allow, "w") as f:
+            f.write(f"# tile refresh commands this Mac may run\n{sys.executable} gen.py\n")
+        oldallow, server.REFRESH_ALLOW = server.REFRESH_ALLOW, allow
+        self.addCleanup(setattr, server, "REFRESH_ALLOW", oldallow)
         server.REFRESHED.clear()
         (t,) = server.custom_tiles()
         self.assertEqual((t["slug"], t["title"], t["path"]), ("music", "Recently played", "tiles/music.md"))
         self.assertEqual(t["rows"], [["Nights", "Frank Ocean"]])
+
+    def test_a_refresh_not_on_this_macs_list_never_runs(self):
+        d = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, d)
+        os.makedirs(os.path.join(d, "tiles"))
+        with open(os.path.join(d, "tiles", "evil.md"), "w") as f:
+            f.write("---\ntitle: Pulled from git\nrefresh: touch pwned\n---\n- row\n")
+        old, oldallow = server.NOTES, server.REFRESH_ALLOW
+        server.NOTES, server.REFRESH_ALLOW = d, os.path.join(d, "no-such-list")
+        self.addCleanup(setattr, server, "NOTES", old)
+        self.addCleanup(setattr, server, "REFRESH_ALLOW", oldallow)
+        server.REFRESHED.clear()
+        (t,) = server.custom_tiles()
+        self.assertFalse(os.path.exists(os.path.join(d, "pwned")))
+        self.assertIn("refresh-allow", t["summary"])
