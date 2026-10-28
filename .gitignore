@@ -18,3 +18,6 @@ personal-notes/
 /phone-ask-questions.json
 /phone-ask-answers.json
 .superpowers/
+
+# Voice controls: separate repo (github.com/7shep/voice-controls), cloned here
+voice-controls/
