@@ -50,6 +50,17 @@ class GraphSummaryTest(unittest.TestCase):
     def test_no_graph_is_none(self):
         self.assertIsNone(server.state()["graph"])
 
+    def test_falls_back_to_the_published_phone_graph(self):
+        # CI has no graphify-out/ (gitignored), only the phone/graph.json the Mac published
+        os.makedirs(os.path.join(self.notes, "phone"))
+        with open(os.path.join(self.notes, "phone", "graph.json"), "w") as f:
+            json.dump({"nodes": [{"id": "a", "label": "A", "group": 0, "groupName": "Brain app / server", "file": "x.md"},
+                                 {"id": "b", "label": "B", "group": 0, "groupName": "Brain app / server", "file": ""}],
+                       "links": [["a", "b"]], "built": "2026-10-28"}, f)
+        g = server.state()["graph"]
+        self.assertEqual((g["nodes"], g["links"]), (2, 1))
+        self.assertEqual(g["clusters"], [["Brain app", 2]])
+
     def test_summary_counts_and_top_clusters(self):
         nodes = [{"id": f"a{i}", "community": 0, "community_name": "Brain app / server"} for i in range(3)]
         nodes += [{"id": f"b{i}", "community": 1} for i in range(2)]

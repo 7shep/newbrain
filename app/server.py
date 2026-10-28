@@ -673,10 +673,16 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
 def graph_get():
     """The graphify knowledge graph of the notes (graphify-out/graph.json), trimmed for drawing.
-    Returns None when there isn't one, so the app just hides the Map tile."""
+    Returns None when there isn't one, so the app just hides the Map tile.
+    Without graphify-out/ (gitignored, so the phone's GitHub Action never has it) the copy the Mac published
+    to phone/graph.json stands in, already trimmed."""
     path = os.path.join(NOTES, "graphify-out", "graph.json")
     if not os.path.exists(path):
-        return None
+        pub = os.path.join(NOTES, "phone", "graph.json")
+        if not os.path.exists(pub):
+            return None
+        with open(pub, encoding="utf-8") as f:
+            return json.load(f)
     with open(path, encoding="utf-8") as f:
         g = json.load(f)
     nodes = [{"id": n["id"], "label": n.get("label") or n["id"], "group": n.get("community"),
