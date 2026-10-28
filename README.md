@@ -185,8 +185,8 @@ second calendar. Google Calendar remains the source of truth.
 login prompt. Create `personal-notes/agents/` to opt in. See [Background agents](#background-agents-optional).
 
 **Voice controls (optional):** clone [voice-controls](https://github.com/7shep/voice-controls) into
-`voice-controls/` here (ignored by Git, like `personal-notes/`). Say "Hey Claude, note …" to add an inbox capture, or
-"Hey Claude, …" to run `claude -p` in this checkout with the reply read aloud. Setup is in its README.
+`voice-controls/` here (ignored by Git, like `personal-notes/`). Say "Hey Claude, …" to start a Claude Code background
+agent in this checkout, or "Hey Claude, note …" to add an inbox capture. Setup is in its README.
 
 ## How it fits together
 
