@@ -69,7 +69,9 @@ async function build() {
   catch (e) { line(w, "Brain", Font.boldSystemFont(14), ink); line(w, e.message, Font.systemFont(12), dim, 4); return w; }
 
   const t = today(), fam = config.widgetFamily || "medium";
-  const up = (S.upcoming || []).filter(u => u.date && u.date >= t).sort((a, b) => a.date.localeCompare(b.date));
+  const hm = new Date().toTimeString().slice(0, 5);  // a timed item from earlier today has passed
+  const up = ((S.now && S.now.upcoming) || []).filter(u => u.date && (u.date > t || (u.date === t && !(u.time && u.time < hm))))
+    .sort((a, b) => (a.date + (a.time || "99")).localeCompare(b.date + (b.time || "99")));
   const nudges = (S.nudges || []).filter(x => x.status === "open" || (x.status === "snoozed" && x.snooze_until && x.snooze_until <= t));
   const max = fam === "small" ? 2 : fam === "large" ? 8 : 3;
 

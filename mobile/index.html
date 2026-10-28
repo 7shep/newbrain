@@ -466,7 +466,11 @@ async function gh(path, opts = {}) {
   if (r.status === 401) throw Object.assign(new Error("GitHub rejected the key. Check it in Settings."), { auth: true });
   return r;
 }
-const b64 = s => btoa(String.fromCharCode(...new TextEncoder().encode(s)));
+const b64 = s => {  // in slices: spreading a long capture's bytes into one call overflows the stack
+  const u = new TextEncoder().encode(s); let bin = "";
+  for (let i = 0; i < u.length; i += 0x8000) bin += String.fromCharCode(...u.subarray(i, i + 0x8000));
+  return btoa(bin);
+};
 
 async function loadState() {
   const r = await gh("phone/state.json");
@@ -494,15 +498,20 @@ function act(action, body, msg) {
 let flushing = false;
 async function flush() {
   if (flushing || !cfg) return; flushing = true;
+  // Re-read the outbox each turn so an action made mid-send goes too; one that fails doesn't hold up the rest.
+  let err = null; const tried = new Set();
   try {
-    for (const a of outbox.filter(o => !o.sent)) {
-      const r = await gh(`phone/queue/${a.id}.json`, { method: "PUT",
-        body: JSON.stringify({ message: `phone: ${a.action}`, content: b64(JSON.stringify({ action: a.action, body: a.body })) }) });
-      if (!r.ok && r.status !== 422) throw new Error(`Couldn't send (GitHub ${r.status}). It'll retry.`);
-      a.sent = true; store.set("outbox", outbox);
+    for (let a; (a = outbox.find(o => !o.sent && !tried.has(o.id)));) {
+      tried.add(a.id);
+      try {
+        const r = await gh(`phone/queue/${a.id}.json`, { method: "PUT",
+          body: JSON.stringify({ message: `phone: ${a.action}`, content: b64(JSON.stringify({ action: a.action, body: a.body })) }) });
+        if (!r.ok && r.status !== 422) throw new Error(`Couldn't send (GitHub ${r.status}). It'll retry.`);
+        a.sent = true; store.set("outbox", outbox);
+      } catch (e) { if (e.auth) throw e; err = e; }
     }
-    error = null;
-  } catch (e) { error = navigator.onLine ? e.message : "Offline. Changes are saved on this phone and will send when you're back online."; }
+  } catch (e) { err = e; }
+  error = err && (navigator.onLine || err.auth ? err.message : "Offline. Changes are saved on this phone and will send when you're back online.");
   flushing = false; paint(); watch();
 }
 // A sent action is done once the Action has consumed its queue file.
@@ -538,7 +547,8 @@ function render() {
   document.body.classList.toggle("tiles", tiles); island(view);
   const h = new Date().getHours(), name = ((view.me?.meta?.name) || "").split(/\s+/)[0];
   const t = today(), n = view.now || {};
-  const up = (n.upcoming || []).filter(u => u.date >= t).slice(0, 6);
+  const hm = new Date().toTimeString().slice(0, 5);  // a timed item from earlier today has passed
+  const up = (n.upcoming || []).filter(u => u.date > t || (u.date === t && !(u.time && u.time < hm))).slice(0, 6);
   const open = view.nudges.filter(x => x.status === "open" || (x.status === "snoozed" && x.snooze_until && x.snooze_until <= t));
   const late = open.filter(x => x.due && daysFrom(x.due) < 0).length, nToday = up.filter(u => daysFrom(u.date) === 0).length;
   $("dateNow").textContent = new Date().toLocaleDateString("en", { weekday: "short", month: "short", day: "numeric" });
@@ -612,7 +622,7 @@ function home(view, late, nToday) {
   countUp($("top"));
 }
 setInterval(() => {  // the countdown ticks; when it runs out, the next thing takes its place
-  const el = document.querySelector(".nx .tick"); if (!el || !NEXT?.to) return;
+  const el = document.querySelector(".nx .tick"); if (!el || !NEXT?.to || pageKey) return;  // board() won't redo NEXT under an open page; closePage() re-renders
   NEXT.to - Date.now() > 0 ? el.textContent = BT.countdown(NEXT.to - Date.now()) : render();
 }, 1000);
 // Numbers count up from what they last showed (0 the first time).
@@ -870,12 +880,13 @@ function leave(el, dir) {
 }
 
 /* ---------- map search (phone/graph.json, published by the Mac from graphify) ---------- */
-let G = null;
+let G = null, gSig = "";  // gSig: node:link counts of the loaded Map, to spot a newer one in state.graph
 const CL = " (cluster)";
 async function loadGraph() {
   try {
     const r = await gh("phone/graph.json"); if (!r.ok) return;
     const g = await r.json(), byId = new Map(g.nodes.map(n => [n.id, { ...n, nb: new Set() }]));
+    gSig = `${g.nodes.length}:${g.links.length}`;
     for (const [a, b] of g.links) { const A = byId.get(a), B = byId.get(b); if (A && B && A !== B) { A.nb.add(B); B.nb.add(A); } }
     const nodes = [...byId.values()].sort((a, b) => b.nb.size - a.nb.size);
     const groups = [...new Set(nodes.map(n => n.groupName || "Cluster " + n.group))];
@@ -966,8 +977,9 @@ function renderDoc(text) {
 let readerPath = "";
 async function openDoc(path) {
   readerPath = path; $("rPath").textContent = path; $("rBody").innerHTML = `<p class="empty">Loading…</p>`; open("reader");
-  try { const r = await gh(path); $("rBody").innerHTML = r.ok ? renderDoc(await r.text()) : `<p class="empty">Couldn't load it (GitHub ${r.status}).</p>`; }
-  catch (e) { $("rBody").innerHTML = `<p class="empty">${esc(e.message)}</p>`; }
+  try { const r = await gh(path), html = r.ok ? renderDoc(await r.text()) : `<p class="empty">Couldn't load it (GitHub ${r.status}).</p>`;
+    if (readerPath === path) $("rBody").innerHTML = html; }  // a note opened after this one wins
+  catch (e) { if (readerPath === path) $("rBody").innerHTML = `<p class="empty">${esc(e.message)}</p>`; }
 }
 
 /* ---------- sheets, capture, settings ---------- */
@@ -1130,7 +1142,7 @@ $("mic").addEventListener("pointerdown", e => {
   heard = ""; $("mic").classList.add("hot"); pop("Listening… let go to send", "");
   rec = new SR(); rec.lang = "en-CA"; rec.interimResults = true; rec.continuous = true;
   rec.onresult = ev => { heard = transcript(ev.results); $("popA").textContent = heard; };
-  rec.onerror = ev => { if (ev.error === "not-allowed") pop("Microphone blocked", "Allow the microphone for this site in Settings → Safari."); };
+  rec.onerror = ev => { if (/not-allowed/.test(ev.error)) { rec = null; pop("Microphone blocked", "Allow the microphone for this site in Settings → Safari."); } };  // rec = null: onend then doesn't send an empty ask over it
   rec.onend = () => { if (rec) { rec = null; ask(heard); } };
   try { rec.start(); } catch { rec = null; }
 });
@@ -1145,7 +1157,7 @@ function toast(msg) { $("toast").textContent = msg; $("toast").classList.add("on
 async function refresh(manual) {
   if (!cfg) return;
   $("refresh").classList.add("spin");
-  try { await loadState(); error = null; if (manual) toast("Up to date"); }
+  try { await loadState(); error = null; if (manual) toast("Up to date"); if (S.graph && `${S.graph.nodes}:${S.graph.links}` !== gSig) loadGraph(); }
   catch (e) { error = e.auth ? e.message : navigator.onLine ? e.message : "Offline. Showing what you last saw."; }
   $("refresh").classList.remove("spin");
   render();
