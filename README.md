@@ -186,7 +186,8 @@ login prompt. Create `personal-notes/agents/` to opt in. See [Background agents]
 
 **Voice controls (optional):** clone [voice-controls](https://github.com/7shep/voice-controls) into
 `voice-controls/` here (ignored by Git, like `personal-notes/`). Say "Hey Claude, …" to start a Claude Code background
-agent in this checkout, or "Hey Claude, note …" to add an inbox capture. Setup is in its README.
+agent, or "Hey Claude, note …" to add an inbox capture. It works without Brain; to connect it, set `"inbox"` to your
+notes' `inbox.md` and `"claude_cwd"` to this checkout in its `config.json` (see its README).
 
 ## How it fits together
 
