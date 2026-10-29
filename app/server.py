@@ -18,6 +18,7 @@ import random
 import re
 import secrets
 import shutil
+import socket
 import socketserver
 import subprocess
 import sys
@@ -853,7 +854,14 @@ def morning(every=300):
 
 class Server(socketserver.ThreadingMixIn, http.server.HTTPServer):
     daemon_threads = True
-    allow_reuse_address = True
+    # On Windows SO_REUSEADDR lets a second server bind the same port, and the two then split requests with different
+    # tokens; claim the port exclusively there so a second start fails with "already running" instead
+    allow_reuse_address = os.name != "nt"
+
+    def server_bind(self):
+        if os.name == "nt":
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()
 
 
 def main():
