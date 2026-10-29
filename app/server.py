@@ -238,7 +238,8 @@ def custom_tiles():
         meta, body = build.parse_frontmatter(read(rel))
         rows = [[p.strip() for p in (l[2:].split(" · ", 1) + [""])[:2]] for l in body.splitlines() if l.startswith("- ")]
         out.append({"slug": os.path.basename(path)[:-3], "path": rel, "title": meta.get("title") or os.path.basename(path)[:-3],
-                    "icon": meta.get("icon", "doc"), "summary": note or meta.get("summary", ""), "count": meta.get("count", ""), "rows": rows})
+                    "icon": meta.get("icon", "doc"), "summary": note or meta.get("summary", ""), "count": meta.get("count", ""), "rows": rows,
+                    "body": body[:20000]})  # the phone shows the note as the tile's page
     return out
 
 
@@ -313,6 +314,7 @@ def state():
         "routines": ROUTINES.load(),
         "theme": saved_theme(),
         "layout": saved_layout(),
+        "hidden": saved_hidden(),
         "graph": graph_summary(),
         "predictions": predictions.stats(predictions.parse(read("claude/predictions.md"))),
         "has": {k: k in by_path for k in ("me.md", "now.md")},
@@ -467,14 +469,26 @@ def saved_theme():
         return None
 
 
-def saved_layout():
-    """Tile order he set by moving tiles; [] = by urgency. The Mac and the phone's Action both write the file, so a
-    merge-conflicted or half-written one falls back to [] instead of failing every state() (and the phone's build)."""
+def layout_file():
+    """claude/layout.json: {"order": tile keys he moved, "hidden": tile keys he hid}. The Mac and the phone's Action both
+    write it, so a merge-conflicted or half-written one reads as {} instead of failing every state() (and the phone's build)."""
     try:
-        order = json.loads(read("claude/layout.json") or "{}").get("order")
-        return order if isinstance(order, list) else []
-    except (ValueError, AttributeError):
-        return []
+        d = json.loads(read("claude/layout.json") or "{}")
+        return d if isinstance(d, dict) else {}
+    except ValueError:
+        return {}
+
+
+def saved_layout():
+    """Tile order he set by moving tiles; [] = by urgency."""
+    order = layout_file().get("order")
+    return order if isinstance(order, list) else []
+
+
+def saved_hidden():
+    """Tiles he hid in Settings; the Mac and the phone both leave them off the board."""
+    hidden = layout_file().get("hidden")
+    return hidden if isinstance(hidden, list) else []
 
 
 def act_theme(body):
@@ -485,11 +499,16 @@ def act_theme(body):
 
 
 def act_layout(body):
-    """The tile order he set by moving tiles (keys like "next" or "t:music"); [] goes back to ordering by score."""
-    order = body.get("order")
-    if not isinstance(order, list) or len(order) > 100 or not all(isinstance(k, str) and 0 < len(k) <= 80 for k in order):
-        raise ValueError("order must be a list of tile keys")
-    write("claude/layout.json", json.dumps({"order": order}) + "\n")
+    """The tile order he set by moving tiles (keys like "next" or "t:music"; [] goes back to ordering by score) and/or
+    the tiles he hid. Whichever the body leaves out is kept."""
+    keys = lambda v: isinstance(v, list) and len(v) <= 100 and all(isinstance(k, str) and 0 < len(k) <= 80 for k in v)
+    if not ("order" in body or "hidden" in body):
+        raise ValueError("send order or hidden")
+    for f in ("order", "hidden"):
+        if f in body and not keys(body[f]):
+            raise ValueError(f"{f} must be a list of tile keys")
+    out = {"order": body.get("order", saved_layout()), "hidden": body.get("hidden", saved_hidden())}
+    write("claude/layout.json", json.dumps(out) + "\n")
 
 
 def act_project(body):

@@ -179,6 +179,8 @@ body:not(.paged) .page > * { opacity: 0; transition-delay: 0s; }
 .seg { display: inline-flex; background: var(--tile-2); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
 .seg button { background: none; border: 0; border-radius: 999px; padding: 6px 14px; font-size: 13px; color: var(--muted); }
 .seg button.on { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.tpicks { display: flex; flex-wrap: wrap; gap: 6px; } .tpicks .pill { color: var(--muted); }
+.tpicks .pill.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 @media (prefers-reduced-motion: reduce) { ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; } }
 .habits { grid-column: span 12; }
 .brainstorm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
@@ -426,6 +428,7 @@ a.it-row:hover { background: var(--tile-2); }
     <div class="lbl">Cover length</div><div class="seg" id="segCover"></div>
     <div class="lbl">Layout</div><div class="seg" id="segLayout"></div>
     <div class="lbl">Tile order</div><div class="seg" id="segOrder"></div>
+    <div class="lbl">Tiles on the board</div><div class="tpicks" id="tilePicks"></div>
   </div>
 </aside>
 
@@ -892,6 +895,9 @@ function drawSettings() {
   $("segCover").innerHTML = seg([["short", "Short"], ["medium", "Medium"], ["long", "Long"]], coverLen);
   $("segLayout").innerHTML = seg([["tiles", "Tiles"], ["scroll", "Scroll"]], layout);
   $("segOrder").innerHTML = seg([["auto", "By urgency"], ["mine", "As I moved them"]], S?.layout?.length ? "mine" : "auto");
+  // every tile, hidden ones too; lit = on the board. Saved in claude/layout.json, so the phone hides the same ones.
+  const off = new Set(S?.hidden || []), all = S ? BT.items(S, { all: true, graphSummary: S.graph && { nodes: S.graph.nodes } }) : [];
+  $("tilePicks").innerHTML = all.map(i => `<button class="pill sm${off.has(i.key) ? "" : " on"}" aria-pressed="${!off.has(i.key)}" data-k="${esc(i.key)}">${esc(i.title)}</button>`).join("");
   $("syncSw").classList.toggle("off", !themeSync); $("syncSw").setAttribute("aria-checked", themeSync);
 }
 // Turning sync back on takes the shared theme, like the phone does.
@@ -907,6 +913,12 @@ $("segCover").onclick = e => { const b = e.target.closest("button"); if (!b) ret
 $("segOrder").onclick = e => {  // "As I moved them" is set by dragging a tile; this only turns it back off
   const b = e.target.closest("button"); if (!b || b.dataset.v !== "auto" || !S?.layout?.length) return;
   saveOrder([]); drawSettings();
+};
+$("tilePicks").onclick = e => {
+  const b = e.target.closest("[data-k]"); if (!b || !S) return;
+  const k = b.dataset.k, hidden = (S.hidden || []).includes(k) ? S.hidden.filter(x => x !== k) : [...(S.hidden || []), k];
+  S.hidden = hidden; drawSettings(); renderBoard("act");
+  api("/api/layout", { hidden }).catch(err => toast(err.message));
 };
 $("segLayout").onclick = e => { const b = e.target.closest("button"); if (!b || b.dataset.v === layout) return; setLayout(b.dataset.v); drawSettings(); };
 

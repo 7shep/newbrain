@@ -127,7 +127,7 @@ function items(S, o) {
   // Custom tiles: one per tiles/*.md, opened as that note
   // the big number is the tile's own `count:` when it sets one (a price, a temperature), else how many rows it has, else nothing
   (S.tiles || []).forEach(t => mk("t:" + t.slug, t.title, ICONS[t.icon] ? t.icon : "doc", 20, { count: t.count || t.rows.length || "", path: t.path,
-    why: `${t.rows.length} item${t.rows.length === 1 ? "" : "s"}`, summary: t.summary || (t.rows[0] ? t.rows[0][0] : "Nothing yet."), rows: t.rows, spot: t.rows[0] || null }));
+    why: `${t.rows.length} item${t.rows.length === 1 ? "" : "s"}`, summary: t.summary || (t.rows[0] ? t.rows[0][0] : "Nothing yet."), rows: t.rows, body: t.body || "", spot: t.rows[0] || null }));
 
   // Cover last: it scores 90 when nothing else is due
   const n = S.now || {}, proj = (S.projects || []).find(p => p.slug === n.project);
@@ -141,8 +141,9 @@ function items(S, o) {
   const rank = k => ORDER.includes(k) ? ORDER.indexOf(k) : ORDER.length;  // custom tiles sort after the built-ins on a tie
   const auto = Object.keys(all).sort((a, b) => all[b].score - all[a].score || rank(a) - rank(b));
   // A saved order (tiles he moved, claude/layout.json) wins over the scores; tiles it doesn't name follow in score order.
-  const saved = (S.layout || []).filter(k => all[k]);
-  return [...saved, ...auto.filter(k => !saved.includes(k))].map(k => all[k]);
+  // Tiles he hid in Settings (claude/layout.json "hidden") stay off the board on both; o.all keeps them, for that list.
+  const saved = (S.layout || []).filter(k => all[k]), hid = new Set(o.all ? [] : S.hidden || []);
+  return [...saved, ...auto.filter(k => !saved.includes(k))].filter(k => !hid.has(k)).map(k => all[k]);
 }
 
 // ---------- templates: shapes true to what an item holds, each part sized to its text ----------

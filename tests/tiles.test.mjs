@@ -140,6 +140,12 @@ test("a saved order (tiles he moved) wins over the scores, and moveTo drops a ti
   assert.deepEqual(T.solve(its, 12, 110, { fixed: true }).map(b => b.key).slice(0, 2), ["inbox", "next"]);
 });
 
+test("hidden tiles leave the board; o.all still lists them for Settings", () => {
+  const keys = T.items({ ...state, hidden: ["inbox", "cover"] }, { today }).map(i => i.key);
+  assert.ok(!keys.includes("inbox") && !keys.includes("cover") && keys.includes("next"));
+  assert.ok(T.items({ ...state, hidden: ["inbox"] }, { today, all: true }).some(i => i.key === "inbox"));
+});
+
 test("today's timed events drop off Up next once their time has passed", () => {
   const d = new Date(), t = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const nx = T.items({ today: t, now: { upcoming: [{ date: t, time: "0:00", title: "Gone" }, { date: t, time: "23:59", title: "Still on" }, { date: t, title: "All day" }] } }).find(i => i.key === "next");
