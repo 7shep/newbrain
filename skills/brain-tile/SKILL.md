@@ -33,7 +33,9 @@ refresh: python3 tiles/<slug>.py   # optional: shell command run from ~/Notes, a
    If the data needs a login or a key Zac hasn't given, build the tile with a static list and ask for the key.
 2. **Static data** (a list he gives, or something Claude keeps up to date): write `tiles/<slug>.md`, no `refresh`.
 3. **Live data**: write `tiles/<slug>.py` (stdlib only) that builds the rows and rewrites `tiles/<slug>.md`,
-   run it once, and show Zac the rows it produced.
+   run it once, and show Zac the rows it produced. Then append the tile's exact `refresh:` command as a line in
+   `~/.config/brain/refresh-allow` (create it if missing). Brain only runs refresh commands listed there, because
+   tiles arrive by git pull; without the line the tile shows "Not refreshing".
 4. If no icon fits, add one 24×24 stroke SVG path to `ICONS` in `.brain/app/tiles.js` (same style as the others).
 5. `brain restart` only if `.brain/app` changed; otherwise the tile appears on Brain's next refresh.
 6. Commit and push `~/Notes` (habit H-014).

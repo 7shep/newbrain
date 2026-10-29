@@ -103,7 +103,8 @@ each step is for in one line, and ask me before anything that touches my account
    If you can see my projects folder, calendar or email, use them to fill gaps, and say what you took from where.
 3. Connect yourself: add the SessionStart hook from the README to ~/.claude/settings.json (merge, don't overwrite),
    and add the README's standing instructions to my CLAUDE.md. Then run python3 ~/Notes/.brain/build.py.
-4. Start the app with `brain` and check it opens at http://127.0.0.1:4747.
+4. Start the app with `brain` and check it opens at http://127.0.0.1:4747. On a Mac, ask me whether I want it as
+   an app; if yes, run ~/Notes/.brain/mac/build.sh (needs Xcode's command line tools) to make ~/Applications/Brain.app.
 5. Phone (ask me first): add ".brain/" to ~/Notes/.gitignore, create a PRIVATE GitHub repo "notes" with gh,
    add docs/notes-workflow.yml as .github/workflows/brain.yml plus phone/queue/.gitkeep, commit and push, and wait
    for the Action's first run to write phone/state.json.
@@ -276,6 +277,10 @@ overwrite Claude's changes.
 
 Your notes folder will likely hold contacts and personal details. Keep it out of public repos, and keep the notes
 repo private if you use the phone app. The phone's key can reach only that one repo.
+
+A custom tile's `refresh:` command runs only if that exact command is a line in `~/.config/brain/refresh-allow` on
+your Mac. That file is never synced: tiles arrive by git pull, so anyone who could push to your notes repo (the
+phone's key can) could otherwise run commands on your computer. Any other tile shows "Not refreshing".
 
 ## Notes
 
