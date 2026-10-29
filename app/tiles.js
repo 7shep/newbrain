@@ -36,13 +36,25 @@ function items(S, o) {
     count: up.length, events: events.slice(0, 8), cleared: !up.length, why: `${up.length} coming up`,
     summary: up.length ? `${nToday} today · next: ${up[0].title}` : "Nothing coming up.", spot: up.length ? [up[0].title, events[0][0]] : null });
 
-  // People waiting: VIP right now is whoever's follow-up names today, else whoever has waited longest
-  const md = new Date(T).toLocaleDateString("en", { month: "short", day: "numeric", timeZone: "UTC" });
-  const ppl = (S.people || []).filter(p => p.meta && p.meta.follow_up).sort((a, b) => String(a.title).localeCompare(String(b.title)));
-  const vip = ppl.find(p => p.meta.follow_up.includes(today) || p.meta.follow_up.includes(md))
-    || ppl.slice().sort((a, b) => String(a.meta.last_contact || "").localeCompare(String(b.meta.last_contact || "")))[0];
-  mk("people", "People waiting", "ppl", Math.min(78, 10 * ppl.length), { count: ppl.length, cleared: !ppl.length, why: `${ppl.length} follow-up${ppl.length === 1 ? "" : "s"}`,
-    summary: `${ppl.length} ${ppl.length === 1 ? "person" : "people"} with something open.`, rows: ppl.map(p => [p.title, p.meta.follow_up]), spot: vip ? [vip.title, vip.meta.follow_up] : null });
+  // People waiting: a follow-up's first date decides it. Past or today = due, later = parked until then (not counted),
+  // no date = waiting since last contact. Due first (latest first), then waiting (longest first), then parked (soonest).
+  const MON = "janfebmaraprmayjunjulaugsepoctnovdec";
+  const when = f => {
+    const iso = f.match(/\d{4}-\d{2}-\d{2}/), m = f.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})\b/i);
+    if (iso && (!m || f.indexOf(iso[0]) < f.indexOf(m[0]))) return iso[0];
+    if (!m) return null;
+    const y = +today.slice(0, 4), at = yr => `${yr}-${String(MON.indexOf(m[1].toLowerCase()) / 3 + 1).padStart(2, "0")}-${m[2].padStart(2, "0")}`;
+    return dd(at(y)) < -180 ? at(y + 1) : at(y);  // "Jan 5" written in December means next year
+  };
+  const ppl = (S.people || []).filter(p => p.meta && p.meta.follow_up).map(p => {
+    const w = when(p.meta.follow_up), d = w ? dd(w) : null, lc = p.meta.last_contact ? dd(p.meta.last_contact) : null;
+    const tag = d === null ? (lc === null ? "waiting" : `waiting ${-lc}d`) : d < 0 ? `${-d}d late` : d === 0 ? "today" : `on ${day(w)}`;
+    return { p, d, lc, tag, rank: d === null ? 1 : d <= 0 ? 0 : 2 };
+  }).sort((a, b) => a.rank - b.rank || (a.rank === 2 ? a.d - b.d : a.rank === 0 ? a.d - b.d : (a.lc ?? 0) - (b.lc ?? 0)));
+  const nDue = ppl.filter(x => x.rank === 0).length, nWait = ppl.filter(x => x.rank === 1).length, nLater = ppl.length - nDue - nWait, vip = ppl[0];
+  mk("people", "People waiting", "ppl", Math.min(78, 10 * (nDue + nWait) + 15 * nDue), { count: nDue + nWait, cleared: !(nDue + nWait), why: nDue ? `${nDue} due` : `${nWait} waiting`,
+    summary: [nDue && `${nDue} due`, nWait && `${nWait} waiting on a reply`, nLater && `${nLater} later`].filter(Boolean).join(" · ") || "Nobody waiting.",
+    rows: ppl.map(x => [x.p.title, `${x.tag} · ${x.p.meta.follow_up}`]), spot: vip && vip.rank < 2 ? [vip.p.title, `${vip.tag} · ${vip.p.meta.follow_up}`] : null });
 
   // Internships
   const ins = S.internships || [], g = k => ins.filter(r => r.group === k);
@@ -97,7 +109,7 @@ function items(S, o) {
 
   // How well Claude knows you: only once Claude has logged bets (claude/predictions.md)
   const pr = S.predictions;
-  if (pr && pr.n) mk("knows", "How well Claude knows you", "aim", 6, { count: pr.score, why: `${pr.n} bets`, summary: `Says ${pr.avg_conf}% sure, right ${pr.hit_rate}%.` });
+  if (pr && pr.n) mk("knows", "How well Claude knows you", "aim", 6, { small: true, count: pr.score, why: `${pr.n} bets`, summary: `Says ${pr.avg_conf}% sure, right ${pr.hit_rate}%.` });
 
   // Map: only when the page has a graph summary {nodes, links, legend:[[name,count]]}
   const gs = o.graphSummary;
@@ -115,7 +127,7 @@ function items(S, o) {
   // Custom tiles: one per tiles/*.md, opened as that note
   // the big number is the tile's own `count:` when it sets one (a price, a temperature), else how many rows it has, else nothing
   (S.tiles || []).forEach(t => mk("t:" + t.slug, t.title, ICONS[t.icon] ? t.icon : "doc", 20, { count: t.count || t.rows.length || "", path: t.path,
-    why: `${t.rows.length} item${t.rows.length === 1 ? "" : "s"}`, summary: t.summary || (t.rows[0] ? t.rows[0][0] : "Nothing yet."), rows: t.rows, spot: t.rows[0] || null }));
+    why: `${t.rows.length} item${t.rows.length === 1 ? "" : "s"}`, summary: t.summary || (t.rows[0] ? t.rows[0][0] : "Nothing yet."), rows: t.rows, body: t.body || "", spot: t.rows[0] || null }));
 
   // Cover last: it scores 90 when nothing else is due
   const n = S.now || {}, proj = (S.projects || []).find(p => p.slug === n.project);
@@ -129,8 +141,9 @@ function items(S, o) {
   const rank = k => ORDER.includes(k) ? ORDER.indexOf(k) : ORDER.length;  // custom tiles sort after the built-ins on a tie
   const auto = Object.keys(all).sort((a, b) => all[b].score - all[a].score || rank(a) - rank(b));
   // A saved order (tiles he moved, claude/layout.json) wins over the scores; tiles it doesn't name follow in score order.
-  const saved = (S.layout || []).filter(k => all[k]);
-  return [...saved, ...auto.filter(k => !saved.includes(k))].map(k => all[k]);
+  // Tiles he hid in Settings (claude/layout.json "hidden") stay off the board on both; o.all keeps them, for that list.
+  const saved = (S.layout || []).filter(k => all[k]), hid = new Set(o.all ? [] : S.hidden || []);
+  return [...saved, ...auto.filter(k => !saved.includes(k))].filter(k => !hid.has(k)).map(k => all[k]);
 }
 
 // ---------- templates: shapes true to what an item holds, each part sized to its text ----------
@@ -173,6 +186,7 @@ function templates(it, rank, cols, colW, o) {
     const T = [[P(0, 0, W(5), hh(5), "head"), P(0, hh(5), W(3), lr, "list")], [P(0, 0, W(3), hh(3), "head"), P(0, hh(3), W(4), lr, "list")], [P(0, 0, W(4), hh(4), "head"), P(0, hh(4), W(4), lr, "list")], [P(0, 0, W(4), hh(4), "head"), P(1, hh(4), W(3), lr, "list")]];
     return s >= 35 ? T : T.slice(1);
   }
+  if (it.small) return [[P(0, 0, W(2), B, "big")]];  // a glance-only number: the smallest shape
   return it.days ? [[P(0, 0, W(3), need(140), "big")]] : n ? [[P(0, 0, W(3), need(230), "big")], [P(0, 0, W(4), need(190), "big")]] : [[P(0, 0, W(2), B, "big")], [P(0, 0, W(3), B, "big")]];
 }
 

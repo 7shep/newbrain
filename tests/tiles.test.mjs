@@ -140,8 +140,34 @@ test("a saved order (tiles he moved) wins over the scores, and moveTo drops a ti
   assert.deepEqual(T.solve(its, 12, 110, { fixed: true }).map(b => b.key).slice(0, 2), ["inbox", "next"]);
 });
 
+test("hidden tiles leave the board; o.all still lists them for Settings", () => {
+  const keys = T.items({ ...state, hidden: ["inbox", "cover"] }, { today }).map(i => i.key);
+  assert.ok(!keys.includes("inbox") && !keys.includes("cover") && keys.includes("next"));
+  assert.ok(T.items({ ...state, hidden: ["inbox"] }, { today, all: true }).some(i => i.key === "inbox"));
+});
+
 test("today's timed events drop off Up next once their time has passed", () => {
   const d = new Date(), t = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const nx = T.items({ today: t, now: { upcoming: [{ date: t, time: "0:00", title: "Gone" }, { date: t, time: "23:59", title: "Still on" }, { date: t, title: "All day" }] } }).find(i => i.key === "next");
   assert.deepEqual(nx.events.map(e => e[1]), d.getHours() || d.getMinutes() ? ["Still on", "All day"] : ["Gone", "Still on", "All day"]);
+});
+
+test("people: dated follow-ups are due or parked, undated wait since last contact", () => {
+  const S = { people: [
+    { title: "Later", meta: { follow_up: "Follow up 2026-11-17", last_contact: "2026-10-13" } },
+    { title: "Late", meta: { follow_up: "Email Oct 27 to pick a day", last_contact: "2026-10-13" } },
+    { title: "Old", meta: { follow_up: "Waiting on his verdict", last_contact: "2026-09-14" } },
+    { title: "New", meta: { follow_up: "Waiting on a reply", last_contact: "2026-10-26" } },
+    { title: "Options", meta: { follow_up: "His pick: Mon Oct 26, Sun Nov 1", last_contact: "2026-10-18" } }] };
+  const p = T.items(S, { today: "2026-10-29" }).find(i => i.key === "people");
+  assert.deepEqual(p.rows.map(r => r[0]), ["Options", "Late", "Old", "New", "Later"]);
+  assert.deepEqual(p.rows.map(r => r[1].split(" · ")[0]), ["3d late", "2d late", "waiting 45d", "waiting 3d", "on Nov 17"]);
+  assert.equal(p.count, 4); assert.equal(p.spot[0], "Options"); assert.match(p.summary, /2 due · 2 waiting on a reply · 1 later/);
+  const jan = T.items({ people: [{ title: "J", meta: { follow_up: "Coffee Jan 5" } }] }, { today: "2026-12-20" }).find(i => i.key === "people");
+  assert.equal(jan.rows[0][1].split(" · ")[0], "on Jan 5");  // next year, not 349 days late
+});
+
+test("how well Claude knows you only gets the small shape", () => {
+  const k = T.items({ predictions: { n: 40, score: -6, avg_conf: 63, hit_rate: 39 } }, { today }).find(i => i.key === "knows");
+  for (const cols of [12, 10, 8]) assert.deepEqual(T.templates(k, 5, cols, 100).map(t => t[0].c), [2]);
 });

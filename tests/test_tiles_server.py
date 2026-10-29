@@ -56,6 +56,17 @@ class GraphSummaryTest(unittest.TestCase):
             f.write('<<<<<<< HEAD\n{"order": ["next"]}\n=======\n{"order": ["map"]}\n>>>>>>> phone\n')
         self.assertEqual(server.state()["layout"], [])
 
+    def test_hidden_tiles_and_order_are_saved_without_clobbering_each_other(self):
+        server.act_layout({"order": ["next", "inbox"]})
+        server.act_layout({"hidden": ["t:music", "cover"]})
+        st = server.state()
+        self.assertEqual((st["layout"], st["hidden"]), (["next", "inbox"], ["t:music", "cover"]))
+        server.act_layout({"order": []})
+        self.assertEqual(server.state()["hidden"], ["t:music", "cover"])
+        for bad in ({}, {"hidden": "cover"}, {"hidden": [1]}, {"order": None}):
+            with self.assertRaises(ValueError):
+                server.act_layout(bad)
+
     def test_falls_back_to_the_published_phone_graph(self):
         # CI has no graphify-out/ (gitignored), only the phone/graph.json the Mac published
         os.makedirs(os.path.join(self.notes, "phone"))

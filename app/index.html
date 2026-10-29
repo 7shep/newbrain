@@ -150,15 +150,16 @@ body:not(.scroll) #grid { display: block; }
 body:not(.scroll) #grid > :not(.full) { display: none !important; }
 body.scroll .board { display: none; }
 body.paged .board, body.paged #grid { filter: brightness(.42) saturate(.8); }
-::view-transition-group(*) { animation-duration: .7s; animation-timing-function: var(--spring); }
-::view-transition-old(*), ::view-transition-new(*) { height: 100%; width: 100%; object-fit: none; object-position: left top; animation-duration: .3s; }
+::view-transition-group(*) { animation-duration: .45s; animation-timing-function: var(--ease); }
+::view-transition-old(*), ::view-transition-new(*) { height: 100%; width: 100%; object-fit: none; object-position: left top; animation-duration: .25s; }
 .tscrim { position: fixed; inset: 0; z-index: 16; display: none; }
 body.paged .tscrim { display: block; }
-.page { position: fixed; z-index: 17; display: flex; flex-direction: column; overflow: hidden; opacity: 0; pointer-events: none; background: var(--tile); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--tile-shadow);
-  transition: left .55s var(--ease), top .55s var(--ease), width .55s var(--ease), height .55s var(--ease), border-radius .55s var(--ease), opacity .12s .45s; }
-/* the corners start and end at the tile's own 20px (renderBoard's radius) and round out to 28px as it grows */
-body.paged .page { opacity: 1; pointer-events: auto; border-radius: 28px; transition: left .55s var(--ease), top .55s var(--ease), width .55s var(--ease), height .55s var(--ease), border-radius .55s var(--ease), opacity .08s; }
-.page > * { transition: opacity .3s .15s; }
+/* the page always sits at its full size; opening and closing animate only its clip, from the tile's box (with the tile's
+   own corners) out to the page's 28px, so nothing inside re-lays out on every frame */
+.page { position: fixed; z-index: 17; display: flex; flex-direction: column; overflow: hidden; opacity: 0; pointer-events: none; background: var(--tile); border: 1px solid var(--line); border-radius: 28px; box-shadow: var(--tile-shadow);
+  clip-path: inset(0 round var(--page-r, 28px)); transition: clip-path .42s var(--ease), opacity .12s .32s; }
+body.paged .page { opacity: 1; pointer-events: auto; transition: clip-path .42s var(--ease), opacity .08s; }
+.page > * { transition: opacity .25s .12s; }
 body:not(.paged) .page > * { opacity: 0; transition-delay: 0s; }
 .page > header { display: flex; align-items: center; gap: 14px; padding: 20px 28px; border-bottom: 1px solid var(--line); }
 .page > header h2 { margin: 0; font: 800 34px/1 var(--display); letter-spacing: -.01em; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -178,6 +179,8 @@ body:not(.paged) .page > * { opacity: 0; transition-delay: 0s; }
 .seg { display: inline-flex; background: var(--tile-2); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
 .seg button { background: none; border: 0; border-radius: 999px; padding: 6px 14px; font-size: 13px; color: var(--muted); }
 .seg button.on { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.tpicks { display: flex; flex-wrap: wrap; gap: 6px; } .tpicks .pill { color: var(--muted); }
+.tpicks .pill.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 @media (prefers-reduced-motion: reduce) { ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; } }
 .habits { grid-column: span 12; }
 .brainstorm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
@@ -425,6 +428,7 @@ a.it-row:hover { background: var(--tile-2); }
     <div class="lbl">Cover length</div><div class="seg" id="segCover"></div>
     <div class="lbl">Layout</div><div class="seg" id="segLayout"></div>
     <div class="lbl">Tile order</div><div class="seg" id="segOrder"></div>
+    <div class="lbl">Tiles on the board</div><div class="tpicks" id="tilePicks"></div>
   </div>
 </aside>
 
@@ -774,7 +778,7 @@ function render(how) {
 const BT = window.BrainTiles, board = $("board"), reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
 const pref = (k, d) => { try { return localStorage.getItem("brain." + k) || d; } catch { return d; } };
 const setPref = (k, v) => { try { localStorage.setItem("brain." + k, v); } catch {} };
-let coverLen = pref("cover", "medium"), layout = pref("layout", "tiles"), blocks = [], boardSig = "", boardW = 0, tileList = [], lastAct = Date.now(), reflowOnClose = false;
+let coverLen = pref("cover", "medium"), layout = pref("layout", "tiles"), blocks = [], boardSig = "", boardHtml = "", boardW = 0, tileList = [], lastAct = Date.now(), reflowOnClose = false;
 let drawMinis = () => {};  // initMap fills this in once the graph is laid out
 document.fonts?.ready.then(() => BT.fit(board));  // rows were fitted with fallback fonts if the web fonts were still loading
 document.body.classList.toggle("scroll", layout === "scroll");
@@ -790,12 +794,14 @@ function renderBoard(how) {
   else blocks = BT.solve(its, cols, cw, { cover: coverLen, fixed: !!S.layout?.length });
   const sig = sigOf(blocks), moved = sig !== boardSig; boardSig = sig; boardW = W;
   const g = { cw, rh: BT.ROW, gap: BT.GAP, cover: coverLen, radius: document.documentElement.dataset.family === "swiss" ? 0 : 20 };  // Swiss is square everywhere
+  const html = blocks.map(b => {
+    const it = byKey[b.key], r = BT.renderBlock(it, b, g);
+    return `<div class="bt" data-k="${esc(b.key)}" tabindex="0" role="button" aria-label="Open ${esc(it.title)}" style="grid-column:${r.x0 + 1}/span ${r.c};grid-row:${r.y0 + 1}/span ${r.r};view-transition-name:bt-${esc(b.key)}">${r.html}</div>`;
+  }).join("");
+  if (html === boardHtml && board.style.getPropertyValue("--cols") == cols) return;  // a poll with nothing new: leave the board alone
   const paint = () => {
     board.style.setProperty("--cols", cols);
-    board.innerHTML = blocks.map(b => {
-      const it = byKey[b.key], r = BT.renderBlock(it, b, g);
-      return `<div class="bt" data-k="${esc(b.key)}" tabindex="0" role="button" aria-label="Open ${esc(it.title)}" style="grid-column:${r.x0 + 1}/span ${r.c};grid-row:${r.y0 + 1}/span ${r.r};view-transition-name:bt-${esc(b.key)}">${r.html}</div>`;
-    }).join("");
+    board.innerHTML = boardHtml = html;
     BT.fit(board); drawMinis();
   };
   if (how === "act" && moved && document.startViewTransition && !reduceMotion.matches) document.startViewTransition(paint); else paint();
@@ -818,9 +824,12 @@ function openTile(k, from) {
 }
 let page = null, settle = null;
 const pg = $("page");
-const boxTo = r => Object.assign(pg.style, { left: r.left + "px", top: r.top + "px", width: r.width + "px", height: r.height + "px" });
 const bigBox = () => innerWidth < 640 ? { left: 8, top: 8, width: innerWidth - 16, height: innerHeight - 16 }
   : { left: innerWidth * .125, top: innerHeight * .125 + 30, width: innerWidth * .75, height: innerHeight * .75 - 30 };
+const placeBig = () => { const b = bigBox(); Object.assign(pg.style, { left: b.left + "px", top: b.top + "px", width: b.width + "px", height: b.height + "px" }); };
+// clip the full-size page down to a tile's box (null = open); a tile reaching past the page's edge clips at the edge
+const clipTo = r => { const b = bigBox(), c = v => Math.max(0, v) + "px", rad = "var(--tile-r, 20px)";
+  pg.style.clipPath = r ? `inset(${c(r.top - b.top)} ${c(b.left + b.width - r.left - r.width)} ${c(b.top + b.height - r.top - r.height)} ${c(r.left - b.left)} round ${rad})` : ""; };
 function openPage(from, title, meta, node, key) {
   if (page) closePage(true);
   settle?.();
@@ -828,9 +837,9 @@ function openPage(from, title, meta, node, key) {
   node.replaceWith(home); $("pageUi").replaceChildren(node); $("pageUi").scrollTop = 0;
   page = { node, home, from, key };
   $("pageTitle").textContent = title; $("pageMeta").textContent = meta || ""; $("pageStrip").innerHTML = BT.strip(key && tileList.find(i => i.key === key));
-  pg.style.transition = "none"; boxTo(from.getBoundingClientRect()); pg.offsetWidth; pg.style.transition = "";
+  pg.style.transition = "none"; placeBig(); clipTo(from.getBoundingClientRect()); pg.offsetWidth; pg.style.transition = "";
   document.body.classList.add("paged");
-  requestAnimationFrame(() => boxTo(bigBox()));
+  requestAnimationFrame(() => clipTo(null));
   $("pageDone").focus({ preventScroll: true });
 }
 function closePage(now) {
@@ -838,13 +847,13 @@ function closePage(now) {
   const p = page, src = (p.key && board.querySelector(`.bt[data-k="${p.key}"]`)) || p.from;
   page = null;
   if (now) pg.style.transition = "none";
-  if (src.isConnected && src.offsetParent) boxTo(src.getBoundingClientRect());
+  if (src.isConnected && src.offsetParent) clipTo(src.getBoundingClientRect());
   document.body.classList.remove("paged");
   // the section goes home once the box has shrunk back (and the content has faded out)
   settle = () => { clearTimeout(t); settle = null; pg.style.transition = ""; p.home.replaceWith(p.node); if (reflowOnClose) { reflowOnClose = false; renderBoard("act"); } };
-  const t = setTimeout(settle, now || reduceMotion.matches ? 0 : 560);
+  const t = setTimeout(settle, now || reduceMotion.matches ? 0 : 460);
 }
-addEventListener("resize", () => { if (page) { pg.style.transition = "none"; boxTo(bigBox()); pg.offsetWidth; pg.style.transition = ""; } });
+addEventListener("resize", () => { if (page) { pg.style.transition = "none"; placeBig(); pg.offsetWidth; pg.style.transition = ""; } });
 $("pageDone").onclick = () => closePage();
 $("tScrim").onclick = () => closePage();
 // Moving tiles: drag one onto another and it takes that spot. The order is saved in the notes (claude/layout.json),
@@ -886,6 +895,9 @@ function drawSettings() {
   $("segCover").innerHTML = seg([["short", "Short"], ["medium", "Medium"], ["long", "Long"]], coverLen);
   $("segLayout").innerHTML = seg([["tiles", "Tiles"], ["scroll", "Scroll"]], layout);
   $("segOrder").innerHTML = seg([["auto", "By urgency"], ["mine", "As I moved them"]], S?.layout?.length ? "mine" : "auto");
+  // every tile, hidden ones too; lit = on the board. Saved in claude/layout.json, so the phone hides the same ones.
+  const off = new Set(S?.hidden || []), all = S ? BT.items(S, { all: true, graphSummary: S.graph && { nodes: S.graph.nodes } }) : [];
+  $("tilePicks").innerHTML = all.map(i => `<button class="pill sm${off.has(i.key) ? "" : " on"}" aria-pressed="${!off.has(i.key)}" data-k="${esc(i.key)}">${esc(i.title)}</button>`).join("");
   $("syncSw").classList.toggle("off", !themeSync); $("syncSw").setAttribute("aria-checked", themeSync);
 }
 // Turning sync back on takes the shared theme, like the phone does.
@@ -901,6 +913,12 @@ $("segCover").onclick = e => { const b = e.target.closest("button"); if (!b) ret
 $("segOrder").onclick = e => {  // "As I moved them" is set by dragging a tile; this only turns it back off
   const b = e.target.closest("button"); if (!b || b.dataset.v !== "auto" || !S?.layout?.length) return;
   saveOrder([]); drawSettings();
+};
+$("tilePicks").onclick = e => {
+  const b = e.target.closest("[data-k]"); if (!b || !S) return;
+  const k = b.dataset.k, hidden = (S.hidden || []).includes(k) ? S.hidden.filter(x => x !== k) : [...(S.hidden || []), k];
+  S.hidden = hidden; drawSettings(); renderBoard("act");
+  api("/api/layout", { hidden }).catch(err => toast(err.message));
 };
 $("segLayout").onclick = e => { const b = e.target.closest("button"); if (!b || b.dataset.v === layout) return; setLayout(b.dataset.v); drawSettings(); };
 
