@@ -122,6 +122,7 @@
 }
 [data-family="swiss"] { --sans: "Inter Tight", "Helvetica Neue", Arial, sans-serif; --display: var(--sans); --grain: none; }
 [data-family="swiss"] * { border-radius: 0 !important; }
+[data-family="swiss"] { --page-r: 0px; --tile-r: 0px; }  /* the page's open/close clip is square too */
 [data-family="swiss"] .tile, [data-family="swiss"] .card { border-width: 2px; }
 [data-family="swiss"] .cover h3 { text-transform: uppercase; letter-spacing: -.04em; }
 

@@ -313,10 +313,11 @@ body.tiles .island { display: flex; flex-shrink: 1; min-width: 0; max-width: 30v
 .ilist div:first-child { border-top: 0; } .ilist b { flex: 1; min-width: 0; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ilist span { flex: none; opacity: .65; font: 500 11px var(--mono); }
 body.tiles .fab { width: 56px; padding: 0; justify-content: center; font-size: 0; gap: 0; } body.tiles .fab .i { width: 24px; height: 24px; }
-#page { position: fixed; left: var(--l); top: var(--t); width: var(--w); height: var(--h); z-index: 15; display: flex; flex-direction: column; overflow: hidden;
+/* full screen always; opening and closing animate only the clip from the tile's box, so the page lays out once */
+#page { position: fixed; inset: 0; z-index: 15; display: flex; flex-direction: column; overflow: hidden;
   background: var(--tile); border: 1px solid var(--line); border-radius: 28px; opacity: 0; pointer-events: none;
-  transition: left .5s var(--ease), top .5s var(--ease), width .5s var(--ease), height .5s var(--ease), opacity .12s .4s; }
-#page.on { opacity: 1; pointer-events: auto; transition: left .5s var(--ease), top .5s var(--ease), width .5s var(--ease), height .5s var(--ease), opacity .06s; }
+  clip-path: var(--clip, inset(0 round var(--page-r, 28px))); transition: clip-path .4s var(--ease), opacity .12s .3s; }
+#page.on { opacity: 1; pointer-events: auto; transition: clip-path .4s var(--ease), opacity .06s; }
 #page > header, #pageStrip, #pageUi { opacity: 0; transition: opacity .15s; } #page.on > header, #page.on #pageStrip, #page.on #pageUi { opacity: 1; transition: opacity .3s .22s; }
 #page > header { display: flex; align-items: center; gap: 10px; padding: calc(env(safe-area-inset-top) + 12px) 16px 12px; border-bottom: 1px solid var(--line); }
 #page > header h2 { flex: 1; min-width: 0; margin: 0; font: 800 26px/1.1 var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -657,20 +658,20 @@ function board(view, late, nToday) {
   const go = () => { B.innerHTML = lastBoard = html; countUp(B); B.querySelectorAll(".pt").forEach(t => seen.has(t.dataset.k) || !io ? t.classList.add("in") : io.observe(t)); };
   moved && lastBoard && document.startViewTransition && !calm() ? document.startViewTransition(go) : go();
 }
-const P = $("page"), box = r => { for (const [k, v] of [["--l", r.left], ["--t", r.top], ["--w", r.width], ["--h", r.height]]) P.style.setProperty(k, v + "px"); };
+const P = $("page"), box = r => r ? P.style.setProperty("--clip", `inset(${r.top}px ${innerWidth - r.right}px ${innerHeight - r.bottom}px ${r.left}px round var(--tile-r, 18px))`) : P.style.removeProperty("--clip");
 function openPage(key, el) {
   const it = ITEMS[key]; if (!it || pageKey) return;
   pageKey = key; pageFrom = el; $("pageT").textContent = it.title; $("pageM").textContent = it.cleared ? "all clear" : it.why;
   P.classList.toggle("cover", key === "cover"); $("pageStrip").innerHTML = BT.strip(it); fillPage(); $("pageUi").scrollTop = 0;
   P.style.transition = "none"; box(el.getBoundingClientRect()); P.offsetWidth; P.style.transition = "";
   P.classList.add("on"); document.body.classList.add("pg");
-  requestAnimationFrame(() => box({ left: 0, top: 0, width: innerWidth, height: innerHeight }));
+  requestAnimationFrame(() => box(null));
 }
 function closePage() {
   if (!pageKey) return;
   const el = pageFrom?.isConnected ? pageFrom : $("board").querySelector(`[data-k="${pageKey}"]`); if (el) box(el.getBoundingClientRect());
   P.classList.remove("on"); document.body.classList.remove("pg"); pageKey = null;
-  setTimeout(() => { if (pageKey) return; document.querySelector(".deck").append($("mapTile")); $("mapTile").hidden = !G; $("pageUi").innerHTML = ""; lastHtml = ""; render(); }, calm() ? 0 : 520);
+  setTimeout(() => { if (pageKey) return; document.querySelector(".deck").append($("mapTile")); $("mapTile").hidden = !G; $("pageUi").innerHTML = ""; lastHtml = ""; render(); }, calm() ? 0 : 420);
 }
 // The page holds the section's own UI from the feed (moved, not copied), so every button and swipe works as it does there.
 function fillPage() {
