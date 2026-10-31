@@ -93,13 +93,13 @@ button { cursor: pointer; }
 .empty { color: var(--dim); font-size: 14px; }
 .more { background: none; border: 0; color: var(--muted); font-size: 13px; padding: 10px 0 4px; transform-origin: left center; }
 .fab { position: fixed; right: 18px; bottom: calc(env(safe-area-inset-bottom) + 18px); height: 56px; padding: 0 22px; border-radius: 28px; border: 0;
-  background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; box-shadow: 0 12px 30px -8px rgba(0,0,0,.7); z-index: 5; }
+  background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; box-shadow: 0 12px 30px -8px color-mix(in srgb, var(--shade) 70%, transparent); z-index: 5; }
 .mic { position: fixed; left: 18px; bottom: calc(env(safe-area-inset-bottom) + 18px); width: 56px; height: 56px; border-radius: 50%; border: 0; z-index: 6;
-  background: var(--good); color: var(--good-ink); display: grid; place-items: center; box-shadow: 0 12px 30px -8px rgba(0,0,0,.7);
+  background: var(--good); color: var(--good-ink); display: grid; place-items: center; box-shadow: 0 12px 30px -8px color-mix(in srgb, var(--shade) 70%, transparent);
   touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; animation: pop .7s var(--ease) .5s backwards; transition: transform .18s var(--ease); }
 .mic.hot { transform: scale(1.15); animation: ping 1s infinite; }
 .pop { position: fixed; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 88px); z-index: 6; background: var(--tile); border: 1px solid var(--line);
-  border-radius: 22px; padding: 16px 18px; box-shadow: 0 20px 50px -12px rgba(0,0,0,.7); opacity: 0; transform: translateY(16px) scale(.97); pointer-events: none;
+  border-radius: 22px; padding: 16px 18px; box-shadow: 0 20px 50px -12px color-mix(in srgb, var(--shade) 70%, transparent); opacity: 0; transform: translateY(16px) scale(.97); pointer-events: none;
   transition: opacity .25s var(--ease), transform .35s var(--spring); }
 .pop.on { opacity: 1; transform: none; pointer-events: auto; }
 .pop small { display: block; font: 500 12px var(--mono); color: var(--dim); margin-bottom: 6px; }
@@ -166,7 +166,7 @@ button.card { transition: transform .18s var(--ease), background-color .2s, colo
 .dots i.on { width: 18px; background: var(--accent); }
 .deck { --deck: color-mix(in srgb, var(--ink) 6%, var(--bg)); background: var(--deck); margin: 0 -16px calc(-1 * (env(safe-area-inset-bottom) + 96px)); padding: 18px 16px calc(env(safe-area-inset-bottom) + 110px);
   border-radius: 30px 30px 0 0; border-top: 1px solid var(--line); min-height: 60vh; }
-[data-tone="dark"] .deck { --deck: color-mix(in srgb, #000 70%, var(--bg)); }
+[data-tone="dark"] .deck { --deck: color-mix(in srgb, var(--shade) 70%, var(--bg)); }
 /* note reader */
 .md h1 { font: 800 30px/1.05 var(--display); margin: 0 0 12px; }
 .md h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .09em; color: var(--accent); margin: 26px 0 8px; }
@@ -255,7 +255,8 @@ button, .row, header[data-sec] { -webkit-touch-callout: none; }
 /* theme picker in Settings (same pieces as the desktop's) */
 .tpick { margin-bottom: 14px; }
 .tpick .fams { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 4px; }
-.tpick .fam { background: none; border: 0; padding: 0; font-size: 12px; color: var(--muted); text-align: left; }
+.tpick .fam { background: none; border: 0; padding: 0; font-size: 12px; color: var(--muted); text-align: left; transition: transform .18s var(--ease), color .2s; }
+.tpick .fam:active { transform: scale(.96); }
 .tpick .fam.on { color: var(--ink); font-weight: 600; }
 .tpick .pv { display: flex; align-items: flex-end; justify-content: space-between; height: 64px; border-radius: 14px; padding: 8px; margin-bottom: 5px;
   background: var(--grain), var(--bg-image), var(--bg); border: 2px solid transparent; box-shadow: inset 0 0 0 1px var(--line); }
@@ -290,6 +291,9 @@ body.tiles .bar .dot { margin-left: -2px; }
   opacity: 0; transform: translateY(16px) scale(.96); transition: opacity .5s var(--ease), transform .6s var(--ease); }
 .pt.in { opacity: 1; transform: none; } .pt.in:active { transform: scale(.97); transition-duration: .18s; }
 .pt.wide { grid-column: span 2; }
+.pt { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.pt.lift { transform: scale(1.04); outline: 2px solid var(--accent); outline-offset: 2px; }
+#board.moving .pt:not(.lift) { opacity: .7; }
 .pt.hot { background: color-mix(in srgb, var(--accent) 12%, var(--tile)); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
 .pt small { font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pt b { font: 800 30px/1.1 var(--display); margin-top: auto; font-variant-numeric: tabular-nums; }
@@ -311,10 +315,11 @@ body.tiles .island { display: flex; flex-shrink: 1; min-width: 0; max-width: 30v
 .ilist div:first-child { border-top: 0; } .ilist b { flex: 1; min-width: 0; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ilist span { flex: none; opacity: .65; font: 500 11px var(--mono); }
 body.tiles .fab { width: 56px; padding: 0; justify-content: center; font-size: 0; gap: 0; } body.tiles .fab .i { width: 24px; height: 24px; }
-#page { position: fixed; left: var(--l); top: var(--t); width: var(--w); height: var(--h); z-index: 15; display: flex; flex-direction: column; overflow: hidden;
+/* full screen always; opening and closing animate only the clip from the tile's box, so the page lays out once */
+#page { position: fixed; inset: 0; z-index: 15; display: flex; flex-direction: column; overflow: hidden;
   background: var(--tile); border: 1px solid var(--line); border-radius: 28px; opacity: 0; pointer-events: none;
-  transition: left .5s var(--ease), top .5s var(--ease), width .5s var(--ease), height .5s var(--ease), opacity .12s .4s; }
-#page.on { opacity: 1; pointer-events: auto; transition: left .5s var(--ease), top .5s var(--ease), width .5s var(--ease), height .5s var(--ease), opacity .06s; }
+  clip-path: var(--clip, inset(0 round var(--page-r, 28px))); transition: clip-path .4s var(--ease), opacity .12s .3s; }
+#page.on { opacity: 1; pointer-events: auto; transition: clip-path .4s var(--ease), opacity .06s; }
 #page > header, #pageStrip, #pageUi { opacity: 0; transition: opacity .15s; } #page.on > header, #page.on #pageStrip, #page.on #pageUi { opacity: 1; transition: opacity .3s .22s; }
 #page > header { display: flex; align-items: center; gap: 10px; padding: calc(env(safe-area-inset-top) + 12px) 16px 12px; border-bottom: 1px solid var(--line); }
 #page > header h2 { flex: 1; min-width: 0; margin: 0; font: 800 26px/1.1 var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -401,6 +406,10 @@ body.tiles .fab { width: 56px; padding: 0; justify-content: center; font-size: 0
     <div class="secpick" id="layPick"></div>
     <label>Cover length</label>
     <div class="secpick" id="covPick"></div>
+    <label>Tile order</label>
+    <div class="secpick" id="ordPick"></div>
+    <label>Tiles on the board</label>
+    <div class="secpick" id="tilePick"></div>
     <label>Show on home</label>
     <div class="secpick" id="secPick"></div>
     <p class="help">Brain on your phone reads your private notes repo on GitHub. Nothing is stored anywhere except this phone.</p>
@@ -473,14 +482,18 @@ async function gh(path, opts = {}) {
   if (r.status === 401) throw Object.assign(new Error("GitHub rejected the key. Check it in Settings."), { auth: true });
   return r;
 }
-const b64 = s => btoa(String.fromCharCode(...new TextEncoder().encode(s)));
+const b64 = s => {  // in slices: spreading a long capture's bytes into one call overflows the stack
+  const u = new TextEncoder().encode(s); let bin = "";
+  for (let i = 0; i < u.length; i += 0x8000) bin += String.fromCharCode(...u.subarray(i, i + 0x8000));
+  return btoa(bin);
+};
 
 async function loadState() {
   const r = await gh("phone/state.json");
   if (r.status === 404) throw new Error("No phone/state.json yet. The notes repo's Brain action hasn't run.");
   if (!r.ok) throw new Error(`GitHub said ${r.status}.`);
   S = await r.json(); store.set("state", S); phoneTheme();
-  for (const f of S.failed || []) if (outbox.some(o => o.id === f.id)) toast("Couldn't apply one change: " + f.error);
+  for (const f of S.failed || []) if (outbox.some(o => o.id === f.id) || gone.delete(f.id)) toast("Couldn't apply one change: " + f.error);
 }
 
 /* ---------- actions: optimistic here, real once the Action applies them ---------- */
@@ -491,6 +504,7 @@ function optimistic(a, S) {
   if (a.action === "habit") { const h = S.habits.find(x => x.id === b.id); if (h) h.status = b.status; }
   if (a.action === "theme") S.theme = b.theme;
   if (a.action === "daily" && b.date === today()) S.daily = BrainDaily.apply(S.daily, b);
+  if (a.action === "layout") { if (b.order) S.layout = b.order; if (b.hidden) S.hidden = b.hidden; }
 }
 function act(action, body, msg) {
   const a = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, action, body, sent: false };
@@ -501,19 +515,26 @@ function act(action, body, msg) {
 let flushing = false;
 async function flush() {
   if (flushing || !cfg) return; flushing = true;
+  // Re-read the outbox each turn so an action made mid-send goes too; one that fails doesn't hold up the rest.
+  let err = null; const tried = new Set();
   try {
-    for (const a of outbox.filter(o => !o.sent)) {
-      const r = await gh(`phone/queue/${a.id}.json`, { method: "PUT",
-        body: JSON.stringify({ message: `phone: ${a.action}`, content: b64(JSON.stringify({ action: a.action, body: a.body })) }) });
-      if (!r.ok && r.status !== 422) throw new Error(`Couldn't send (GitHub ${r.status}). It'll retry.`);
-      a.sent = true; store.set("outbox", outbox);
+    for (let a; (a = outbox.find(o => !o.sent && !tried.has(o.id)));) {
+      tried.add(a.id);
+      try {
+        const r = await gh(`phone/queue/${a.id}.json`, { method: "PUT",
+          body: JSON.stringify({ message: `phone: ${a.action}`, content: b64(JSON.stringify({ action: a.action, body: a.body })) }) });
+        if (!r.ok && r.status !== 422) throw new Error(`Couldn't send (GitHub ${r.status}). It'll retry.`);
+        a.sent = true; store.set("outbox", outbox);
+      } catch (e) { if (e.auth) throw e; err = e; }
     }
-    error = null;
-  } catch (e) { error = navigator.onLine ? e.message : "Offline. Changes are saved on this phone and will send when you're back online."; }
+  } catch (e) { err = e; }
+  error = err && (navigator.onLine || err.auth ? err.message : "Offline. Changes are saved on this phone and will send when you're back online.");
   flushing = false; paint(); watch();
 }
-// A sent action is done once the Action has consumed its queue file.
+// A sent action is done once the Action has consumed its queue file. Its id stays in `gone` so a failure the
+// Action reports in the state it then builds still gets a toast (it's left the outbox by then).
 let watching = null, watchStart = 0;
+const gone = new Set();
 function watch() {
   if (watching || !outbox.some(o => o.sent)) return;
   watchStart = Date.now();
@@ -521,7 +542,7 @@ function watch() {
     try {
       for (const a of outbox.filter(o => o.sent)) {
         const r = await gh(`phone/queue/${a.id}.json`);
-        if (r.status === 404) outbox = outbox.filter(o => o !== a);
+        if (r.status === 404) { outbox = outbox.filter(o => o !== a); gone.add(a.id); }
       }
       store.set("outbox", outbox);
       if (!outbox.some(o => o.sent)) { clearInterval(watching); watching = null; await refresh(); }
@@ -545,7 +566,8 @@ function render() {
   document.body.classList.toggle("tiles", tiles); island(view);
   const h = new Date().getHours(), name = ((view.me?.meta?.name) || "").split(/\s+/)[0];
   const t = today(), n = view.now || {};
-  const up = (n.upcoming || []).filter(u => u.date >= t).slice(0, 6);
+  const hm = new Date().toTimeString().slice(0, 5);  // a timed item from earlier today has passed
+  const up = (n.upcoming || []).filter(u => u.date > t || (u.date === t && !(u.time && u.time < hm))).slice(0, 6);
   const open = view.nudges.filter(x => x.status === "open" || (x.status === "snoozed" && x.snooze_until && x.snooze_until <= t));
   const late = open.filter(x => x.due && daysFrom(x.due) < 0).length, nToday = up.filter(u => daysFrom(u.date) === 0).length;
   $("dateNow").textContent = new Date().toLocaleDateString("en", { weekday: "short", month: "short", day: "numeric" });
@@ -614,16 +636,16 @@ let layout = store.get("layout", "tiles"), coverLen = store.get("cover", "medium
 const tilesOn = () => layout === "tiles" && !!BT && !!S;
 // Top of home: the next thing ahead with a live countdown, the cover headline (tap for the cover), four counts.
 function home(view, late, nToday) {
-  const nx = NEXT = hidden.has("next") ? null : BT.nextUp(view), n = view.now || {}, num = (id, v, l, k) => `<button class="tile" data-k="${k}"><b data-n="${v}" data-id="${id}">${esc(v)}</b>${l}</button>`;
+  const noNext = hidden.has("next") || !ITEMS.next, nx = NEXT = noNext ? null : BT.nextUp(view), n = view.now || {}, num = (id, v, l, k) => `<button class="tile" data-k="${k}"><b data-n="${v}" data-id="${id}">${esc(v)}</b>${l}</button>`;
   const dn = nx && daysFrom(nx.date), day = nx && (dn === 0 ? "Today" : dn === 1 ? "Tmrw" : new Date(nx.date + "T00:00").toLocaleDateString("en", { weekday: "short", month: dn > 6 ? "short" : undefined, day: dn > 6 ? "numeric" : undefined }));
-  $("top").innerHTML = (hidden.has("next") ? "" : `<button class="tile cover nx" data-k="${nx ? nx.key : "next"}"><small>Next</small><b>${nx ? esc(nx.title) : "Nothing coming up"}</b>`
+  $("top").innerHTML = (noNext ? "" : `<button class="tile cover nx" data-k="${nx ? nx.key : "next"}"><small>Next</small><b>${nx ? esc(nx.title) : "Nothing coming up"}</b>`
       + `<span>${nx ? esc([day + (nx.time ? " " + nx.time : ""), nx.detail].filter(Boolean).join(" · ")) + (nx.to ? ` · in <span class="tick">${BT.countdown(nx.to - Date.now())}</span>` : "") : "Clear for now"}</span></button>`)
-    + (n.headline ? `<h2 class="hl" data-k="cover">${esc(n.headline).replace(/\*([^*]+)\*/g, "<em>$1</em>")}</h2>` : "")
+    + (n.headline && ITEMS.cover ? `<h2 class="hl" data-k="cover">${esc(n.headline).replace(/\*([^*]+)\*/g, "<em>$1</em>")}</h2>` : "")
     + `<div class="sts">${num("late", late, "overdue", "nudges")}${num("today", nToday, "today", "next")}${num("agents", (view.agents || []).length, "agents", "agents")}${num("proj", ITEMS.projects?.count ?? 0, "projects", "projects")}</div>`;
   countUp($("top"));
 }
 setInterval(() => {  // the countdown ticks; when it runs out, the next thing takes its place
-  const el = document.querySelector(".nx .tick"); if (!el || !NEXT?.to) return;
+  const el = document.querySelector(".nx .tick"); if (!el || !NEXT?.to || pageKey) return;  // board() won't redo NEXT under an open page; closePage() re-renders
   NEXT.to - Date.now() > 0 ? el.textContent = BT.countdown(NEXT.to - Date.now()) : render();
 }, 1000);
 // Numbers count up from what they last showed (0 the first time).
@@ -656,20 +678,20 @@ function board(view, late, nToday) {
   const go = () => { B.innerHTML = lastBoard = html; countUp(B); B.querySelectorAll(".pt").forEach(t => seen.has(t.dataset.k) || !io ? t.classList.add("in") : io.observe(t)); };
   moved && lastBoard && document.startViewTransition && !calm() ? document.startViewTransition(go) : go();
 }
-const P = $("page"), box = r => { for (const [k, v] of [["--l", r.left], ["--t", r.top], ["--w", r.width], ["--h", r.height]]) P.style.setProperty(k, v + "px"); };
+const P = $("page"), box = r => r ? P.style.setProperty("--clip", `inset(${r.top}px ${innerWidth - r.right}px ${innerHeight - r.bottom}px ${r.left}px round var(--tile-r, 18px))`) : P.style.removeProperty("--clip");
 function openPage(key, el) {
   const it = ITEMS[key]; if (!it || pageKey) return;
   pageKey = key; pageFrom = el; $("pageT").textContent = it.title; $("pageM").textContent = it.cleared ? "all clear" : it.why;
   P.classList.toggle("cover", key === "cover"); $("pageStrip").innerHTML = BT.strip(it); fillPage(); $("pageUi").scrollTop = 0;
   P.style.transition = "none"; box(el.getBoundingClientRect()); P.offsetWidth; P.style.transition = "";
   P.classList.add("on"); document.body.classList.add("pg");
-  requestAnimationFrame(() => box({ left: 0, top: 0, width: innerWidth, height: innerHeight }));
+  requestAnimationFrame(() => box(null));
 }
 function closePage() {
   if (!pageKey) return;
   const el = pageFrom?.isConnected ? pageFrom : $("board").querySelector(`[data-k="${pageKey}"]`); if (el) box(el.getBoundingClientRect());
   P.classList.remove("on"); document.body.classList.remove("pg"); pageKey = null;
-  setTimeout(() => { if (pageKey) return; document.querySelector(".deck").append($("mapTile")); $("mapTile").hidden = !G; $("pageUi").innerHTML = ""; lastHtml = ""; render(); }, calm() ? 0 : 520);
+  setTimeout(() => { if (pageKey) return; document.querySelector(".deck").append($("mapTile")); $("mapTile").hidden = !G; $("pageUi").innerHTML = ""; lastHtml = ""; render(); }, calm() ? 0 : 420);
 }
 // The page holds the section's own UI from the feed (moved, not copied), so every button and swipe works as it does there.
 function fillPage() {
@@ -680,8 +702,28 @@ function fillPage() {
   const hv = it.hero;
   ui.innerHTML = hv ? `<small>ISSUE ${esc(S.issue)} · <span class="cd">${coverIn()}</span></small><h3>${esc(hv.headline).replace(/\*([^*]+)\*/g, "<em>$1</em>")}</h3>${hv.dek ? `<p>${esc(hv.dek)}</p>` : ""}
     ${hv.side.map(x => `<p class="side">${esc(x)}</p>`).join("")}<div class="acts">${hv.acts.filter(a => /\.md$/.test(a.arg)).map(a => `<button class="pill" data-open="${esc(a.arg)}">${esc(a.label)}</button>`).join("")}</div>`
-    : it.rows?.length ? it.rows.map(r => `<div class="row"><div><div class="t">${esc(r[0])}</div><div class="s">${esc(r[1])}</div></div></div>`).join("") : `<p class="empty">✓ All clear</p>`;
+    : it.body ? `<div class="md">${md(it.body)}</div>`  // a custom tile's page is its note, like on the Mac
+    : it.rows?.length ? it.rows.map(r => `<div class="row"><div><div class="t">${esc(r[0])}</div><div class="s">${esc(r[1])}</div></div></div>`).join("") : `<p class="empty">${k.startsWith("t:") ? "Nothing yet." : "✓ All clear"}</p>`;
 }
+// Moving tiles: hold one until it lifts, then tap the tile whose spot it should take (tap it again to put it back).
+// The order is saved in the notes like the Mac's (claude/layout.json), so both keep it.
+let moving = null, held = null, lifted = false;
+const endMove = () => { moving = null; $("board").classList.remove("moving"); $("board").querySelector(".pt.lift")?.classList.remove("lift"); };
+$("board").addEventListener("touchstart", e => {
+  const b = e.target.closest(".pt"); if (!b || moving) return;
+  held = setTimeout(() => { held = null; moving = b.dataset.k; lifted = true; tap(); b.classList.add("lift"); $("board").classList.add("moving"); toast("Now tap where it should go"); }, 450);
+}, { passive: true });
+for (const t of ["touchmove", "touchend", "touchcancel"]) $("board").addEventListener(t, () => {
+  clearTimeout(held); held = null; if (lifted) setTimeout(() => lifted = false, 400);  // iOS may not send that click
+}, { passive: true });
+$("board").addEventListener("contextmenu", e => { if (e.target.closest(".pt")) e.preventDefault(); });
+$("board").addEventListener("click", e => {
+  if (!moving) return;
+  e.stopImmediatePropagation();
+  if (lifted) return void (lifted = false);  // the lift's own touch ends in a click
+  const b = e.target.closest(".pt"), from = moving; endMove();
+  if (b && b.dataset.k !== from) { tap(); act("layout", { order: BT.moveTo(Object.keys(ITEMS), from, b.dataset.k) }); }
+}, true);
 for (const id of ["board", "top"]) $(id).addEventListener("click", e => { const b = e.target.closest("[data-k]"); if (b) { tap(); openPage(b.dataset.k, b); } });
 addEventListener("keydown", e => { if (e.key === "Escape") closePage(); });
 addEventListener("resize", () => { if (tilesOn() && !pageKey) render(); });
@@ -702,7 +744,17 @@ function drawLayPick() {
   const p = (k, v, l, on) => `<button type="button" class="pill${on ? " on" : ""}" aria-pressed="${on}" data-lay="${k}" data-v="${v}">${l}</button>`;
   $("layPick").innerHTML = p("layout", "tiles", "Tiles", layout === "tiles") + p("layout", "scroll", "Scroll", layout === "scroll");
   $("covPick").innerHTML = ["short", "medium", "long"].map(v => p("cover", v, v[0].toUpperCase() + v.slice(1), coverLen === v)).join("");
+  const mine = !!S?.layout?.length;  // "As I moved them" comes from holding a tile; this only turns it back off
+  $("ordPick").innerHTML = `<button type="button" class="pill${mine ? "" : " on"}" aria-pressed="${!mine}" data-ord="auto">By urgency</button>`
+    + `<button type="button" class="pill${mine ? " on" : ""}" aria-pressed="${mine}" disabled>As I moved them</button>`;
+  // every tile, hidden ones too; lit = on the board. Saved in the notes (claude/layout.json), so the Mac hides the same ones.
+  const off = new Set(S?.hidden || []), g = S?.graph;
+  $("tilePick").innerHTML = S && BT ? BT.items(S, { today: today(), all: true, graphSummary: g && { ...g, legend: g.legend || g.clusters } })
+    .map(i => `<button type="button" class="pill${off.has(i.key) ? "" : " on"}" aria-pressed="${!off.has(i.key)}" data-tile-pick="${esc(i.key)}">${esc(i.title)}</button>`).join("") : "";
 }
+document.addEventListener("click", e => { const b = e.target.closest("[data-tile-pick]"); if (!b || !S) return; const k = b.dataset.tilePick, h = S.hidden || [];
+  tap(); act("layout", { hidden: h.includes(k) ? h.filter(x => x !== k) : [...h, k] }); lastHero = ""; drawLayPick(); });
+document.addEventListener("click", e => { if (e.target.closest("[data-ord]") && S?.layout?.length) { tap(); act("layout", { order: [] }); drawLayPick(); } });
 document.addEventListener("click", e => { const b = e.target.closest("[data-lay]"); if (!b) return;
   b.dataset.lay === "layout" ? layout = b.dataset.v : coverLen = b.dataset.v; store.set(b.dataset.lay, b.dataset.v);
   reflow = true; lastHero = lastHtml = lastBoard = ""; tap(); drawLayPick(); render(); });
@@ -858,12 +910,13 @@ function leave(el, dir) {
 }
 
 /* ---------- map search (phone/graph.json, published by the Mac from graphify) ---------- */
-let G = null;
+let G = null, gSig = "";  // gSig: node:link counts of the loaded Map, to spot a newer one in state.graph
 const CL = " (cluster)";
 async function loadGraph() {
   try {
     const r = await gh("phone/graph.json"); if (!r.ok) return;
     const g = await r.json(), byId = new Map(g.nodes.map(n => [n.id, { ...n, nb: new Set() }]));
+    gSig = `${g.nodes.length}:${g.links.length}`;
     for (const [a, b] of g.links) { const A = byId.get(a), B = byId.get(b); if (A && B && A !== B) { A.nb.add(B); B.nb.add(A); } }
     const nodes = [...byId.values()].sort((a, b) => b.nb.size - a.nb.size);
     const groups = [...new Set(nodes.map(n => n.groupName || "Cluster " + n.group))];
@@ -954,8 +1007,9 @@ function renderDoc(text) {
 let readerPath = "";
 async function openDoc(path) {
   readerPath = path; $("rPath").textContent = path; $("rBody").innerHTML = `<p class="empty">Loading…</p>`; open("reader");
-  try { const r = await gh(path); $("rBody").innerHTML = r.ok ? renderDoc(await r.text()) : `<p class="empty">Couldn't load it (GitHub ${r.status}).</p>`; }
-  catch (e) { $("rBody").innerHTML = `<p class="empty">${esc(e.message)}</p>`; }
+  try { const r = await gh(path), html = r.ok ? renderDoc(await r.text()) : `<p class="empty">Couldn't load it (GitHub ${r.status}).</p>`;
+    if (readerPath === path) $("rBody").innerHTML = html; }  // a note opened after this one wins
+  catch (e) { if (readerPath === path) $("rBody").innerHTML = `<p class="empty">${esc(e.message)}</p>`; }
 }
 
 /* ---------- sheets, capture, settings ---------- */
@@ -1126,7 +1180,7 @@ $("mic").addEventListener("pointerdown", e => {
   heard = ""; $("mic").classList.add("hot"); pop("Listening… let go to send", "");
   rec = new SR(); rec.lang = "en-CA"; rec.interimResults = true; rec.continuous = true;
   rec.onresult = ev => { heard = transcript(ev.results); $("popA").textContent = heard; };
-  rec.onerror = ev => { if (ev.error === "not-allowed") pop("Microphone blocked", "Allow the microphone for this site in Settings → Safari."); };
+  rec.onerror = ev => { if (/not-allowed/.test(ev.error)) { rec = null; pop("Microphone blocked", "Allow the microphone for this site in Settings → Safari."); } };  // rec = null: onend then doesn't send an empty ask over it
   rec.onend = () => { if (rec) { rec = null; ask(heard); } };
   try { rec.start(); } catch { rec = null; }
 });
@@ -1141,7 +1195,7 @@ function toast(msg) { $("toast").textContent = msg; $("toast").classList.add("on
 async function refresh(manual) {
   if (!cfg) return;
   $("refresh").classList.add("spin");
-  try { await loadState(); error = null; if (manual) toast("Up to date"); }
+  try { await loadState(); error = null; if (manual) toast("Up to date"); if (S.graph && `${S.graph.nodes}:${S.graph.links}` !== gSig) loadGraph(); }
   catch (e) { error = e.auth ? e.message : navigator.onLine ? e.message : "Offline. Showing what you last saw."; }
   $("refresh").classList.remove("spin");
   render();

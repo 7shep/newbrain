@@ -82,6 +82,17 @@ def week_commits():
 
 AGENTS = Agents(NOTES, extra_tools=clubkit_tools, linkedin_context=week_commits)
 ROUTINES = Routines(NOTES)
+HISTORY = threading.Lock()  # one past-runs read at a time
+
+
+def routine_history():
+    try:
+        ROUTINES.history()
+        if SYNC.enabled():
+            with LOCK:
+                SYNC.commit(["claude/routines.json", "tiles/routine-runs.md"], "brain: routine runs")
+    finally:
+        HISTORY.release()
 SYNC = Sync(NOTES, on_pulled=AGENTS.drain_pending)
 AGENTS.sync = SYNC  # each agent run commits the notes it changed
 TOUCHED = set()  # notes files written since the last sync commit
@@ -298,6 +309,45 @@ def act_study(body):
     return study.view(updated)
 
 
+REFRESHED = {}  # tile path -> last time its refresh command ran
+# Tiles arrive by git pull, so anyone who can push to the notes repo (the phone's key can) could put a command in one.
+# Only commands listed in this Mac-only file run, one per line, exactly as written in the tile; it is never synced.
+REFRESH_ALLOW = os.path.expanduser("~/.config/brain/refresh-allow")
+
+
+def refresh_allowed(cmd):
+    try:
+        with open(REFRESH_ALLOW, encoding="utf-8") as f:
+            return cmd in {l.strip() for l in f if l.strip() and not l.lstrip().startswith("#")}
+    except OSError:
+        return False
+
+
+def custom_tiles():
+    """tiles/*.md: one tile each. Frontmatter title/icon/refresh; each "- a · b" line is a row.
+    refresh is a shell command (cwd = notes) that rewrites the file; it runs at most every 5 min, and only if it's
+    in REFRESH_ALLOW."""
+    out = []
+    for path in sorted(glob.glob(os.path.join(NOTES, "tiles", "*.md"))):
+        rel = "tiles/" + os.path.basename(path)  # "/" on Windows too: the page uses it as a note path
+        meta, _ = build.parse_frontmatter(read(rel))
+        cmd, note = meta.get("refresh"), ""
+        if cmd and not refresh_allowed(cmd):
+            note = "Not refreshing: add its command to ~/.config/brain/refresh-allow on this Mac."
+        elif cmd and datetime.datetime.now().timestamp() - REFRESHED.get(rel, 0) > 300:
+            REFRESHED[rel] = datetime.datetime.now().timestamp()
+            try:
+                subprocess.run(cmd, shell=True, cwd=NOTES, timeout=15, capture_output=True)
+            except subprocess.TimeoutExpired:
+                pass
+        meta, body = build.parse_frontmatter(read(rel))
+        rows = [[p.strip() for p in (l[2:].split(" · ", 1) + [""])[:2]] for l in body.splitlines() if l.startswith("- ")]
+        out.append({"slug": os.path.basename(path)[:-3], "path": rel, "title": meta.get("title") or os.path.basename(path)[:-3],
+                    "icon": meta.get("icon", "doc"), "summary": note or meta.get("summary", ""), "count": meta.get("count", ""), "rows": rows,
+                    "body": body[:20000]})  # the phone shows the note as the tile's page
+    return out
+
+
 def state():
     docs = build.load_notes()
     idx = session_index()
@@ -364,12 +414,16 @@ def state():
                   and d["path"] not in ("me.md", "now.md", "nudges.md", "ideas.md", "inbox.md", "claude/habits.md")],
         "internships": internships(read("internships/tracker.md")),
         "devlog": bool(devlog.repo(NOTES)),
+        "tiles": custom_tiles(),
+        "decisions": build.decisions_due(NOTES, t),
         "agents": AGENTS.recent(),
         "routines": ROUTINES.load(),
         "clubkit": clubkit.state(project_folders(docs)),
         "daily": daily_state(),
         "study": study_state(),
         "theme": saved_theme(),
+        "layout": saved_layout(),
+        "hidden": saved_hidden(),
         "graph": graph_summary(),
         "predictions": predictions.stats(predictions.parse(read("claude/predictions.md"))),
         "has": {k: k in by_path for k in ("me.md", "now.md")},
@@ -379,9 +433,9 @@ def state():
 # ---------------------------------------------------------------- internships: every table row in internships/tracker.md
 def internship_group(status):
     s = status.lower()
-    if s.startswith("applied"):
+    if s.startswith(("applied", "emailed")):  # a cold email is an application waiting on a reply
         return "applied"
-    if s.startswith(("out", "dropped")):
+    if s.startswith(("out", "dropped", "skipped", "not a fit")):
         return "out"
     if s.startswith(("to apply", "prep")):
         return "apply"
@@ -543,11 +597,46 @@ def saved_theme():
         return None
 
 
+def layout_file():
+    """claude/layout.json: {"order": tile keys he moved, "hidden": tile keys he hid}. The Mac and the phone's Action both
+    write it, so a merge-conflicted or half-written one reads as {} instead of failing every state() (and the phone's build)."""
+    try:
+        d = json.loads(read("claude/layout.json") or "{}")
+        return d if isinstance(d, dict) else {}
+    except ValueError:
+        return {}
+
+
+def saved_layout():
+    """Tile order he set by moving tiles; [] = by urgency."""
+    order = layout_file().get("order")
+    return order if isinstance(order, list) else []
+
+
+def saved_hidden():
+    """Tiles he hid in Settings; the Mac and the phone both leave them off the board."""
+    hidden = layout_file().get("hidden")
+    return hidden if isinstance(hidden, list) else []
+
+
 def act_theme(body):
     theme = body.get("theme")
     if not isinstance(theme, str) or not re.fullmatch(r"[a-z]+/[a-z]+", theme):
         raise ValueError("theme must look like family/mode")
     write("claude/theme.json", json.dumps({"theme": theme}) + "\n")
+
+
+def act_layout(body):
+    """The tile order he set by moving tiles (keys like "next" or "t:music"; [] goes back to ordering by score) and/or
+    the tiles he hid. Whichever the body leaves out is kept."""
+    keys = lambda v: isinstance(v, list) and len(v) <= 100 and all(isinstance(k, str) and 0 < len(k) <= 80 for k in v)
+    if not ("order" in body or "hidden" in body):
+        raise ValueError("send order or hidden")
+    for f in ("order", "hidden"):
+        if f in body and not keys(body[f]):
+            raise ValueError(f"{f} must be a list of tile keys")
+    out = {"order": body.get("order", saved_layout()), "hidden": body.get("hidden", saved_hidden())}
+    write("claude/layout.json", json.dumps(out) + "\n")
 
 
 def act_project(body):
@@ -684,8 +773,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def commit_touched(self, message):
         files = sorted(TOUCHED)
-        TOUCHED.clear()
-        SYNC.commit(files, message)
+        if SYNC.commit(files, message) is not False:  # a refused commit keeps them for the next one
+            TOUCHED.difference_update(files)
 
     def authed(self):
         return self.local_host() and secrets.compare_digest(self.headers.get("X-Brain-Token", ""), TOKEN)
@@ -727,6 +816,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 if started in TOUCHED:
                     TOUCHED.discard(started)
                     SYNC.commit([started], "feat(notes): start daily tasks")
+                publish_graph_if_rebuilt()  # one stat() per poll; publishes only after a graphify rebuild
                 return self.send(200, {**s, "sync": {"on": SYNC.enabled(), "error": SYNC.error}})
             if url.path == "/api/study":
                 with LOCK:
@@ -764,17 +854,20 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if SYNC.enabled() and snap:
             with LOCK:
                 SYNC.commit(["claude/routines.json"], "brain: routines")
+        if action == "refresh" and ROUTINES.due_history() and HISTORY.acquire(blocking=False):
+            threading.Thread(target=routine_history, daemon=True).start()  # reads run logs: minutes, so not in the reply
         return self.send(200, {"routines": snap})
 
     def do_POST(self):
         if not self.authed():
             return self.send(403, {"error": "forbidden"})
         routes = {"/api/nudge": act_nudge, "/api/habit": act_habit, "/api/capture": act_capture, "/api/agent": act_agent,
-                  "/api/idea": act_idea, "/api/project": act_project, "/api/habit-new": act_habit_new, "/api/theme": act_theme, "/api/daily": act_daily, "/api/study": act_study}
+                  "/api/idea": act_idea, "/api/project": act_project, "/api/habit-new": act_habit_new, "/api/theme": act_theme, "/api/daily": act_daily, "/api/study": act_study,
+                  "/api/layout": act_layout}
         path = urllib.parse.urlparse(self.path).path
-        if path == "/api/routines":  # slow (a claude call), so outside LOCK
-            return self.routines(self.body())
         try:
+            if path == "/api/routines":  # slow (a claude call), so outside LOCK
+                return self.routines(self.body())
             with LOCK:
                 if path == "/api/file":
                     code, out = file_put(self.body())
@@ -794,14 +887,22 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self.send(403, {"error": "That path isn't a note."})
         except (ValueError, TypeError) as e:
             return self.send(400, {"error": str(e)})
+        except Exception as e:  # noqa: BLE001  a disk or git error still owes the page an answer, not a hung request
+            return self.send(500, {"error": "%s: %s" % (type(e).__name__, e)})
 
 
 def graph_get():
     """The graphify knowledge graph of the notes (graphify-out/graph.json), trimmed for drawing.
-    Returns None when there isn't one, so the app just hides the Map tile."""
+    Returns None when there isn't one, so the app just hides the Map tile.
+    Without graphify-out/ (gitignored, so the phone's GitHub Action never has it) the copy the Mac published
+    to phone/graph.json stands in, already trimmed."""
     path = os.path.join(NOTES, "graphify-out", "graph.json")
     if not os.path.exists(path):
-        return None
+        pub = os.path.join(NOTES, "phone", "graph.json")
+        if not os.path.exists(pub):
+            return None
+        with open(pub, encoding="utf-8") as f:
+            return json.load(f)
     with open(path, encoding="utf-8") as f:
         g = json.load(f)
     nodes = [{"id": n["id"], "label": n.get("label") or n["id"], "group": n.get("community"),
@@ -852,6 +953,20 @@ def morning(every=300):
     threading.Thread(target=loop, daemon=True).start()
 
 
+GRAPH_SEEN = [None]  # mtime of graphify-out/graph.json when last published
+
+
+def publish_graph_if_rebuilt():
+    """graphify can rebuild the Map while Brain runs; republish the phone's copy then, not only at startup."""
+    try:
+        m = os.path.getmtime(os.path.join(NOTES, "graphify-out", "graph.json"))
+    except OSError:
+        return
+    if m != GRAPH_SEEN[0]:
+        GRAPH_SEEN[0] = m
+        publish_graph()
+
+
 class Server(socketserver.ThreadingMixIn, http.server.HTTPServer):
     daemon_threads = True
     # On Windows SO_REUSEADDR lets a second server bind the same port, and the two then split requests with different
@@ -878,7 +993,7 @@ def main():
     SYNC.pull(gap=0)  # start from GitHub's latest: whatever the phone did while the Mac was off
     rebuild_index()
     TOUCHED.clear()  # the startup index rebuild isn't worth a commit on its own
-    publish_graph()
+    publish_graph_if_rebuilt()
     AGENTS.recover()
     SYNC.start()  # keep pulling with no tab open, so tasks queued from the phone start on their own
     morning()

@@ -11,6 +11,10 @@
 .bt-part.r-list { padding-top: 4px; }
 .bt-part.r-big { padding: 13px 16px; }
 .bt [hidden] { display: none !important; }
+/* moving a tile: it follows the pointer above the rest; the tile it would take the place of lights up */
+.bt.dragging { z-index: 5; opacity: .85; user-select: none; }
+.bt.dragging .bt-part, .bt.dragging .bt-outline path { pointer-events: none; cursor: grabbing; }
+.bt.drop .bt-outline path { stroke: var(--accent); stroke-width: 2; }
 .bt button { font: inherit; color: inherit; cursor: pointer; }
 
 /* header, count, summary, spotlight */

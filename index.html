@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brain — a digital brain for Claude Code</title>
+<meta name="description" content="A folder of plain markdown notes that Claude Code reads every session, plus a small app for your Mac, browser and phone.">
+<link rel="icon" href="mobile/icon-192.png">
+<link rel="apple-touch-icon" href="mobile/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Bodoni+Moda:opsz,wght@6..96,700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+/* Brain light / dark, from app/theme.css */
+:root { --bg: #f4f2ef; --tile: #ffffff; --line: #e4e0da; --ink: #1c1915; --muted: #625b52; --accent: #e2621b; --accent-ink: #ffffff; --good: #1f8a4c; color-scheme: light dark; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0e0d0c; --tile: #171513; --line: #2a2622; --ink: #efeae3; --muted: #a19a91; --accent: #ff8a3d; --accent-ink: #1a0d03; --good: #5fd38d; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 Inter, system-ui, sans-serif; }
+main { max-width: 920px; margin: 0 auto; padding: 48px 16px 80px; }
+h1 { font: 700 clamp(44px, 9vw, 76px)/1 "Bodoni Moda", Georgia, serif; margin: 0 0 16px; letter-spacing: -.01em; }
+h1 .dot { color: var(--good); }
+h2 { font-size: 22px; margin: 56px 0 8px; }
+.lede { font-size: 19px; color: var(--muted); max-width: 640px; margin: 0 0 28px; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.btn { display: inline-block; padding: 12px 20px; border-radius: 10px; font: 600 15px Inter, sans-serif; text-decoration: none; border: 1px solid var(--line); color: var(--ink); background: var(--tile); cursor: pointer; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.small { font-size: 14px; color: var(--muted); }
+a { color: var(--accent); }
+img { max-width: 100%; height: auto; border-radius: 14px; border: 1px solid var(--line); display: block; }
+.shot { margin: 40px 0 0; }
+.tabs { display: flex; gap: 8px; margin: 16px 0 0; flex-wrap: wrap; }
+.tabs button { font: 600 15px Inter, sans-serif; padding: 9px 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--tile); color: var(--muted); cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.prompt { position: relative; margin-top: 12px; }
+.prompt p { margin: 8px 0 12px; color: var(--muted); }
+pre { margin: 0; padding: 18px; background: var(--tile); border: 1px solid var(--line); border-radius: 12px; overflow-x: auto; font: 500 13px/1.6 "JetBrains Mono", ui-monospace, monospace; white-space: pre-wrap; overflow-wrap: anywhere; padding-bottom: 52px; }
+.copy.btn { position: absolute; bottom: 10px; right: 10px; padding: 6px 12px; font-size: 13px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 16px; margin-top: 16px; }
+.card { background: var(--tile); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+.card b { display: block; margin-bottom: 4px; }
+.card span { color: var(--muted); font-size: 15px; }
+.phone { display: grid; grid-template-columns: minmax(0, 240px) 1fr; gap: 28px; align-items: center; margin-top: 16px; }
+@media (max-width: 600px) { .phone { grid-template-columns: 1fr; } .phone img { max-width: 240px; } }
+footer { margin-top: 64px; font-size: 14px; color: var(--muted); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Brain<span class="dot">.</span></h1>
+  <p class="lede">A folder of plain markdown notes that Claude Code reads every session, so it stops re-deriving who you are and what you're working on. Plus a small app to browse and act on them, on your Mac, in the browser and on your phone.</p>
+  <div class="actions">
+    <a class="btn primary" href="#setup">Set it up with one prompt</a>
+    <a class="btn" href="https://github.com/zacfink/brain/releases/latest">Download the latest release</a>
+    <a class="small" href="https://github.com/zacfink/brain">Source on GitHub</a>
+  </div>
+  <img class="shot" src="docs/screenshot.png" alt="Brain app running on the example notes">
+
+  <h2>What it does</h2>
+  <div class="grid">
+    <div class="card"><b>Cover story</b><span>Claude writes a magazine-style headline about your week after real work.</span></div>
+    <div class="card"><b>Habits Claude follows</b><span>Claude proposes habits; you switch each one on or off.</span></div>
+    <div class="card"><b>Notes to self</b><span>Reminders Claude adds only when they help. Done, snooze, or "not doing this".</span></div>
+    <div class="card"><b>⌘K capture</b><span>Type a thought, to-do or person. Claude files it into the right note next session.</span></div>
+    <div class="card"><b>Custom tiles</b><span>Any <code>tiles/*.md</code> becomes a tile, optionally kept live by a script.</span></div>
+    <div class="card"><b>Plain files</b><span>Everything is markdown on your machine. Python standard library, no build step.</span></div>
+  </div>
+
+  <h2 id="setup">Set it up with one prompt</h2>
+  <p class="small">Paste one of these into <a href="https://claude.com/claude-code">Claude Code</a> and answer its questions. It asks before anything that touches your accounts.</p>
+  <div class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" aria-controls="p-fresh" id="t-fresh">Starting fresh</button>
+    <button role="tab" aria-selected="false" aria-controls="p-notes" id="t-notes">Already keep notes</button>
+  </div>
+  <div class="prompt" role="tabpanel" id="p-fresh" aria-labelledby="t-fresh">
+    <p>No notes yet, or you'd rather begin clean. Claude interviews you and writes your first notes.</p>
+    <pre>Set up Brain (https://github.com/zacfink/brain) for me from scratch. Work through it step by step, tell me what each step is for in one line, and ask me before anything that touches my accounts.
+
+1. Clone https://github.com/zacfink/brain.git into ~/Notes/.brain (keep anything already in ~/Notes), link ~/Notes/.brain/bin/brain into ~/.local/bin (create it, and add it to my shell profile's PATH if it isn't there), and read ~/Notes/.brain/README.md and FORMATS.md before going on.
+2. Interview me briefly: my name, what I do, my active projects, people I work with, anything due in the next two weeks. Then write my first notes in the FORMATS.md shapes: me.md, now.md, one page per project, people pages, nudges.md, ideas.md, inbox.md and claude/habits.md (two or three habits from what I told you, status "proposed"). If you can see my projects folder, calendar or email, use them to fill gaps, and say what you took from where.
+3. Connect yourself: add the SessionStart hook from the README to ~/.claude/settings.json (merge, don't overwrite), and add the README's standing instructions to my CLAUDE.md. Then run python3 ~/Notes/.brain/build.py.
+4. Start the app with `brain` and check it opens at http://127.0.0.1:4747. On a Mac, ask me whether I want it as an app; if yes, run ~/Notes/.brain/mac/build.sh (needs Xcode's command line tools) to make ~/Applications/Brain.app.
+5. Phone (ask me first): add ".brain/" to ~/Notes/.gitignore, create a PRIVATE GitHub repo "notes" with gh, add docs/notes-workflow.yml as .github/workflows/brain.yml plus phone/queue/.gitkeep, commit and push, and wait for the Action's first run to write phone/state.json.
+6. Walk me through making the phone key (README → On your phone, step 3); I paste it to you. Then give me my one-tap install link: https://zacfink.github.io/brain/mobile/#c= followed by base64 of {"repo":"&lt;me&gt;/notes","token":"&lt;key&gt;"}. Tell me to open it in Safari, tap Share → Add to Home Screen, and treat the link like a password. Don't save the key anywhere.
+7. Finish with a short list: what's set up, what I should try first, and anything that didn't work.</pre>
+    <button class="btn copy" type="button">Copy</button>
+  </div>
+  <div class="prompt" role="tabpanel" id="p-notes" aria-labelledby="t-notes" hidden>
+    <p>Obsidian, Notion, Apple Notes or a markdown folder. Claude builds your Brain from them and never touches the originals.</p>
+    <pre>Set up Brain (https://github.com/zacfink/brain) for me from the notes I already have. Work through it step by step, tell me what each step is for in one line, and ask me before anything that touches my accounts.
+
+1. Ask me where my existing notes are (an Obsidian vault, a Notion or Apple Notes export, or any folder of markdown or text). Treat that folder as read-only: never move, rename, edit or delete anything in it. If it is ~/Notes itself, stop and ask me where Brain's notes should go instead.
+2. Clone https://github.com/zacfink/brain.git into ~/Notes/.brain (keep anything already in ~/Notes), link ~/Notes/.brain/bin/brain into ~/.local/bin (create it, and add it to my shell profile's PATH if it isn't there), and read ~/Notes/.brain/README.md and FORMATS.md before going on.
+3. Skim my existing notes and tell me in a few lines what you found: active projects, people, anything due soon, recurring themes. Ask me at most 3 short questions to fill gaps.
+4. Draft my Brain notes in the FORMATS.md shapes from what you found: me.md, now.md, one page per active project, people pages, nudges.md, ideas.md, inbox.md and claude/habits.md (two or three habits, status "proposed"). After each fact, note which original file it came from. Leave out anything that looks private (passwords, health, money) unless I say to include it. Show me the list of pages before writing them.
+5. Connect yourself: add the SessionStart hook from the README to ~/.claude/settings.json (merge, don't overwrite), and add the README's standing instructions to my CLAUDE.md. Then run python3 ~/Notes/.brain/build.py.
+6. Start the app with `brain` and check it opens at http://127.0.0.1:4747. On a Mac, ask me whether I want it as an app; if yes, run ~/Notes/.brain/mac/build.sh (needs Xcode's command line tools) to make ~/Applications/Brain.app.
+7. Phone (ask me first): add ".brain/" to ~/Notes/.gitignore, create a PRIVATE GitHub repo "notes" with gh, add docs/notes-workflow.yml as .github/workflows/brain.yml plus phone/queue/.gitkeep, commit and push, and wait for the Action's first run to write phone/state.json. Then walk me through the phone key (README → On your phone, step 3) and give me my one-tap install link, as in the from-scratch setup. Don't save the key anywhere.
+8. Finish with a short list: what's set up, what came from which of my old notes, what I should try first, and anything that didn't work.</pre>
+    <button class="btn copy" type="button">Copy</button>
+  </div>
+
+  <h2>Or try it in 30 seconds</h2>
+  <div class="prompt">
+    <pre>git clone https://github.com/zacfink/brain.git
+cd brain
+python3 app/server.py --notes example      # opens http://127.0.0.1:4747</pre>
+    <button class="btn copy" type="button">Copy</button>
+  </div>
+  <p class="small"><code>example/</code> is a fictional student's notes. Python 3.9+, macOS, Windows and Linux.</p>
+
+  <h2>On your phone</h2>
+  <div class="phone">
+    <img src="docs/phone.png" alt="Brain's phone app on the example notes" loading="lazy">
+    <p>A home-screen app with the cover, Up next, notes to self, projects, ideas and capture. It works with your laptop off, using a private GitHub repo of yours as the backend. The setup prompt walks you through it and ends with a one-tap install link.</p>
+  </div>
+
+  <footer><a href="https://github.com/zacfink/brain/releases/latest">Release notes</a> · <a href="https://github.com/zacfink/brain">GitHub</a> · made by <a href="https://zacfinkelstein.ca">Zac Finkelstein</a></footer>
+</main>
+<script>
+document.querySelectorAll('[role=tab]').forEach(t => t.onclick = () => {
+  document.querySelectorAll('[role=tab]').forEach(o => {
+    const on = o === t;
+    o.setAttribute('aria-selected', on);
+    document.getElementById(o.getAttribute('aria-controls')).hidden = !on;
+  });
+});
+document.querySelectorAll('.copy').forEach(b => b.onclick = async () => {
+  try { await navigator.clipboard.writeText(b.previousElementSibling.textContent); b.textContent = 'Copied'; }
+  catch { b.textContent = 'Select and copy'; }
+  setTimeout(() => b.textContent = 'Copy', 1600);
+});
+</script>
+</body>
+</html>

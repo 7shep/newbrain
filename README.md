@@ -21,7 +21,7 @@ act on them.
 - **Edit in place:** every note, person and project page opens in a side panel with a live markdown preview. ⌘S saves the file.
 - **Reopen anything:** copy the command to resume a past Claude chat, open a project in VS Code, or open its live site.
 - **Map of everything:** if you've run graphify on your notes (`graphify-out/graph.json`), a Map tile draws the knowledge graph in the app's colours. Hover a dot to see its links, click to open its note, use the legend to focus one cluster, or search it: type a few letters and it suggests matching ideas and clusters, then flies to the one you pick.
-- **Themes:** six families, each with its own modes: Classic and Brain (Light, Soft light, Dark, Soft dark, or Auto to follow your system), Glass (Light, Dark or Auto: frosted "liquid glass" tiles, bars and panels floating over a soft, warm room), plus three unique ones, Phosphor, Riso and Swiss. The picker is locked to **Glass** (`LOCK` at the top of `app/theme.js`; set it to `null` to offer them all again), so **Settings** only offers its modes; with **Sync theme** on (the default, a switch on each) the other follows (shared through `claude/theme.json`), and off each keeps its own.
+- **Themes:** seven families, each with its own modes: Classic and Brain (Light, Soft light, Dark, Soft dark, or Auto to follow your system), Glass (the default: Light, Dark or Auto, frosted "liquid glass" tiles, bars and panels floating over a soft, warm room), Mac glass (Light, Dark or Auto: see-through in the Mac app, where the desktop shows through), plus three unique ones, Phosphor, Riso and Swiss. Pick one in **Settings** on either device (`LOCK` at the top of `app/theme.js` can pin the picker to one family); with **Sync theme** on (the default, a switch on each) the other follows (shared through `claude/theme.json`), and off each keeps its own.
 - **Everything we've done:** one self-contained note per session, in a full-width timeline.
 - **People & me:** your profile and contacts, in the People tile on the board.
 - **On your phone:** a home-screen app with the cover, Up next, Notes to self, projects, ideas, habits and capture. It works with your laptop off, using a private GitHub repo as the backend. [Set it up →](#on-your-phone)
@@ -93,6 +93,11 @@ design plugin for UI work. Brain is the glue: it's where the habits, the specs a
 
 ## Start from scratch (one prompt)
 
+**Pick the one that fits you:**
+- **Starting fresh** (no notes yet, or you'd rather begin clean): use the prompt right below. Claude interviews you.
+- **Already keep notes somewhere** (an Obsidian vault, a Notion or Apple Notes export, a folder of markdown): skip to
+  [From the notes you already have](#from-the-notes-you-already-have). Claude reads them instead of interviewing you.
+
 New to Brain? Paste this into [Claude Code](https://claude.com/claude-code) and answer its questions. It does every
 step below for you and ends by giving you a link to open on your phone.
 
@@ -109,7 +114,8 @@ each step is for in one line, and ask me before anything that touches my account
    If you can see my projects folder, calendar or email, use them to fill gaps, and say what you took from where.
 3. Connect yourself: follow Connect Claude Code below, merging into ~/.claude/settings.json and my CLAUDE.md
    (don't overwrite existing hooks or instructions). Then run python3 ~/Notes/.brain/build.py.
-4. Start the app with `brain` and check it opens at http://127.0.0.1:4747.
+4. Start the app with `brain` and check it opens at http://127.0.0.1:4747. On a Mac, ask me whether I want it as
+   an app; if yes, run ~/Notes/.brain/mac/build.sh (needs Xcode's command line tools) to make ~/Applications/Brain.app.
 5. Phone (ask me first): add ".brain/" to ~/Notes/.gitignore, create a PRIVATE GitHub repo "notes" with gh,
    add docs/notes-workflow.yml as .github/workflows/brain.yml plus phone/queue/.gitkeep, commit and push, and wait
    for the Action's first run to write phone/state.json.
@@ -118,6 +124,40 @@ each step is for in one line, and ask me before anything that touches my account
    {"repo":"<me>/notes","token":"<key>"}. Tell me to open it in Safari, tap Share → Add to Home Screen, and treat
    the link like a password. Don't save the key anywhere.
 7. Finish with a short list: what's set up, what I should try first, and anything that didn't work.
+```
+
+### From the notes you already have
+
+**For you if** you already keep notes in an Obsidian vault, a Notion or Apple Notes export, or any folder of
+markdown or text, and want Brain built from them. Claude only reads that folder: it never moves, edits or deletes
+anything in it, and your Brain notes go in their own `~/Notes` folder. Starting with nothing? Use the prompt above.
+
+```text
+Set up Brain (https://github.com/zacfink/brain) for me from the notes I already have. Work through it step by step,
+tell me what each step is for in one line, and ask me before anything that touches my accounts.
+
+1. Ask me where my existing notes are (an Obsidian vault, a Notion or Apple Notes export, or any folder of markdown
+   or text). Treat that folder as read-only: never move, rename, edit or delete anything in it. If it is ~/Notes
+   itself, stop and ask me where Brain's notes should go instead.
+2. Clone https://github.com/zacfink/brain.git into ~/Notes/.brain (keep anything already in ~/Notes), link
+   ~/Notes/.brain/bin/brain into ~/.local/bin (create it, and add it to my shell profile's PATH if it isn't
+   there), and read ~/Notes/.brain/README.md and FORMATS.md before going on.
+3. Skim my existing notes and tell me in a few lines what you found: active projects, people, anything due soon,
+   recurring themes. Ask me at most 3 short questions to fill gaps.
+4. Draft my Brain notes in the FORMATS.md shapes from what you found: me.md, now.md, one page per active project,
+   people pages, nudges.md, ideas.md, inbox.md and claude/habits.md (two or three habits, status "proposed").
+   After each fact, note which original file it came from. Leave out anything that looks private (passwords,
+   health, money) unless I say to include it. Show me the list of pages before writing them.
+5. Connect yourself: add the SessionStart hook from the README to ~/.claude/settings.json (merge, don't overwrite),
+   and add the README's standing instructions to my CLAUDE.md. Then run python3 ~/Notes/.brain/build.py.
+6. Start the app with `brain` and check it opens at http://127.0.0.1:4747. On a Mac, ask me whether I want it as
+   an app; if yes, run ~/Notes/.brain/mac/build.sh (needs Xcode's command line tools) to make ~/Applications/Brain.app.
+7. Phone (ask me first): add ".brain/" to ~/Notes/.gitignore, create a PRIVATE GitHub repo "notes" with gh,
+   add docs/notes-workflow.yml as .github/workflows/brain.yml plus phone/queue/.gitkeep, commit and push, and wait
+   for the Action's first run to write phone/state.json. Then walk me through the phone key (README → On your
+   phone, step 3) and give me my one-tap install link, as in the from-scratch setup. Don't save the key anywhere.
+8. Finish with a short list: what's set up, what came from which of my old notes, what I should try first, and
+   anything that didn't work.
 ```
 
 ## Try it (30 seconds)
@@ -276,6 +316,10 @@ Claude Code routine, created paused, with RemoteTrigger as its only tool.
 Each run writes `agents/<time>-<slug>.md` (queued, running, then done or failed), so the state survives a restart. The
 runner's tests use a fake `claude`, so they're free: `python3 -m unittest discover -s tests`.
 
+## As a Mac app (optional)
+
+`mac/build.sh` builds `~/Applications/Brain.app`: Brain in its own window, starting the server if it isn't running. With the **Mac glass** theme the window is see-through macOS blur, so your desktop shows behind frosted tiles. Needs Xcode's command line tools.
+
 ## On your phone
 
 <img src="docs/phone.png" width="300" align="right" alt="Brain's phone app on the example notes: cover story, Up next and Notes to self">
@@ -374,6 +418,10 @@ overwrite Claude's changes.
 
 Your notes folder will likely hold contacts and personal details. Keep it out of public repos, and keep the notes
 repo private if you use the phone app. The phone's key can reach only that one repo.
+
+A custom tile's `refresh:` command runs only if that exact command is a line in `~/.config/brain/refresh-allow` on
+your Mac. That file is never synced: tiles arrive by git pull, so anyone who could push to your notes repo (the
+phone's key can) could otherwise run commands on your computer. Any other tile shows "Not refreshing".
 
 ## Notes
 

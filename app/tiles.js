@@ -5,10 +5,10 @@
 (function () {
 const ROW = 28, GAP = 14, U = ROW + GAP, need = px => Math.max(1, Math.ceil(px / U));
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const ICONS = { doc: '<path d="M6 3h9l4 4v14H6z"/>', cal: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>', bell: '<path d="M6 8a6 6 0 1112 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"/>',
+const ICONS = { music: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>', doc: '<path d="M6 3h9l4 4v14H6z"/>', cal: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>', bell: '<path d="M6 8a6 6 0 1112 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"/>',
   bot: '<rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 3v4M9 12h.01M15 12h.01"/>', ppl: '<circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6"/>', case: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5h6v2"/>',
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', fold: '<path d="M3 7h6l2 2h10v10H3z"/>', bulb: '<path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z"/>',
-  fire: '<path d="M12 3s5 5 5 10a5 5 0 01-10 0c0-3 2-4 2-4s0 3 3 3c0-4 0-9 0-9z"/>', inbox: '<path d="M3 13l3-8h12l3 8v6H3zM3 13h5l1 3h6l1-3h5"/>',
+  chart: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 6-7"/>', fire: '<path d="M12 3s5 5 5 10a5 5 0 01-10 0c0-3 2-4 2-4s0 3 3 3c0-4 0-9 0-9z"/>', inbox: '<path d="M3 13l3-8h12l3 8v6H3zM3 13h5l1 3h6l1-3h5"/>',
   aim: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/>', map: '<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="8" r="2.5"/><circle cx="10" cy="18" r="2.5"/><path d="M8 7l8 1M7.5 8l2 8"/>', spark: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/>',
   kit: '<rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><path d="M17 13v8M13 17h8"/>' };
 const LEGEND = ["--accent", "--good", "--info", "--bad", "--muted", "--extra"];
@@ -25,7 +25,10 @@ function items(S, o) {
   const all = {}, mk = (key, title, icon, score, x) => all[key] = Object.assign({ key, title, icon, score, count: 0, summary: "", spot: null, rows: [], events: null, hero: null, cleared: false, days: null, legend: null, why: "" }, x);
 
   // Up next
-  const up = (S.now && S.now.upcoming || []).filter(u => { const d = dd(u.date); return d === null || d >= 0; })
+  // today's timed ones drop off once their time has passed (only against the real clock: tests pin `today`)
+  const local = new Date(), hm = today === `${local.getFullYear()}-${String(local.getMonth() + 1).padStart(2, "0")}-${String(local.getDate()).padStart(2, "0")}`
+    ? `${String(local.getHours()).padStart(2, "0")}:${String(local.getMinutes()).padStart(2, "0")}` : null;
+  const up = (S.now && S.now.upcoming || []).filter(u => { const d = dd(u.date); return d === null || d > 0 || (d === 0 && !(hm && /^\d{1,2}:\d{2}$/.test(u.time || "") && u.time.padStart(5, "0") < hm)); })
     .sort((a, b) => String(a.date).localeCompare(String(b.date)));
   const events = up.map(u => [rel(u.date) + (u.time ? " " + u.time : ""), u.title || "", u.detail || ""]);
   const d0 = up.length ? dd(up[0].date) : null, nToday = up.filter(u => dd(u.date) === 0).length;
@@ -49,13 +52,25 @@ function items(S, o) {
     spot: running ? [running.topic, running.interrupted ? "Recover session" : "Study timer running"] : null,
     rows: studied.slice(-5).reverse().map(s => [s.course, s.topic]) });
 
-  // People waiting: VIP right now is whoever's follow-up names today, else whoever has waited longest
-  const md = new Date(T).toLocaleDateString("en", { month: "short", day: "numeric", timeZone: "UTC" });
-  const ppl = (S.people || []).filter(p => p.meta && p.meta.follow_up).sort((a, b) => String(a.title).localeCompare(String(b.title)));
-  const vip = ppl.find(p => p.meta.follow_up.includes(today) || p.meta.follow_up.includes(md))
-    || ppl.slice().sort((a, b) => String(a.meta.last_contact || "").localeCompare(String(b.meta.last_contact || "")))[0];
-  mk("people", "People waiting", "ppl", Math.min(78, 10 * ppl.length), { count: ppl.length, cleared: !ppl.length, why: `${ppl.length} follow-up${ppl.length === 1 ? "" : "s"}`,
-    summary: `${ppl.length} ${ppl.length === 1 ? "person" : "people"} with something open.`, rows: ppl.map(p => [p.title, p.meta.follow_up]), spot: vip ? [vip.title, vip.meta.follow_up] : null });
+  // People waiting: a follow-up's first date decides it. Past or today = due, later = parked until then (not counted),
+  // no date = waiting since last contact. Due first (latest first), then waiting (longest first), then parked (soonest).
+  const MON = "janfebmaraprmayjunjulaugsepoctnovdec";
+  const when = f => {
+    const iso = f.match(/\d{4}-\d{2}-\d{2}/), m = f.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})\b/i);
+    if (iso && (!m || f.indexOf(iso[0]) < f.indexOf(m[0]))) return iso[0];
+    if (!m) return null;
+    const y = +today.slice(0, 4), at = yr => `${yr}-${String(MON.indexOf(m[1].toLowerCase()) / 3 + 1).padStart(2, "0")}-${m[2].padStart(2, "0")}`;
+    return dd(at(y)) < -180 ? at(y + 1) : at(y);  // "Jan 5" written in December means next year
+  };
+  const ppl = (S.people || []).filter(p => p.meta && p.meta.follow_up).map(p => {
+    const w = when(p.meta.follow_up), d = w ? dd(w) : null, lc = p.meta.last_contact ? dd(p.meta.last_contact) : null;
+    const tag = d === null ? (lc === null ? "waiting" : `waiting ${-lc}d`) : d < 0 ? `${-d}d late` : d === 0 ? "today" : `on ${day(w)}`;
+    return { p, d, lc, tag, rank: d === null ? 1 : d <= 0 ? 0 : 2 };
+  }).sort((a, b) => a.rank - b.rank || (a.rank === 2 ? a.d - b.d : a.rank === 0 ? a.d - b.d : (a.lc ?? 0) - (b.lc ?? 0)));
+  const nDue = ppl.filter(x => x.rank === 0).length, nWait = ppl.filter(x => x.rank === 1).length, nLater = ppl.length - nDue - nWait, vip = ppl[0];
+  mk("people", "People waiting", "ppl", Math.min(78, 10 * (nDue + nWait) + 15 * nDue), { count: nDue + nWait, cleared: !(nDue + nWait), why: nDue ? `${nDue} due` : `${nWait} waiting`,
+    summary: [nDue && `${nDue} due`, nWait && `${nWait} waiting on a reply`, nLater && `${nLater} later`].filter(Boolean).join(" · ") || "Nobody waiting.",
+    rows: ppl.map(x => [x.p.title, `${x.tag} · ${x.p.meta.follow_up}`]), spot: vip && vip.rank < 2 ? [vip.p.title, `${vip.tag} · ${vip.p.meta.follow_up}`] : null });
 
   // Internships
   const ins = S.internships || [], g = k => ins.filter(r => r.group === k);
@@ -66,7 +81,7 @@ function items(S, o) {
   // Replies come from the tracker's "Heard back?" column (the Agents tile's Check replies fills it); a reply outranks a deadline.
   const replied = ins.filter(r => r.reply_kind === "replied").sort((a, b) => (b.reply_date || "").localeCompare(a.reply_date || ""));
   const rejected = ins.filter(r => r.reply_kind === "rejected").length, heard = replied.length || rejected ? ` Heard back: ${replied.length} replied, ${rejected} rejected.` : "";
-  mk("intern", "Internships", "case", Math.min(80, 10 + 15 * soon.length + 25 * replied.length), { count: ins.length, cleared: !ins.length,
+  mk("intern", "Internships", "case", Math.min(80, 10 + 15 * soon.length + 25 * replied.length), { count: live.length, cleared: !ins.length,
     why: replied.length ? `${replied.length} replied` : `${soon.length} due this week`,
     summary: `${g("applied").length} applied, ${g("apply").length} to apply, ${g("check").length} to check.${heard}`,
     rows: [...g("apply"), ...g("check")].sort((a, b) => (a.group === b.group ? 0 : a.group === "apply" ? -1 : 1) || iso(a).localeCompare(iso(b))).map(r => [r.company, `${r.group} · ${r.deadline || "—"}`]),
@@ -79,7 +94,7 @@ function items(S, o) {
   const dueTxt = n => { const d = due(n); return d === null ? "" : d < 0 ? `${-d}d overdue` : d === 0 ? "today" : `in ${d}d`; };
   mk("nudges", "Notes to self", "bell", Math.min(90, 15 * late.length + 5 * open.length), { count: open.length, cleared: !open.length, why: late.length ? `${late.length} overdue` : `${open.length} open`,
     summary: `${open.length} thing${open.length === 1 ? "" : "s"} you told yourself to do${late.length ? `, ${late.length} overdue` : ""}.`,
-    rows: open.map(n => [n.title, dueTxt(n)]), spot: late[0] ? [late[0].title, dueTxt(late[0])] : open[0] ? [open[0].title, dueTxt(open[0]) || "open"] : null });
+    rows: open.map(n => [n.title, dueTxt(n)]), spot: (n => n ? [n.title, dueTxt(n) || "open"] : null)(late[0] || open.filter(n => due(n) !== null).sort((a, b) => due(a) - due(b))[0] || open[0]) });
 
   // Claude's agents: never "all clear"; with no runs it offers to start one
   const runs = (S.agents || []).slice().sort((a, b) => String(b.queued || "").localeCompare(String(a.queued || "")));
@@ -128,15 +143,25 @@ function items(S, o) {
 
   // How well Claude knows you: only once Claude has logged bets (claude/predictions.md)
   const pr = S.predictions;
-  if (pr && pr.n) mk("knows", "How well Claude knows you", "aim", 6, { count: pr.score, why: `${pr.n} bets`, summary: `Says ${pr.avg_conf}% sure, right ${pr.hit_rate}%.` });
+  if (pr && pr.n) mk("knows", "How well Claude knows you", "aim", 6, { small: true, count: pr.score, why: `${pr.n} bets`, summary: `Says ${pr.avg_conf}% sure, right ${pr.hit_rate}%.` });
 
   // Map: only when the page has a graph summary {nodes, links, legend:[[name,count]]}
   const gs = o.graphSummary;
-  if (gs) mk("map", "Map", "map", 8, { count: gs.nodes || 0, legend: (gs.legend || []).slice(0, 6), why: `${gs.nodes || 0} notes · ${gs.links || 0} links`, summary: `${gs.nodes || 0} notes` });
+  if (gs) mk("map", "Map", "map", 8, { count: gs.nodes || 0, legend: (gs.legend || []).slice(0, 5), why: `${gs.nodes || 0} notes · ${gs.links || 0} links`, summary: `${gs.nodes || 0} notes` });
 
   // Inbox. ponytail: spec only scores the empty inbox (1); a full one gets 20 until it's tuned
   const inbox = (S.inbox || []).map(l => { const p = String(l).split(" · "); return p.length >= 3 ? [p.slice(2).join(" · "), p[1]] : [String(l), ""]; });
   mk("inbox", "Inbox", "inbox", inbox.length ? 20 : 1, { count: inbox.length, cleared: !inbox.length, why: inbox.length ? `${inbox.length} to file` : "empty", summary: `${inbox.length} to file.`, rows: inbox });
+
+  // Decisions to re-check: only while some check-by date has arrived; opens the oldest one's project page
+  const dec = S.decisions || [];
+  if (dec.length) mk("decisions", "Decisions to re-check", "aim", 30 + 10 * dec.length, { count: dec.length, path: dec[0].path, why: `${dec.length} past check-by`,
+    summary: `${dec.length} decision${dec.length === 1 ? "" : "s"} to re-check.`, rows: dec.map(d => [d.what, `since ${d.check_by.slice(5)}`]), spot: [dec[0].what, `check-by ${dec[0].check_by}`] });
+
+  // Custom tiles: one per tiles/*.md, opened as that note
+  // the big number is the tile's own `count:` when it sets one (a price, a temperature), else how many rows it has, else nothing
+  (S.tiles || []).forEach(t => mk("t:" + t.slug, t.title, ICONS[t.icon] ? t.icon : "doc", 20, { count: t.count || t.rows.length || "", path: t.path,
+    why: `${t.rows.length} item${t.rows.length === 1 ? "" : "s"}`, summary: t.summary || (t.rows[0] ? t.rows[0][0] : "Nothing yet."), rows: t.rows, body: t.body || "", spot: t.rows[0] || null }));
 
   // Cover last: it scores 90 when nothing else is due
   const n = S.now || {}, proj = (S.projects || []).find(p => p.slug === n.project);
@@ -147,7 +172,12 @@ function items(S, o) {
   mk("cover", S.issue ? `Issue ${S.issue}` : "Cover", "doc", quiet ? 90 : 80, { count: S.issue || "", summary: head.replace(/\*/g, ""), why: "today's cover",
     hero: { headline: head, side, dek: n.dek || "", acts } });
 
-  return ORDER.filter(k => all[k]).sort((a, b) => all[b].score - all[a].score || ORDER.indexOf(a) - ORDER.indexOf(b)).map(k => all[k]);
+  const rank = k => ORDER.includes(k) ? ORDER.indexOf(k) : ORDER.length;  // custom tiles sort after the built-ins on a tie
+  const auto = Object.keys(all).sort((a, b) => all[b].score - all[a].score || rank(a) - rank(b));
+  // A saved order (tiles he moved, claude/layout.json) wins over the scores; tiles it doesn't name follow in score order.
+  // Tiles he hid in Settings (claude/layout.json "hidden") stay off the board on both; o.all keeps them, for that list.
+  const saved = (S.layout || []).filter(k => all[k]), hid = new Set(o.all ? [] : S.hidden || []);
+  return [...saved, ...auto.filter(k => !saved.includes(k))].filter(k => !hid.has(k)).map(k => all[k]);
 }
 
 // ---------- templates: shapes true to what an item holds, each part sized to its text ----------
@@ -190,6 +220,7 @@ function templates(it, rank, cols, colW, o) {
     const T = [[P(0, 0, W(5), hh(5), "head"), P(0, hh(5), W(3), lr, "list")], [P(0, 0, W(3), hh(3), "head"), P(0, hh(3), W(4), lr, "list")], [P(0, 0, W(4), hh(4), "head"), P(0, hh(4), W(4), lr, "list")], [P(0, 0, W(4), hh(4), "head"), P(1, hh(4), W(3), lr, "list")]];
     return s >= 35 ? T : T.slice(1);
   }
+  if (it.small) return [[P(0, 0, W(2), B, "big")]];  // a glance-only number: the smallest shape
   return it.days ? [[P(0, 0, W(3), need(140), "big")]] : n ? [[P(0, 0, W(3), need(230), "big")], [P(0, 0, W(4), need(190), "big")]] : [[P(0, 0, W(2), B, "big")], [P(0, 0, W(3), B, "big")]];
 }
 
@@ -223,7 +254,7 @@ function solve(list, cols, colW, o) {
   let best = null;
   for (let trial = 0; trial < 700; trial++) {
     const order = list.map((it, i) => ({ key: it.key, rank: i }));
-    for (let i = 1; i < order.length - 1; i++) if (rand() < .25) [order[i], order[i + 1]] = [order[i + 1], order[i]];
+    if (!(o && o.fixed)) for (let i = 1; i < order.length - 1; i++) if (rand() < .25) [order[i], order[i + 1]] = [order[i + 1], order[i]];  // a saved order stays as he set it
     const pick = {}, vi = {};
     for (const it of list) { const v = variants[it.key], c = trial === 0 ? v[0] : v[Math.floor(rand() * v.length)]; pick[it.key] = c.tp; vi[it.key] = c.ti; }
     const res = place(order, pick, cols);
@@ -387,8 +418,10 @@ function countdown(ms) {
   const s = Math.max(0, Math.floor(ms / 1000)), d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), p = n => String(n).padStart(2, "0");
   return d ? `${d}d ${h}h ${p(m)}m ${p(s % 60)}s` : h ? `${h}h ${p(m)}m ${p(s % 60)}s` : `${m}m ${p(s % 60)}s`;
 }
+// moveTo(keys, from, to) -> the order with `from` taken out and put where `to` was (a tile dropped on another)
+const moveTo = (keys, from, to) => { const k = keys.filter(x => x !== from), i = k.indexOf(to); if (i < 0) return keys; k.splice(keys.indexOf(from) < keys.indexOf(to) ? i + 1 : i, 0, from); return k; };
 const colsFor = w => w >= 1500 ? 12 : w >= 1100 ? 10 : w >= 800 ? 8 : w >= 560 ? 6 : 4;
-const API = { colsFor, nextUp, countdown, fit, strip, items, templates, solve, outline, renderPart, renderBlock, esc, ICONS, ROW, GAP };
+const API = { moveTo, colsFor, nextUp, countdown, fit, strip, items, templates, solve, outline, renderPart, renderBlock, esc, ICONS, ROW, GAP };
 if (typeof window !== "undefined") window.BrainTiles = API;
 if (typeof module !== "undefined" && module.exports) module.exports = API;
 })();

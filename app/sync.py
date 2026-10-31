@@ -130,16 +130,27 @@ class Sync:
         return sorted(p for p in set(now) | set(before) if now.get(p, "clean") != before.get(p, "clean"))
 
     def commit(self, files, message):
-        """Commit just these notes files (paths relative to the notes folder), then push in the background."""
+        """Commit just these notes files (paths relative to the notes folder), then push in the background.
+        Returns False if git refused (say another git holds .git/index.lock), so the caller can keep them for next time."""
         files = sorted({f for f in files if f and os.path.exists(os.path.join(self.notes, f))})
         if not self.enabled() or not files:
-            return
+            return True
         with self.lock:
-            self._git("add", "--", *files)
-            if self._git("diff", "--cached", "--quiet", "--", *files).returncode == 0:
-                return  # nothing actually changed
-            self._git("commit", "--quiet", "-m", message, "--", *files)
+            try:
+                add = self._git("add", "--", *files)
+                if add.returncode == 0 and self._git("diff", "--cached", "--quiet", "--", *files).returncode == 0:
+                    return True  # nothing actually changed
+                done = add if add.returncode else self._git("commit", "--quiet", "-m", message, "--", *files)
+            except subprocess.TimeoutExpired:
+                self.error = "Brain couldn't save your change to git (it timed out). It will retry on the next change."
+                return False
+            if done.returncode:
+                msg = (done.stderr or done.stdout).strip().splitlines()
+                self.error = "Brain couldn't save your change to git: " + (msg[0] if msg else "git failed") + ". It will retry on the next change."
+                return False
+            self.error = None
         threading.Thread(target=self.push, daemon=True).start()
+        return True
 
     def push(self):
         with self.lock:

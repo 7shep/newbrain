@@ -204,10 +204,11 @@ ACTIONS = {
     "habit": server.act_habit,
     "habit-new": server.act_habit_new,
     "daily": server.act_daily,
+    "layout": server.act_layout,  # tiles he moved or hid on the phone; the Mac uses the same
     "theme": server.act_theme,  # "Sync theme with Mac" on: the phone's pick becomes the shared one
 }
 # What the phone shows. Sessions and the note list stay on the Mac.
-KEEP = ("today", "issue", "streak", "now", "me", "people", "nudges", "habits", "projects", "ideas", "ideas_closed", "inbox", "agents", "predictions", "internships", "routines", "theme", "graph", "daily", "study")
+KEEP = ("today", "issue", "streak", "now", "me", "people", "nudges", "habits", "projects", "ideas", "ideas_closed", "inbox", "agents", "predictions", "internships", "routines", "theme", "graph", "daily", "study", "tiles", "decisions", "layout", "hidden")
 
 
 def apply_queue():

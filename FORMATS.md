@@ -189,3 +189,12 @@ from the lighter remaining days of the Monday–Sunday week, counting completed 
 tasks in earlier daily files. Missing days are not treated as completed workouts.
 A `Plan: ...` paragraph in the daily file explains estimates and stale calendar data;
 the daily API returns it as optional `plan_note`. Checklist operations preserve it.
+
+**Decisions stay fresh.** Under a project's `## Key decisions`, each decision is one dated line, and may end with
+`check-by: YYYY-MM-DD`: the day it should be re-checked against reality. From that day it shows on Brain's
+"Decisions to re-check" tile and in Claude's session-start context, until Claude re-verifies it with you and bumps
+the date. A decision that gets replaced moves (not deleted) to `## Superseded decisions` as
+`- ~~old line~~ (superseded by YYYY-MM-DD)`, so history stays but nobody acts on it as current.
+
+    ## Key decisions
+    - 2026-10-02: Brain keeps its one-page dashboard. check-by: 2026-12-01

@@ -25,7 +25,43 @@
           ".brain/mobile/index.html"
         ],
         "createdAt": "2026-10-08T21:58:52.135Z",
-        "reason": "only hit is the markdown blockquote rule in the note reader (.md blockquote, since 2026-09-27), not a card accent"
+        "reason": "Claude: only hit is the markdown blockquote rule in the note reader (.md blockquote, since 2026-09-27), not a card accent"
+      },
+      {
+        "rule": "layout-transition",
+        "value": "*",
+        "files": [
+          "app/index.html"
+        ],
+        "createdAt": "2026-10-22T19:07:49.799Z",
+        "reason": "Claude, brain-polish 2026-10-22: the .island morph and the .page grow-from-tile are deliberate size morphs; reduced motion is covered by the global block"
+      },
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "*",
+        "files": [
+          "app/index.html"
+        ],
+        "createdAt": "2026-10-22T19:07:49.868Z",
+        "reason": "Claude, brain-polish 2026-10-22: .themes .pv i is a mini mockup of a tile in the theme picker; the top accent bar is the swatch"
+      },
+      {
+        "rule": "layout-transition",
+        "value": "*",
+        "files": [
+          "mobile/index.html"
+        ],
+        "createdAt": "2026-10-22T19:23:24.808Z",
+        "reason": "Claude, brain-polish 2026-10-22: phone mirrors desktop: page-dot grow (6px), island morph and page grow-from-tile are deliberate size morphs; reduced-motion block covers them"
+      },
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "*",
+        "files": [
+          "mobile/index.html"
+        ],
+        "createdAt": "2026-10-22T19:23:24.885Z",
+        "reason": "Claude, brain-polish 2026-10-22: .tpick .pv i is the theme-picker's mini tile mockup; the top bar is the accent swatch"
       }
     ]
   }

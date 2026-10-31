@@ -8,9 +8,10 @@
     phosphor: { label: "Phosphor", wild: true, modes: { green: "Green", amber: "Amber" } },
     riso: { label: "Riso", wild: true, modes: { paper: "Paper", ink: "Ink" }, auto: ["paper", "ink"] },
     swiss: { label: "Swiss", wild: true, modes: { light: "Light", dark: "Dark" }, auto: ["light", "dark"] },
+    macglass: { label: "Mac glass", modes: { light: "Light", dark: "Dark" }, auto: ["light", "dark"] },  // see-through in Brain.app
   };
   // Locked to one family: every pick resolves to it and the pickers only offer it (and its modes). null unlocks.
-  const LOCK = "glass";
+  const LOCK = null;
   const DARK = new Set(["dark", "softdark", "green", "amber", "ink"]);
   const LEGACY = { dark: "classic/dark", light: "classic/light", soft: "classic/softlight" };
   const sysLight = matchMedia("(prefers-color-scheme: light)");
