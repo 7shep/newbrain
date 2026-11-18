@@ -21,3 +21,6 @@ personal-notes/
 
 # Voice controls: separate repo (github.com/7shep/voice-controls), cloned here
 voice-controls/
+
+# YouTube channel working files (media, renders, edits); notes live in personal-notes/youtube/
+/youtube/
